@@ -1,0 +1,5 @@
+new_creds.json
+refresh.json
+**/.mypy_cache
+venv
+**/__pycache__
