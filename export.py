@@ -39,7 +39,6 @@ EXCEL_FILES_FOLDER_NAME = "AUTOMATED GTFS_GENERATION"
 
 
 def get_credentials() -> Optional[Credentials]:
-
     creds = None
     if os.path.exists(CREDENTIALS_PATH):
         creds = Credentials.from_authorized_user_file(CREDENTIALS_PATH)
@@ -170,6 +169,8 @@ def download_folder(output_path:str, file_bytes, service) -> None:
                 break
             except HttpError as httpe:
                 print(httpe.error_details)
+
+
 
 
 if __name__ == "__main__":
