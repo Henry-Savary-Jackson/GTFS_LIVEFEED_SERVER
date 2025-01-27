@@ -130,26 +130,26 @@ def validate_gtfs(logs,zipfile_path, result_path):
                 f"file://{result_path}/report.html", autoraise=True
             )
 
-def getRoutesDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "Routes")
+def getRoutesDataFrame(excel_file):
+    return pd.read_excel(excel_file, "Routes")
 
-def getStopsDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "Stops")
+def getStopsDataFrame(excel_file):
+    return pd.read_excel(excel_file, "Stops")
 
-def getServicesDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "Services")
+def getServicesDataFrame(excel_file):
+    return pd.read_excel(excel_file, "Services")
 
-def getShapesDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "Shapes")
+def getShapesDataFrame(excel_file):
+    return pd.read_excel(excel_file, "Shapes")
 
-def getAgencyDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "AgencyInfo")
+def getAgencyDataFrame(excel_file):
+    return pd.read_excel(excel_file, "AgencyInfo")
 
-def getFeedInfoDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "FeedInfo")
+def getFeedInfoDataFrame(excel_file):
+    return pd.read_excel(excel_file, "FeedInfo")
 
-def getCalendarDaysDataFrame():
-    return pd.read_excel(EXCEL_FILENAME, "CalendarDays")
+def getCalendarDaysDataFrame(excel_file):
+    return pd.read_excel(excel_file, "CalendarDays")
 
 def getStops(stops_df):
     return set(stops_df["stop_id"])
@@ -204,29 +204,23 @@ def add_schedule(sheet_name, stoptime_df:pd.DataFrame, trip_df, route_id, servic
         raise e
 
 
-def main(logs):
-    global EXCEL_FILENAME
-    EXCEL_FILENAME = askopenfilename(filetypes=[("Excel files", "*.xlsx")])
-    if not EXCEL_FILENAME:
-        return
-    global EXPORT_GTFS_ZIP_LOCATION 
-    filetypes_saveas= [("Zip file", "*.zip")]
-    EXPORT_GTFS_ZIP_LOCATION  = asksaveasfilename(filetypes=filetypes_saveas, defaultextension=filetypes_saveas)
-
+def generate_gtfs_zip(excel_file):
+    export_location = os.path.normpath(f"{FILE_PATH}/../static/gtfs.zip")
     trip_df = pd.DataFrame(columns=["route_id", "service_id", "trip_id", "trip_headsign", "shape_id"])
     stop_time_df= pd.DataFrame(columns=["trip_id", "arrival_time", "departure_time", "stop_id","stop_sequence"])
-    routes_df = getRoutesDataFrame()
-    services_df = getServicesDataFrame()
-    shapes_df = getShapesDataFrame()
-    agency_df =getAgencyDataFrame()
-    calendar_days_df = getCalendarDaysDataFrame()
-    feed_info_df = getFeedInfoDataFrame()
-    stops_df = getStopsDataFrame()
+    routes_df = getRoutesDataFrame(excel_file)
+    services_df = getServicesDataFrame(excel_file)
+    shapes_df = getShapesDataFrame(excel_file)
+    agency_df =getAgencyDataFrame(excel_file)
+    calendar_days_df = getCalendarDaysDataFrame(excel_file)
+    feed_info_df = getFeedInfoDataFrame(excel_file)
+    stops_df = getStopsDataFrame(excel_file)
     stops = getStops(stops_df)
     routes = getRoutes(routes_df)
     services = getServices(services_df)
     shapes = getShapes(shapes_df)
-    workbook = openpyxl.load_workbook(EXCEL_FILENAME)
+    ## in binary mode right?
+    workbook = openpyxl.load_workbook(excel_file)
 
     directory = workbook["Directory"]
     for route in directory.iter_cols():
@@ -259,6 +253,17 @@ def main(logs):
 
     validate_gtfs(logs,EXPORT_GTFS_ZIP_LOCATION, os.path.normpath(f"{os.path.dirname(__file__)}/result"))
 
+
+def main(logs):
+    global EXCEL_FILENAME
+    EXCEL_FILENAME = askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+    if not EXCEL_FILENAME:
+        return
+    global EXPORT_GTFS_ZIP_LOCATION 
+    filetypes_saveas= [("Zip file", "*.zip")]
+    EXPORT_GTFS_ZIP_LOCATION  = asksaveasfilename(filetypes=filetypes_saveas, defaultextension=filetypes_saveas)
+
+    
 def get_sheet_name_from_hyperlink(link):
     if link.startswith("#"):
         link =  link.split("#")[1].split("!")[0]
