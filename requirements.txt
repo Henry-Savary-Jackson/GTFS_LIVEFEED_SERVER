@@ -1,0 +1,9 @@
+pandas
+openpyxl
+flask
+flask-protobuf
+gtfs-realtime-bindings
+flask-login
+flask-wtf
+flask-sqlalchemy
+python-dotenv

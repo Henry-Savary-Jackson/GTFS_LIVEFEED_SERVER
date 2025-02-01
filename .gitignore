@@ -3,5 +3,10 @@ refresh.json
 **/.mypy_cache
 **/venv
 **/.venv
-
+**.env
 **/__pycache__
+**/*.xlsx
+**/**.sqlite
+**/**.sqlite3
+instance
+**/**.db

@@ -1,0 +1,89 @@
+{
+    "summary": {
+        "validatorVersion": "6.0.0",
+        "validatedAt": "2025-01-28T22:04:11+02:00",
+        "gtfsInput": "file:///home/hsj/Desktop/PROJECTS/PRASA-GTFS-PROJECT/PRASA-GTFS/lol.zip",
+        "threads": 1,
+        "outputDirectory": "/home/hsj/Desktop/PROJECTS/PRASA-GTFS-PROJECT/PRASA-GTFS/make_gtfs/result",
+        "systemErrorsReportName": "system_errors.json",
+        "validationReportName": "report.json",
+        "htmlReportName": "report.html",
+        "countryCode": "ZZ",
+        "dateForValidation": "2025-01-28",
+        "feedInfo": {
+            "publisherName": "Prasa",
+            "publisherUrl": "https://linktr.ee/PRASA.WC",
+            "feedLanguage": "English",
+            "feedStartDate": "2025-01-01",
+            "feedEndDate": "2026-12-01",
+            "feedEmail": "hsavaryjackson@gmail.com",
+            "feedServiceWindowStart": "2024-01-01",
+            "feedServiceWindowEnd": "2025-02-16"
+        },
+        "agencies": [
+            {
+                "name": "Prasa",
+                "url": "https://www.prasa.com",
+                "phone": "\"+27 11 013 6700\"",
+                "email": "info@prasa.com"
+            }
+        ],
+        "files": [
+            "agency.txt",
+            "calendar.txt",
+            "calendar_dates.txt",
+            "feed_info.txt",
+            "routes.txt",
+            "shapes.txt",
+            "stop_times.txt",
+            "stops.txt",
+            "trips.txt"
+        ],
+        "validationTimeSeconds": 0.687587098,
+        "memoryUsageRecords": [
+            {
+                "key": "GtfsFeedLoader.loadTables",
+                "totalMemory": 262144000,
+                "freeMemory": 171299672,
+                "maxMemory": 4034920448,
+                "diffMemory": 29230472
+            },
+            {
+                "key": "GtfsFeedLoader.executeMultiFileValidators",
+                "totalMemory": 262144000,
+                "freeMemory": 161938840,
+                "maxMemory": 4034920448,
+                "diffMemory": -9360832
+            },
+            {
+                "key": "org.mobilitydata.gtfsvalidator.table.GtfsFeedLoader.loadAndValidate",
+                "totalMemory": 262144000,
+                "freeMemory": 161938840,
+                "maxMemory": 4034920448,
+                "diffMemory": 19869640
+            },
+            {
+                "key": "ValidationRunner.run",
+                "totalMemory": 262144000,
+                "freeMemory": 158686536,
+                "maxMemory": 4034920448,
+                "diffMemory": -83740728
+            }
+        ],
+        "counts": {
+            "Shapes": 27,
+            "Stops": 104,
+            "Routes": 6,
+            "Trips": 392,
+            "Agencies": 1,
+            "Blocks": 0
+        },
+        "gtfsFeatures": [
+            "Shapes",
+            "Feed Information",
+            "Route Colors",
+            "Headsigns"
+        ]
+    },
+    "notices": []
+}

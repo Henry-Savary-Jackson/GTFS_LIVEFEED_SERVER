@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+{% from "_formhelpers.html" import get_css, render_field  %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{get_css()}}
+    <title>Login</title>
+</head>
+<body>
+    <form method="post" style="display: flex;flex-direction: column; align-items: center;">
+    {{ form.hidden_tag() }}
+    {% if error is defined %}
+        <div style="color: red;text-align: center;">
+            {{error}}
+        </div>
+    {% endif %}
+    {{render_field(form.username)}}
+    {{render_field(form.password)}}
+    {{render_field(form.remember_me)}}
+    {{render_field(form.submit)}}
+    </form>
+</body>
+</html>
