@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Upload GTFS master Excel</title>
     {{get_css()}}
 </head>
 <body>
-    <form  method="post" style="display: flex;flex-direction: column; align-items: center;">
+    <form  class="container" method="post" style="display: flex;flex-direction: column; align-items: center;">
     {{ form.hidden_tag() }}
     {% if error is defined %}
     <div style="color: red;text-align: center;">

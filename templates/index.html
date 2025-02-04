@@ -1,18 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-
+{% from "_formhelpers.html" import get_css, render_field  %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    {{get_css()}}
+    <title>GTFS Server</title>
+
 </head>
 
 <body>
-    <div id="main" , style="display: flex; flex-direction: column; align-items: center;">
-
+    <div class="mk-3" style="display: flex;justify-items: center;flex-direction: column;align-items: center;" id="main" >
         <a href="/upload_gtfs">Upload GTFS file form</a>
+        <a href="/service_alert">Create Service Alert</a>
+        <a href="/trip_update">Creaste trip update</a>
+        <a href="/static/gtfs.zip">GTFS zip</a>
         <a href="/logout">Logout</a>
     </div>
+
 </body>
 
 </html>

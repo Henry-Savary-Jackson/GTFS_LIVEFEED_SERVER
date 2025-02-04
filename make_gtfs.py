@@ -125,9 +125,9 @@ def add_schedule(
         service_id, shape_id = get_metadata(excel_file, sheet_name, services, shapes)
         df_schedule = read_schedule_as_df(excel_file, sheet_name)
         df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
-
         for train_number in df_schedule:
 
+            stop_times_trip_df = pd.DataFrame(columns=stoptime_df.columns)
             trip_id = f"{service_id}-{train_number}"
             if trip_id in trip_df["trip_id"]:
                 raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_name}.")
@@ -137,7 +137,7 @@ def add_schedule(
                 if stop not in stops:
                     raise ValueError(f"Stop {stop} in sheet {sheet_name} doesnt exist.")
                 time = df_schedule[train_number].iloc[i]
-                stoptime_df = stoptime_df._append(
+                stop_times_trip_df = stop_times_trip_df._append(
                     {
                         "trip_id": trip_id,
                         "arrival_time": time,
@@ -148,6 +148,7 @@ def add_schedule(
                     },
                     ignore_index=True,
                 )
+            stoptime_df = pd.concat([stoptime_df, stop_times_trip_df])
             trip_df = trip_df._append(
                 {
                     "route_id": route_id,
@@ -241,7 +242,9 @@ def generate_gtfs_zip(excel_file, static_path):
 def add_gtfs_tables_to_db(engine:sqlalchemy.Engine, df_dict):
     for tablename in df_dict:
         df : pd.DataFrame = df_dict[tablename].dropna(axis=1, how="all").astype("str").replace("nan",pd.NA)
-        df.to_sql(tablename[:tablename.find(".")], engine ,if_exists="replace")
+        if df.empty:
+            continue
+        df.to_sql(tablename[:tablename.find(".")], engine ,if_exists="replace", index=False)
 
 
 def get_stop_name(stops_df, stop_id):

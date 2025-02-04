@@ -1,16 +1,21 @@
 import os
+from  google.protobuf.message import DecodeError, EncodeError
+from google.protobuf.json_format import ParseDict, MessageToDict
 import datetime
 from flask import Flask,request , make_response, redirect, url_for, render_template
 import argon2
 import sqlite3
 from  uuid import uuid4
 from make_gtfs import generate_gtfs_zip, has_errors, add_gtfs_tables_to_db
-from google.transit import gtfs_realtime_pb2
+from google.transit import gtfs_realtime_pb2 as gtfs_rt
 from flask_login import login_required, login_user, current_user, logout_user
 from config import * 
-from db_utils import get_user_by_username, insert_user
-from wtforms import BooleanField, StringField, PasswordField, validators, SubmitField, FileField
+from db_utils import get_user_by_username, insert_user, get_trips
+from wtforms import BooleanField, StringField,RadioField,SearchField,PasswordField, validators, SubmitField, FileField
 from flask_wtf import FlaskForm
+from protobuf_utils import delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
+
+feed_object = get_feed_object_from_file() 
 
 class GTFSFileUploadForm(FlaskForm):
     file = FileField(label="Upload GTFS file", validators=[validators.DataRequired() ])
@@ -18,11 +23,67 @@ class GTFSFileUploadForm(FlaskForm):
 
 class LoginForm(FlaskForm):
     username= StringField(label="Username", validators=[validators.DataRequired()])
-    password = PasswordField(label="Password", validators=[validators.DataRequired(), validators.Length(min=8, max=24)])
+    password = PasswordField(label="Password", validators=[validators.DataRequired() ])
     remember_me = BooleanField(label="Remember me", default=True, validators=[validators.DataRequired()])
     submit = SubmitField('Login')
 
-@app.route("/")
+class SearchTripForm(FlaskForm):
+    service = RadioField(label="Service")
+    route = RadioField(label="Route")
+    trip = SearchField(label="Search trip")
+    submit = SubmitField("Search") 
+
+    def __init__(self,routes, services ,*args,**kwargs):
+        self.service.choices=services
+        self.route.choices=routes
+        super().__init__(*args, **kwargs)
+        
+
+@app.route("/feed", methods=["GET"])
+def get_feed():
+    return feed_object.SerializeToString()
+
+
+@app.route("/trip_update", methods=["POST"])
+def trip_update():
+    try:
+        entity = gtfs_rt.FeedEntity()
+        entity.ParseFromString(request.data)
+        entity_dict = MessageToDict(entity) 
+        if not is_feed_entity_trip_update(entity_dict):
+            return "Entity is not of type TripUpdate", 400
+        verify_trip_update(entity["trip_update"])
+        save_feed_entity_to_feed(entity, feed_object)
+        save_feed_to_file(feed_object) 
+        return "Successful"
+    except DecodeError as d_err :
+        return f"Invalid Protobuf Message format:\n{d_err}",400
+
+@app.route("/service_alert", methods=["POST"])
+def service_alert():
+    try:
+        entity = gtfs_rt.FeedEntity()
+        entity.ParseFromString(request.data)
+        entity_dict = MessageToDict(entity) 
+    
+        if not is_feed_entity_alert(entity_dict):
+            return "Entity is not of type Alert", 400
+        verify_service_alert(entity_dict["alert"])
+        save_feed_entity_to_feed(entity, feed_object)
+        save_feed_to_file(feed_object) 
+        return "Successful"
+    except DecodeError as d_err :
+        return f"Invalid Protobuf Message format:\n{d_err}",400
+
+@app.route("/delete_feed_entity", methods=["DELETE"])
+@login_required
+def delete_feed_entity():
+    entity_id = request.data
+    delete_feed_entity_from_feed(entity_id, feed_object)
+    return "Successful"
+
+
+@app.route("/", methods=["GET"])
 @login_required
 def main_page():
     return render_template("index.html")
@@ -57,11 +118,12 @@ def upload_gtfs():
 @app.route("/login", methods=["GET","POST"])
 def login_endpoint():
     login_form = LoginForm()
+    print(login_form.data)
     if request.method == "POST" and login_form.validate_on_submit():
         user = get_user_by_username(login_form.data["username"])
-        print(user, user.username)
         if not user:
             return render_template("login.html", form=login_form,error="No such user") , 400
+        print(user, user.username)
         ## handle no user
         try:
             matches = password_hasher.verify(user.hash_pass, login_form.data["password"])
@@ -82,6 +144,15 @@ def logout():
 ## serve feed data
 
 ## serve user input webpages
+
+
+@app.route("/get_trips", methods=["GET"])
+def get_trips_endp():
+    service = request.args.get("service", None )
+    route = request.args.get("route", None )
+    number = request.args.get("number", None )
+    return get_trips( service, route, number) 
+
 
 ## search for trips to modify
 

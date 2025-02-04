@@ -7,3 +7,4 @@ flask-login
 flask-wtf
 flask-sqlalchemy
 python-dotenv
+pytest

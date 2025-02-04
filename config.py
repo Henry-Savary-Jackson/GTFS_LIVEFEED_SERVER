@@ -4,6 +4,7 @@ from argon2 import PasswordHasher
 from flask_login.login_manager import LoginManager
 from dotenv import load_dotenv
 import os
+from flask_protobuf import FlaskProtobuf 
 
 load_dotenv()
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
@@ -19,6 +20,11 @@ app.config['SECRET_KEY'] = os.getenv("FLASK_SECURE_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLITE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+fb = FlaskProtobuf(app, parse_dict=True) 
+
+PROTOBUF_FEED_LOCATION = "feed.bin"
+
 login_manager = LoginManager(app)
 login_manager.session_protection = "strong"
 login_manager.login_view = "login"
