@@ -1,31 +1,23 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask import Flask,request , make_response, redirect, url_for
-from argon2 import PasswordHasher
-from flask_login.login_manager import LoginManager
-from dotenv import load_dotenv
+
 import os
-from flask_protobuf import FlaskProtobuf 
+class Config(object):
+    SECRET_KEY = os.getenv("FLASK_SECURE_KEY")
+    ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+    ADMIN_PASS = os.getenv("ADMIN_PASS") 
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.getenv("DB_PATH")}"
+    GTFS_VALIDATOR_PATH=os.getenv("GTFS_VALIDATOR_PATH")
+    FEED_LOCATION = os.getenv("FEED_LOCATION")
 
-load_dotenv()
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
-ADMIN_PASS = os.getenv("ADMIN_PASS")
 
-# SQLITE_DB_PATH = os.path.normpath(f"{os.path.dirname(__file__)}/gtfs.sqlite3")
-SQLITE_DB_PATH = "gtfs.sqlite3"
+class DevConfig(Config):
+    DEBUG =True
+    FLASK_ENV = 'development'
+    TESTING = False 
+    WTF_CSRF_ENABLED = True 
+ 
 
-SQLITE_URI= f"sqlite:///{SQLITE_DB_PATH}"
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv("FLASK_SECURE_KEY") 
-app.config["SQLALCHEMY_DATABASE_URI"] = SQLITE_URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-fb = FlaskProtobuf(app, parse_dict=True) 
-
-PROTOBUF_FEED_LOCATION = "feed.bin"
-
-login_manager = LoginManager(app)
-login_manager.session_protection = "strong"
-login_manager.login_view = "login"
-password_hasher = PasswordHasher() 
+class TestConfig(Config):
+    DEBUG =False
+    FLASK_ENV = 'testing'
+    TESTING =True 
+    WTF_CSRF_ENABLED = False 

@@ -1,8 +1,8 @@
 import requests
-from google.transit import gtfs_realtime_pb2 as gtfs_rt
-from google.protobuf.json_format import ParseDict
 import os
 import dotenv
+from google.transit import gtfs_realtime_pb2 as gtfs_rt
+from google.protobuf.json_format import ParseDict
 import datetime
 from uuid import uuid4
 

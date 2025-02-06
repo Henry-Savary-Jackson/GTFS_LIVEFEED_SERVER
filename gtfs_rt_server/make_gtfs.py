@@ -3,13 +3,15 @@ import openpyxl
 import zipfile
 import sqlalchemy
 import subprocess
-import webbrowser
+from gtfs_rt_server.config import app 
 import os
 import io
 import sys
 import json
+
+GTFS_VALIDATOR_PATH = app.config["GTFS_VALIDATOR_PATH"]
+
 FILE_PATH = os.path.dirname(__file__)
-GTFS_VALIDATOR_PATH = os.path.normpath(f"{FILE_PATH}/make_gtfs_folder/gtfs-validator-6.0.0-cli.jar")
 
 def has_errors(result_path):
     report_json = json.load(open(os.path.normpath(f"{result_path}/report.json"), "r"))

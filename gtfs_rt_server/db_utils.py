@@ -1,13 +1,16 @@
-from schema import User, db
-from config import login_manager, password_hasher
+from gtfs_rt_server import db
+from gtfs_rt_server.schema import User
 from sqlalchemy import text 
 from typing import Optional
-@login_manager.user_loader
-def get_user_by_username(username) -> Optional[User]:
-    return User.query.filter_by(username=username).first()
+from argon2 import PasswordHasher
+
+def get_password_hasher():
+    return PasswordHasher()
+
+password_hasher = get_password_hasher()
 
 def insert_user(username, rawPassword):
-    user = User(username=username, hash_pass=  password_hasher.hash(rawPassword))
+    user = User(username=username, hash_pass=password_hasher.hash(rawPassword))
     try : 
         with db.session.begin() :
             db.session.add(user)
@@ -65,26 +68,30 @@ def get_services():
 def get_number_of_stoptimes(trip_id):
     with db.session.begin():
         count = db.session.execute(text("SELECT COUNT(*) FROM stop_times WHERE trip_id = :trip_id"),{"trip_id":trip_id}).fetchall()
-        return count[0]
+        return count[0][0]
 
 def get_stoptimes_of_trip(trip_id):
+    print(trip_id, "checking")
     with db.session.begin():
         stoptimes = db.session.execute(text("SELECT stop_sequence, stop_id, strftime(\'%H:%M:%S\', arrival_time) as arrival FROM stop_times WHERE trip_id = :trip_id"),{"trip_id":trip_id}).fetchall()
         return [ list(stoptime) for stoptime in stoptimes ] 
 
 def route_exists(route_id):
+    print(route_id, "checking")
     with db.session.begin():
         result = db.session.execute(text("SELECT 1 FROM routes WHERE route_id = :route_id"),{"route_id":route_id}).fetchall()
         return bool(result)
 
 def stop_exists(stop_id):
+    print(stop_id, "checking")
     with db.session.begin():
         result = db.session.execute(text("SELECT 1 FROM stops WHERE stop_id = :stop_id"),{"stop_id":stop_id}).fetchall()
         return bool(result)
 
 def stop_on_route(stop_id, route_id):
+    print(stop_id, route_id, "checking")
     with db.session.begin():
-        result = db.session.execute(text("SELECT 1 FROM stop_times WHERE stop_id = :stop_id AND route_id = :route_id"),{"stop_id":stop_id, "route_id":route_id}).fetchall()
+        result = db.session.execute(text("SELECT 1 FROM stop_times INNER JOIN trips ON stop_times.trip_id = trips.trip_id WHERE stop_id = :stop_id AND route_id = :route_id"),{"stop_id":stop_id, "route_id":route_id}).fetchall()
         return bool(result)
 
 def trip_exists(trip_id):

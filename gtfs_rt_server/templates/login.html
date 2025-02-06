@@ -9,12 +9,12 @@
 </head>
 <body>
     <form class="container" method="post" style="display: flex;flex-direction: column; align-items: center;">
-    {{ form.hidden_tag() }}
     {% if error is defined %}
         <div style="color: red;text-align: center;">
             {{error}}
         </div>
     {% endif %}
+    {{render_field(form.hidden_tag)}}
     {{render_field(form.username)}}
     {{render_field(form.password)}}
     {{render_field(form.remember_me)}}
