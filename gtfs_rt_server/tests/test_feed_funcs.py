@@ -1,9 +1,10 @@
 from gtfs_rt_server.tests.conftest import client, app, AuthActions,  do_action_logged_in
+from copy import deepcopy
 from gtfs_rt_server import db
 import os
 import random
 from google.transit import gtfs_realtime_pb2 as gtfs_rt
-from google.protobuf.json_format import ParseDict
+from google.protobuf.json_format import ParseDict, MessageToDict
 import datetime
 from gtfs_rt_server.db_utils import get_routes, get_stops, get_trips, get_stoptimes_of_trip, get_number_of_stoptimes
 from uuid import uuid4
@@ -246,3 +247,34 @@ def test_add_trip_update_no_stop_sequence(app, client):
     response = send_trip_udpate(app, client, trip_desc, stop_time_updates)
     assert response.status_code == 400
     assert "A stop time update needs the stop_sequence." == response.text
+
+def send_delete(app , client, entity_id):
+    def outer_action():
+        def action():
+            return  client.delete("/feed/delete_feed_entity", data=entity_id) 
+        return do_action_logged_in(app, client, action)
+    return do_action_with_temp_feed(app, outer_action)
+
+def test_delete_trip_exist(app, client):
+
+    feed = app.config["feed"]
+
+    entity_to_delete = random.choice(feed.entity)
+
+    response =  send_delete(app, client, entity_to_delete.id)
+
+    assert response.status_code == 200
+    assert "Successful" == response.text
+    
+    for entity in feed.entity:
+        assert entity.id != entity_to_delete.id
+
+
+def test_delete_trip_notexist(app, client):
+    feed = deepcopy( app.config["feed"])
+
+    response = send_delete(app, client, "1891hdbe2k") 
+    assert response.status_code == 200
+    assert "Successful" == response.text
+
+    assert feed.SerializeToString() == app.config["feed"].SerializeToString()

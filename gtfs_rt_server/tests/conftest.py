@@ -36,10 +36,10 @@ class AuthActions(object):
     def login(self, username='admin', password='test'):
         response =self._client.post(
             '/auth/login',
-            data={'username': username, 'password': password, "remember_me":True}
+            data={'username': username, 'password': password, "remember_me":True}, follow_redirects=True
         )
         return response
 
-    def logout(self):
-        return self._client.get('/auth/logout')
+    def logout(self, follow_redirects=True):
+        return self._client.get('/auth/logout', follow_redirects=follow_redirects)
 # test feed.bin

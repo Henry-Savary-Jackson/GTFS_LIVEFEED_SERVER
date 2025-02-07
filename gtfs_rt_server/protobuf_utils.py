@@ -51,7 +51,9 @@ def save_feed_entity_to_feed(save_entity:gtfs_rt.FeedEntity, feed: gtfs_rt.FeedM
 
 def delete_feed_entity_from_feed(entity_id:str, feed: gtfs_rt.FeedMessage):
     for i, f_entity in enumerate(feed.entity):
-        if entity.id == save_entity.id:
+        print(f_entity.id, entity_id)
+        if f_entity.id == entity_id:
+            print("deleting", f_entity.id, entity_id)
             del feed.entity[i]
 
 def verify_service_alert(alert: dict):

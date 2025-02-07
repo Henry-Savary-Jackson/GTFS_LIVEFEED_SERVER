@@ -22,7 +22,6 @@ def login_endpoint():
         user = get_user_by_username(login_form.data["username"])
         if not user:
             return render_template("login.html", form=login_form,error="No such user") , 400
-        ## handle no user
         try:
             matches = password_hasher.verify(user.hash_pass, login_form.data["password"])
             login_user(user, remember=login_form.data["remember_me"])
@@ -30,7 +29,7 @@ def login_endpoint():
             return redirect("/")
         except argon2.exceptions.VerifyMismatchError:
             return render_template("login.html",form=login_form, error="Wrong password"), 400 
-    return render_template("login.html", form=login_form)        
+    return render_template("login.html", form=login_form), 200 if  request.method != "POST" else 400        
 ## store async protobuf as blob when edited and keep cache in memory
 
 @auth_bp.get("/logout")

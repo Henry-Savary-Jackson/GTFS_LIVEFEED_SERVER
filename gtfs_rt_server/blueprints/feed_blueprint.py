@@ -63,7 +63,7 @@ def service_alert():
 def delete_feed_entity():
     feed_location = current_app.config["FEED_LOCATION"]
     feed_object = current_app.config["feed"]
-    entity_id = request.data
+    entity_id = request.data.decode()
     delete_feed_entity_from_feed(entity_id, feed_object)
-    save_feed_entity_to_feed(feed_object, feed_location)
+    save_feed_to_file(feed_object, feed_location)
     return "Successful"
