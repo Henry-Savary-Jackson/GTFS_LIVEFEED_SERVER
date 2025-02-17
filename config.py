@@ -14,6 +14,7 @@ class DevConfig(Config):
     FLASK_ENV = 'development'
     TESTING = False 
     WTF_CSRF_ENABLED = True 
+    SESSION_COOKIE_DOMAIN = False
  
 
 class TestConfig(Config):
@@ -21,3 +22,4 @@ class TestConfig(Config):
     FLASK_ENV = 'testing'
     TESTING =True 
     WTF_CSRF_ENABLED = False 
+    SESSION_COOKIE_DOMAIN = False
