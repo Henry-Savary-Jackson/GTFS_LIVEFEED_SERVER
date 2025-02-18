@@ -4,7 +4,7 @@ import { transit_realtime } from "gtfs-realtime-bindings"
 export async function getStopTimesofTrip(trip_id) {
     try {
 
-        let response = await axios.get( "/db/get_stop_times_trip", { params: { "tripid": trip_id } })
+        let response = await axios.get("/db/get_stop_times_trip", { params: { "tripid": trip_id } })
         return response.data.map((val, i) => { return { stopSequence: val[0], stopId: val[1], time: val[2] }; });
 
     } catch (error) {
@@ -24,7 +24,7 @@ export async function getTrips(route = undefined, service = undefined, number = 
         if (number)
             params.number = number
 
-        let response = await axios.get( "/db/get_trips", { params: { "route": route, "service": service, "number": number } })
+        let response = await axios.get("/db/get_trips", { params: { "route": route, "service": service, "number": number } })
         return response.data;
 
     } catch (error) {
@@ -70,7 +70,7 @@ export async function getRoutes() {
 export async function getFeedMessage() {
     let response = {}
     try {
-        response = await axios.get("/feed", {responseType:"arraybuffer"})
+        response = await axios.get("/feed", { responseType: "arraybuffer" })
     } catch (error) {
         alert("Error fetching feed!")
         console.error(error);
@@ -86,23 +86,39 @@ export async function getFeedMessage() {
 
 export async function sendTripUpdate(trip_update) {
     try {
-        let result =transit_realtime.FeedEntity.verify(trip_update) 
+        let result = transit_realtime.FeedEntity.verify(trip_update)
         if (result)
-            throw new Error(result) 
-        console.log(transit_realtime.FeedEntity.encode(trip_update).finish())
-        await axios.post("/feed/trip_update",  transit_realtime.FeedEntity.encode(trip_update).finish() ,{ withCredentials: true })
+            throw new Error(result)
+
+        let data = transit_realtime.FeedEntity.encode(trip_update).finish()
+        console.log(data)
+        console.log(transit_realtime.FeedEntity.decode(data))
+
+        await axios.post("/feed/trip_update", data.slice().buffer, {
+            withCredentials: true, headers: {
+                'Content-Type': 'application/x-protobuf'
+            }
+        })
     } catch (error) {
         console.error(error);
     }
 }
 export async function sendServiceAlert(service_alert) {
     try {
-        
-        let result =transit_realtime.FeedEntity.verify(service_alert) 
+
+        let result = transit_realtime.FeedEntity.verify(service_alert)
         if (result)
-            throw new Error(result) 
-        console.log(transit_realtime.FeedEntity.encode(service_alert).finish())
-        await axios.post("/feed/service_alert",transit_realtime.FeedEntity.encode(service_alert).finish()  ,{ withCredentials: true  })
+            throw new Error(result)
+        let data = transit_realtime.FeedEntity.encode(service_alert).finish()
+        console.log(data)
+        console.log(transit_realtime.FeedEntity.decode(data))
+
+        await axios.post("/feed/service_alert", data.slice().buffer, {
+            withCredentials: true,
+            headers: {
+                'Content-Type': 'application/x-protobuf',
+            }
+        })
     } catch (error) {
         console.error(error);
     }
@@ -156,22 +172,20 @@ export function getEffects() {
 
 }
 
-export function convertDateToDateTimeString(date){
+export function convertDateToDateTimeString(date) {
     let str = date.toISOString()
-    return str.slice( 0, str.lastIndexOf(":"))
+    return str.slice(0, str.lastIndexOf(":"))
 }
 
 
-export function getLanguages(){
-    let createLangObject = (long_name, tag)=> {return {"long_name":long_name, "tag":tag}}
-    return [
-        createLangObject("English","en-ZA"),
-        createLangObject("Afrikaans","af-ZA"),
-        createLangObject("isiXhosa","xh-ZA"),
-        createLangObject("isiZulu","zu-ZA"),
-        createLangObject("isiNdebele","nd"),
-        createLangObject("Sotho","st"),
-        createLangObject("Tsonga","ts"),
-        createLangObject("Tswana","tn"),
-        createLangObject("Venda","ve")]
-}
+export var createLangObject = (long_name, tag) => { return { "long_name": long_name, "tag": tag } }
+export var system_languages = [
+    createLangObject("English", "en-ZA"),
+    createLangObject("Afrikaans", "af-ZA"),
+    createLangObject("isiXhosa", "xh-ZA"),
+    createLangObject("isiZulu", "zu-ZA"),
+    createLangObject("isiNdebele", "nd"),
+    createLangObject("Sotho", "st"),
+    createLangObject("Tsonga", "ts"),
+    createLangObject("Tswana", "tn"),
+    createLangObject("Venda", "ve")]

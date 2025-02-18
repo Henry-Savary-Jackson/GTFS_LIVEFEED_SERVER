@@ -38,7 +38,7 @@ export function Feed() {
             <tr key={entity.id} id={entity.id}>
               <td>{entity.id}</td>
               <td>{entity.tripUpdate ? "TripUpdate" : "ServiceAlert"}</td>
-              <td><Link to={entity.tripUpdate ? "/trip_udpate" : "/service_alert"} state={entity} >Edit</Link> </td>
+              <td><Link to={entity.tripUpdate ? "/trip_update" : "/service_alert"} state={entity} >Edit</Link> </td>
               <td ><button className='btn' onClick={() => { delete_feed_entity_callback(entity.id) }}>X</button></td>
             </tr>)}
         </tbody>

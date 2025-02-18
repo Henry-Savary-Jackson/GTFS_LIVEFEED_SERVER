@@ -44,7 +44,8 @@ def is_feed_entity_trip_update(entity: dict):
 def save_feed_entity_to_feed(save_entity:gtfs_rt.FeedEntity, feed: gtfs_rt.FeedMessage):
     for i, f_entity in enumerate(feed.entity):
         if f_entity.id == save_entity.id:
-            feed.entity[i] = save_entity
+            del feed.entity[i]
+            feed.entity.insert(i,save_entity)
             return
     
     feed.entity.append(save_entity)

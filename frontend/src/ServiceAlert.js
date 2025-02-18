@@ -1,34 +1,42 @@
 import { useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
-import { getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, deleteFeedEntity, getLanguages } from './Utils';
+import { getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, deleteFeedEntity, system_languages } from './Utils';
 import { useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
 
 function convertServiceAlertDictToGTFS(dict) {
+    let tr = transit_realtime
     let feedEntity = transit_realtime.FeedEntity.create()
     let alert = transit_realtime.Alert.create()
 
     feedEntity.id = dict.id
     feedEntity.alert = alert;
     if ('cause' in dict)
-        alert.cause = dict.cause
+        alert.cause = transit_realtime.Alert.Cause[dict.cause]
 
     if ('effect' in dict)
-        alert.effect = dict.effect
+        alert.effect = transit_realtime.Alert.Effect[dict.effect]
 
     if ('descriptions' in dict) {
-
-        alert.descriptionText = transit_realtime.TranslatedString()
-        alert.descriptionText.translation = dict.descriptions.map((i, val) => transit_realtime.TranslatedString.Translation.fromObject(val))
+        alert.descriptionText = transit_realtime.TranslatedString.create()
+        alert.descriptionText.translation = dict.descriptions.map((val, i) => transit_realtime.TranslatedString.Translation.fromObject(val))
     }
 
-    alert.informedEntity = dict.informed_entities.map((i, val) => transit_realtime.EntitySelector.fromObject(val))
+    alert.informedEntity = dict.informed_entities.map((val, i) => {
+        let out = { ...val }
+        if ("tripId" in out)
+            out.trip = { "tripId": out.tripId }
+        return transit_realtime.EntitySelector.fromObject(out)
+    })
 
-    if ('period' in dict) {
-        alert.active_period = new transit_realtime.TimeRange.create()
-        alert.active_period.start = new Date(dict.period.start).getTime()
-        alert.active_period.end = new Date(dict.period.end).getTime()
+    if ('period' in dict && (dict.period.start || dict.period.end)) {
+        let timerange = new transit_realtime.TimeRange.create()
+        if (dict.period.start)
+            timerange.start = Math.round(new Date(dict.period.start).valueOf() / 1000)
+        if (dict.period.end)
+            timerange.end = Math.round(new Date(dict.period.end).valueOf() / 1000)
+        alert.activePeriod = [timerange]
     }
 
     return feedEntity
@@ -82,9 +90,8 @@ export function ServiceAlert() {
     }
     let [informed_entities, changeInformedEntities] = useReducer(list_reducer, service_alert_inp && service_alert_inp.alert.informedEntity ? service_alert_inp.alert.informedEntity : [])
 
-    let [cause, setCause] = useState(service_alert_inp ? service_alert_inp.alert.cause : causes[0])
-    let [effect, setEffect] = useState(service_alert_inp ? service_alert_inp.alert.effect : effects[0])
-
+    let [cause, setCause] = useState(service_alert_inp ? transit_realtime.Alert.Cause[service_alert_inp.alert.cause] : causes[0])
+    let [effect, setEffect] = useState(service_alert_inp ? transit_realtime.Alert.Effect[service_alert_inp.alert.effect] : effects[0])
 
 
     let [descriptions, changeDescriptions] = useReducer((state, action) => {
@@ -106,28 +113,11 @@ export function ServiceAlert() {
         }
     }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [])
 
-    let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : undefined)
-    let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : undefined)
+    let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length >0 ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : '')
+    let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length >0 ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
 
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
-
-    let [languages, changeLanguages] = useReducer((state, action)=>{
-        switch (action.action) {
-            case "delete":
-                return state.filter((val, i)=> val.tag == action.tag )
-            case "add":
-                return [...state, action.entity ] 
-            default:
-                return state;
-        }
-    } ,getLanguages())
-
-    let getTagNotInFeed = (descs, languages) => {
-        let tags = languages.map((val, i)=> val.tag)
-        let tags_used = descs.map((val, i)=> val.language)
-        return tags.filter((tag)=> !(tag in tags_used))
-    } 
 
     useEffect(() => {
         async function setData() {
@@ -176,18 +166,19 @@ export function ServiceAlert() {
             </div>
             <div className="form-group" >
                 <label>Description/s</label>
-                <button hidden={languages.length == 0} className='btn' onClick={(e) => { 
-                    changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create( ) 
-                    }) }}>Add Description</button>
-                {descriptions.map((desc, i) => <div className='form-group'>
-
+                <button hidden={system_languages.length == 0} className='btn' onClick={(e) => {
+                    changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
+                }}>Add Description</button>
+                {descriptions.map((desc, i) => <div key={i} className='form-group'>
                     <textarea className="form-control" value={desc.text} onChange={(e) => {
                         changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
                     }}></textarea>
                     <select value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
-                        {languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
+                        {system_languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
                     </select>
-
+                    <button className='btn' onClick={(e) => {
+                        changeDescriptions({ "action": "delete", "index": i })
+                    }} >X</button>
                 </div>
                 )}
             </div>
@@ -195,7 +186,7 @@ export function ServiceAlert() {
         <button className="btn" onClick={async (e) => {
             let object = {
                 "id": id,
-                "period": { "start": Math.round(new Date(start).getTime() / 1000), "end": Math.round(new Date(end).getTime() / 1000) },
+                "period": { "start": Math.round(new Date(start).valueOf() ), "end": Math.round(new Date(end).valueOf() ) },
                 "cause": cause,
                 "effect": effect,
                 "descriptions": descriptions,
