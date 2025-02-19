@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from pathlib import Path
 from typing import Optional
+from celery import Task, Celery
 
 db = SQLAlchemy()
 
@@ -28,7 +29,17 @@ def create_login_manager(app):
 
     return login_manager
 
-
+## from https://flask.palletsprojects.com/en/stable/patterns/celery/
+def init_celery_app(app):
+    class FlaskTask(Task):
+        def __call__(self, *args: object, **kwargs: object) -> object:
+            with app.app_context():
+                return self.run(*args, **kwargs)
+    celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.config_from_object(app.config["CELERY"])
+    celery_app.set_default()
+    app.extensions["celery"] = celery_app
+    return celery_app
 
 def register_blueprints(app):
     from gtfs_rt_server.blueprints import auth_blueprint, db_blueprint, feed_blueprint, gtfs_blueprint, page_blueprint
@@ -56,5 +67,6 @@ def init_app():
     login_manager = create_login_manager(app)
     register_blueprints(app)
     init_db(app, db)
+    celery_app = init_celery_app(app)
     return app
 

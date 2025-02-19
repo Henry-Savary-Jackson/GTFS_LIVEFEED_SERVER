@@ -4,6 +4,7 @@ flask
 gtfs-realtime-bindings
 flask-login
 flask-wtf
+celery
 flask-sqlalchemy
 python-dotenv
 pytest

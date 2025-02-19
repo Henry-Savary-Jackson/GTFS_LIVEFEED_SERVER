@@ -50,8 +50,7 @@ export function Feed() {
 
 
 export default function Main() {
-  return <div className='container d-flex 
-         justify-content-center ' id="main" >
+  return <div className='d-flex flex-column align-items-center'  >
     <a href="/gtfs/upload_gtfs">Upload GTFS file form</a>
     <Link to="/service_alert">Create Service Alert</Link>
     <Link to="/trip_update">Create trip update</Link>

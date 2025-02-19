@@ -9,27 +9,26 @@ import argon2
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
-class LoginForm(FlaskForm):
-    username= StringField(label="Username", validators=[validators.DataRequired()])
-    password = PasswordField(label="Password", validators=[validators.DataRequired() ])
-    remember_me = BooleanField(label="Remember me", default=True, validators=[validators.DataRequired()])
-    submit = SubmitField('Login')
-
-@auth_bp.route("/login", methods=["GET","POST"])
+@auth_bp.post("/login")
 def login_endpoint():
-    login_form = LoginForm()
-    if request.method == "POST" and login_form.validate_on_submit():
-        user = get_user_by_username(login_form.data["username"])
-        if not user:
-            return render_template("login.html", form=login_form,error="No such user") , 400
-        try:
-            matches = password_hasher.verify(user.hash_pass, login_form.data["password"])
-            login_user(user, remember=login_form.data["remember_me"])
-            print(current_user.username, "logged in ")
-            return redirect("/")
-        except argon2.exceptions.VerifyMismatchError:
-            return render_template("login.html",form=login_form, error="Wrong password"), 400 
-    return render_template("login.html", form=login_form), 200 if  request.method != "POST" else 400        
+    login_form = request.form
+    username = login_form.get("username", None)
+    if not username:
+        return "No username given", 400
+    password = login_form.get("password", None)
+    if not password:
+        return "No password given", 400
+    remember_me = login_form.get("remember_me", True)
+    user = get_user_by_username(username)
+    if not user:
+        return "No such user" , 400
+    try:
+        matches = password_hasher.verify(user.hash_pass, password)
+        login_user(user, remember=remember_me)
+        print(current_user.username, "logged in ")
+        return "Successful"
+    except argon2.exceptions.VerifyMismatchError:
+        return "Wrong password", 400 
 ## store async protobuf as blob when edited and keep cache in memory
 
 @auth_bp.get("/logout")

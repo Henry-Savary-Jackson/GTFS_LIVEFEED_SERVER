@@ -166,8 +166,7 @@ def add_schedule(
         raise e
 
 
-def generate_gtfs_zip(excel_file, static_path):
-    export_location = os.path.normpath(f"{static_path}/gtfs.zip")
+def generate_gtfs_zip(excel_file, export_location):
     trip_df = pd.DataFrame(
         columns=["route_id", "service_id", "trip_id", "trip_headsign", "shape_id"]
     )

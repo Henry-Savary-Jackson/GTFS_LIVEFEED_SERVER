@@ -177,6 +177,16 @@ export function convertDateToDateTimeString(date) {
     return str.slice(0, str.lastIndexOf(":"))
 }
 
+export async function submitGTFS(file_data) {
+    let formdata = new FormData()
+    formdata.append("gtfs.xlsx", file_data)
+    return await axios.post("/gtfs/uploads_gtfs", formdata, {
+        withCredentials: true,
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}
 
 export var createLangObject = (long_name, tag) => { return { "long_name": long_name, "tag": tag } }
 export var system_languages = [
