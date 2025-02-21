@@ -177,15 +177,26 @@ export function convertDateToDateTimeString(date) {
     return str.slice(0, str.lastIndexOf(":"))
 }
 
+export async function get_csrf() {
+    let response = await axios.get("/auth/csrf")
+    return response.data
+}
+
+export function setCSRFToken(token) {
+    axios.defaults.headers.common["X-CSRF-Token"] = token
+}
+
 export async function submitGTFS(file_data) {
     let formdata = new FormData()
-    formdata.append("gtfs.xlsx", file_data)
-    return await axios.post("/gtfs/uploads_gtfs", formdata, {
+    formdata.append("file", file_data)
+    return await axios.postForm("/gtfs/upload_gtfs", formdata, {
         withCredentials: true,
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
     })
+}
+
+export async function getGTFSStatus(signal) {
+    let response = await axios.get("/gtfs/status", { signal: signal, withCredentials: true })
+    return response.data
 }
 
 export var createLangObject = (long_name, tag) => { return { "long_name": long_name, "tag": tag } }

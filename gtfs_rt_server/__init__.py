@@ -1,5 +1,7 @@
 from flask_login import LoginManager
 from flask import Flask, redirect
+from flask_wtf import CSRFProtect
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os
 from pathlib import Path
@@ -55,9 +57,15 @@ def init_db(app,db):
         db.drop_all()
         db.create_all()
 
+def init_csrf(app):
+    return CSRFProtect(app)
+
+def init_CORS(app):
+    return CORS(app,supports_credentials=True,origins=["http://localhost:5000", "http://localhost:3000"])
 
 def init_app():
     global db
+
     app = create_app()
     config = os.getenv("FLASK_ENVIRON")
     app.config.from_object( config if config else "config.DevConfig")
@@ -66,7 +74,11 @@ def init_app():
 
     login_manager = create_login_manager(app)
     register_blueprints(app)
+
     init_db(app, db)
+    init_CORS(app)
+    if app.config["WTF_CSRF_ENABLED"]:
+        csrf= init_csrf(app)
     celery_app = init_celery_app(app)
     return app
 

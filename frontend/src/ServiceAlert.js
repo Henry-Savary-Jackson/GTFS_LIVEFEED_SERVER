@@ -74,6 +74,20 @@ function EntitySelectorTabs({ setInformedEntities, routes, services }) {
 
 }
 
+function InformedEntities({ entities, changeInformedEntities }) {
+    function getHtmlForEntity(entity) {
+        if (entity.trip || entity.tripId) {
+            return <span>Trip:{entity.trip ? entity.trip.tripId : entity.tripId}</span>
+        } else if (entity.routeId) {
+            return <span>Route:{entity.routeId}</span>
+        } else {
+            return <span>Stop:{entity.stopId}</span>
+        }
+    }
+    return <ul className='list-group'>{entities.map((entity, index) => <li key={index}>{getHtmlForEntity(entity)}<button className='btn btn-danger' onClick={(e) => { changeInformedEntities({ "action": "delete", "index": index }) }}>X</button></li>)}</ul>
+}
+
+
 
 export function ServiceAlert() {
     const service_alert_inp = useLocation().state
@@ -113,8 +127,8 @@ export function ServiceAlert() {
         }
     }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [])
 
-    let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length >0 ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : '')
-    let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length >0 ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
+    let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : '')
+    let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].end ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
 
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
@@ -132,78 +146,77 @@ export function ServiceAlert() {
     }
 
 
-    return <div>
+    return <div  className="d-flex flex-column align-items-center">
         <EntitySelectorTabs routes={routes} services={services} setInformedEntities={addInformedEntity} informed_entities={informed_entities} />
-        {informed_entities.length > 0 && <ul className='list-group'>
-            {informed_entities.map((value, i) => <li key={i}>{JSON.stringify(value)}<button className='btn' onClick={(e) => { changeInformedEntities({ "action": "delete", "index": i }) }}>X</button></li>)}
-        </ul>}
-        <div >
+        {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
+        <div className='d-flex flex-column align-items-center' >
             <div className="form-group" >
-                <label> Start Time</label>
-                <input className='form-control' type='datetime-local' onChange={(e) => {
+                <label htmlFor='input-start'> Start Time</label>
+                <input id="input-start" className='form-control' type='datetime-local' onChange={(e) => {
                     setStart(e.target.value)
                 }}
                     value={start} />
             </div>
             <div className="form-group">
-                <label>End Time</label>
-                <input className='form-control' type='datetime-local' onChange={(e) => {
+                <label htmlFor='input-end'>End Time</label>
+                <input id="input-end" className='form-control' type='datetime-local' onChange={(e) => {
                     setEnd(e.target.value)
                 }} value={end} />
 
             </div>
             <div className="form-group" >
-                <label>Cause</label>
-                <select className="form-control" value={cause} onChange={(e) => { setCause(e.target.value) }}>
+                <label htmlFor='cause-select' >Cause</label>
+                <select id="cause-select" className="form-control" value={cause} onChange={(e) => { setCause(e.target.value) }}>
                     {causes.map((val, i) => <option key={i} value={val}>{val}</option>)}
                 </select>
             </div>
             <div className="form-group">
-                <label>Effect</label>
-                <select className='form-control' value={effect} onChange={(e) => { setEffect(e.target.value) }}>
+                <label htmlFor='effect-select'>Effect</label>
+                <select id="effect-select" className='form-control' value={effect} onChange={(e) => { setEffect(e.target.value) }}>
                     {effects.map((val, i) => <option key={i} value={val}>{val}</option>)}
                 </select>
             </div>
             <div className="form-group" >
                 <label>Description/s</label>
-                <button hidden={system_languages.length == 0} className='btn' onClick={(e) => {
+                <button hidden={system_languages.length == 0} className='btn btn-primary' onClick={(e) => {
                     changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
                 }}>Add Description</button>
                 {descriptions.map((desc, i) => <div key={i} className='form-group'>
                     <textarea className="form-control" value={desc.text} onChange={(e) => {
                         changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
                     }}></textarea>
-                    <select value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
+                    <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
                         {system_languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
                     </select>
-                    <button className='btn' onClick={(e) => {
+                    <button className='btn btn-danger' onClick={(e) => {
                         changeDescriptions({ "action": "delete", "index": i })
                     }} >X</button>
                 </div>
                 )}
             </div>
         </div>
-        <button className="btn" onClick={async (e) => {
-            let object = {
-                "id": id,
-                "period": { "start": Math.round(new Date(start).valueOf() ), "end": Math.round(new Date(end).valueOf() ) },
-                "cause": cause,
-                "effect": effect,
-                "descriptions": descriptions,
-                "informed_entities": informed_entities
+        <button className="btn btn-success " onClick={async (e) => {
+            try {
+                let object = {
+                    "id": id,
+                    "period": { "start": Math.round(new Date(start).valueOf()), "end": Math.round(new Date(end).valueOf()) },
+                    "cause": cause,
+                    "effect": effect,
+                    "descriptions": descriptions,
+                    "informed_entities": informed_entities
+                }
+                let service_alert_gtfs = convertServiceAlertDictToGTFS(object)
+                await sendServiceAlert(service_alert_gtfs)
+                alert("Successfully saved Alert!")
+            } catch (error) {
+                alert(error)
             }
-            let service_alert_gtfs = convertServiceAlertDictToGTFS(object)
-            await sendServiceAlert(service_alert_gtfs)
             // save object
         }} >Save</button>
-        <button className='btn' onClick={async (e) => {
-            if (service_alert_inp) {
-                await deleteFeedEntity(id)
-            } else {
-                window.location = "/"
-            }
+        <button className='btn btn-danger' onClick={async (e) => {
+            window.location = "/"
 
-        }}> {service_alert_inp ? "Delete" : "Cancel"}</button>
+        }}>Cancel</button>
     </div>
 
 

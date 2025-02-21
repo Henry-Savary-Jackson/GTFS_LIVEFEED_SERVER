@@ -1,5 +1,5 @@
-import { useState,  useRef } from 'react';
-import {  getTrips,getStops } from './Utils'
+import { useState, useRef, useEffect } from 'react';
+import { getTrips, getStops } from './Utils'
 
 export function RouteSelect({ route, setRoute, routes }) {
 
@@ -40,7 +40,7 @@ export function TripSearch({ setTripID, routes, services }) {
     let [number, setNumber] = useState(undefined)
     let [trips, setTrips] = useState([])
 
-    function select_trip_callback(trip_id){
+    function select_trip_callback(trip_id) {
         setTrips([])
         setTripID(trip_id)
     }
@@ -71,15 +71,22 @@ export function StopSearch({ finish_search_callback }) {
     let [stops, setStops] = useState([])
     const searchState = useRef(false)
 
-    async function populateStops() {
-        searchState.current = true
-        try {
-            setStops(await getStops(stop_name))
-        } finally {
-            searchState.current = false
-        }
+    async function populateStops(stop_name_new) {
+        var timeout = setTimeout(async () => {
+            if (searchState.current)
+                clearTimeout(timeout)
+            searchState.current = true
+            try {
+                setStops(await getStops(stop_name_new))
+
+            } finally {
+                searchState.current = false
+            }
+        }, 1000)
 
     }
+
+
     async function addStop(stop_id) {
         setStopName("")
         setStops([])
@@ -87,19 +94,20 @@ export function StopSearch({ finish_search_callback }) {
     }
 
     return <div className='form-group'>
-        <input className='form-control' type='search' value={stop_name} onChange={(e) => { setStopName(e.target.value) }} />
-        <button className='btn' disabled={searchState.current} onClick={populateStops}>Search</button>
+        <input className='form-control' type='search' value={stop_name} onChange={async (e) => {
+            setStopName(e.target.value)
+            await populateStops(e.target.value)
+        }} />
         <select className='form-control'>
-            {stops.map((val, i) =>  <option onClick={(e) => { addStop(val.stop_id) }} key={i}>{val.stop_name}</option> )}
+            {stops.map((val, i) => <option onClick={(e) => { addStop(val.stop_id) }} key={i}>{val.stop_name}</option>)}
         </select>
     </div>
-
 }
 
-export function TripIDResults({trips, select_trip_callback}) {
+export function TripIDResults({ trips, select_trip_callback }) {
     return <div className='container'>
         <ul className="list-group">
-            {trips.map((trip_id, i) =>  <li className='list-group-item' onClick={(e) => { select_trip_callback(trip_id) }} key={i}>{trip_id}</li> )}
+            {trips.map((trip_id, i) => <li className='list-group-item' onClick={(e) => { select_trip_callback(trip_id) }} key={i}>{trip_id}</li>)}
         </ul>
     </div>
 }

@@ -6,8 +6,13 @@ from flask_wtf import FlaskForm
 from gtfs_rt_server.db_utils import insert_user, password_hasher
 from gtfs_rt_server.schema import get_user_by_username
 import argon2
+from flask_wtf.csrf import generate_csrf
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+@auth_bp.get("/csrf")
+def csrf():
+    return generate_csrf() 
 
 @auth_bp.post("/login")
 def login_endpoint():
@@ -35,5 +40,5 @@ def login_endpoint():
 @login_required
 def logout():
     logout_user()
-    return redirect("/auth/login")
+    return "Success"
 #

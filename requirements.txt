@@ -5,6 +5,7 @@ gtfs-realtime-bindings
 flask-login
 flask-wtf
 celery
+Flask-CORS
 flask-sqlalchemy
 python-dotenv
 pytest

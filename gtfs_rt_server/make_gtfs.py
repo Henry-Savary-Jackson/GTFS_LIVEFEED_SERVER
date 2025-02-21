@@ -1,34 +1,33 @@
 import pandas as pd
 import openpyxl
 import zipfile
+from celery.states import *
 import sqlalchemy
 import subprocess
-from gtfs_rt_server.config import app 
 import os
 import io
 import sys
 import json
 
-GTFS_VALIDATOR_PATH = app.config["GTFS_VALIDATOR_PATH"]
 
 FILE_PATH = os.path.dirname(__file__)
+
 
 def has_errors(result_path):
     report_json = json.load(open(os.path.normpath(f"{result_path}/report.json"), "r"))
     notices = report_json["notices"]
     for notice in notices:
-        if notice["severity"] =="WARNING":
+        if notice["severity"] == "WARNING":
             return True
-    return False 
+    return False
 
 
-
-def validate_gtfs( zipfile_path, result_path):
+def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None):
     with subprocess.Popen(
         [
             "java",
             "-jar",
-            GTFS_VALIDATOR_PATH,
+            validator_path,
             "--input",
             zipfile_path,
             "-o",
@@ -39,12 +38,15 @@ def validate_gtfs( zipfile_path, result_path):
         text=True,
     ) as process:
         print("Waiting for jar file validation")
+        if update_method:
+            update_method(status="working", message="Waiting for jar file validation")
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             raise Exception(f"error:\n{stderr}")
         else:
             print(stdout)
-            # webbrowser.open(f"file://{result_path}/report.html", autoraise=True)
+            if update_method:
+                update_method(status="working", message=stdout or "")
 
 
 def getRoutesDataFrame(excel_file):
@@ -133,7 +135,7 @@ def add_schedule(
             trip_id = f"{service_id}-{train_number}"
             if trip_id in trip_df["trip_id"]:
                 raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_name}.")
-             
+
             stop = ""
             for i, stop in enumerate(df_schedule.index):
                 if stop not in stops:
@@ -146,7 +148,7 @@ def add_schedule(
                         "departure_time": time,
                         "stop_id": stop,
                         "stop_sequence": i,
-                        "timepoint":1
+                        "timepoint": 1,
                     },
                     ignore_index=True,
                 )
@@ -166,7 +168,7 @@ def add_schedule(
         raise e
 
 
-def generate_gtfs_zip(excel_file, export_location):
+def generate_gtfs_zip(excel_file, export_location, validator_path, update_method=None):
     trip_df = pd.DataFrame(
         columns=["route_id", "service_id", "trip_id", "trip_headsign", "shape_id"]
     )
@@ -177,9 +179,12 @@ def generate_gtfs_zip(excel_file, export_location):
             "departure_time",
             "stop_id",
             "stop_sequence",
-            "timepoint"
+            "timepoint",
         ]
     )
+    if update_method:
+        update_method(status="working", message="Reading Spreadsheets")
+    print("getting dfs")
     routes_df = getRoutesDataFrame(excel_file)
     services_df = getServicesDataFrame(excel_file)
     shapes_df = getShapesDataFrame(excel_file)
@@ -193,11 +198,11 @@ def generate_gtfs_zip(excel_file, export_location):
     shapes = getShapes(shapes_df)
     ## in binary mode right?
     workbook = openpyxl.load_workbook(excel_file)
+    print("getting directory")
 
     directory = workbook["Directory"]
     for route in directory.iter_cols():
         route_name = route[0].value
-
         # get route id
         route_id = routes_df[routes_df["route_long_name"] == route_name].iloc[0][
             "route_id"
@@ -210,11 +215,23 @@ def generate_gtfs_zip(excel_file, export_location):
                     sheet_cell.hyperlink.location
                 )
                 stop_time_df, trip_df = add_schedule(
-                    excel_file, sheet_name, stop_time_df, stops_df, trip_df, route_id, services, shapes, stops
+                    excel_file,
+                    sheet_name,
+                    stop_time_df,
+                    stops_df,
+                    trip_df,
+                    route_id,
+                    services,
+                    shapes,
+                    stops,
                 )
                 print(sheet_name)
+                if update_method:
+                    update_method( message=f"Added {sheet_name}")
             except Exception as e:
                 print(sheet_name, e)
+                if update_method:
+                    update_method(status="error", message=f"{sheet_name}:{e}")
                 raise e
 
     df_dict = {
@@ -229,23 +246,50 @@ def generate_gtfs_zip(excel_file, export_location):
         "calendar.txt": services_df,
     }
 
-    with zipfile.ZipFile(export_location, "w") as gtfs_zip:
-        for filename in df_dict:
-            write_df_to_zipfile(gtfs_zip, filename, df_dict[filename])
+    if update_method:
+        update_method( message=f"Writing the zip file")
 
-    validate_gtfs(
-        export_location,
-        os.path.normpath(f"{FILE_PATH}/static/result"),
-    )
+    try:
+        with zipfile.ZipFile(export_location, "w") as gtfs_zip:
+            for filename in df_dict:
+                write_df_to_zipfile(gtfs_zip, filename, df_dict[filename])
+
+    except Exception as e:
+        if update_method:
+            update_method(status="error", message=f"Error creating zip file: {e}")
+        print(e)
+        raise e
+
+    try:
+        print(validator_path)
+        print(export_location)
+        validate_gtfs(
+            validator_path,
+            export_location,
+            os.path.normpath(f"{FILE_PATH}/static/result"),update_method=update_method
+        )
+    except Exception as e:
+        if update_method:
+            update_method(status="error", message=f"Error validating zip file: {e}")
+        print(e)
+        raise e
 
     return df_dict
 
-def add_gtfs_tables_to_db(engine:sqlalchemy.Engine, df_dict):
+
+def add_gtfs_tables_to_db(engine: sqlalchemy.Engine, df_dict):
     for tablename in df_dict:
-        df : pd.DataFrame = df_dict[tablename].dropna(axis=1, how="all").astype("str").replace("nan",pd.NA)
+        df: pd.DataFrame = (
+            df_dict[tablename]
+            .dropna(axis=1, how="all")
+            .astype("str")
+            .replace("nan", pd.NA)
+        )
         if df.empty:
             continue
-        df.to_sql(tablename[:tablename.find(".")], engine ,if_exists="replace", index=False)
+        df.to_sql(
+            tablename[: tablename.find(".")], engine, if_exists="replace", index=False
+        )
 
 
 def get_stop_name(stops_df, stop_id):
@@ -267,5 +311,6 @@ def write_df_to_zipfile(zip_file, filename, df):
         df.to_csv(data_stream, index=False)
         zip_file.writestr(zipfile.ZipInfo(filename), data_stream.getvalue())
 
-if __name__ == "__main__":
-    generate_gtfs_zip(open("schedules(3).xlsx", "rb" ), "./")
+
+# if __name__ == "__main__":
+#     generate_gtfs_zip(open("schedules(3).xlsx", "rb"), "./")

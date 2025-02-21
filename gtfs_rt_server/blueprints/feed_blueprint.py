@@ -13,6 +13,7 @@ def get_feed():
     feed_object = current_app.config["feed"]
     return feed_object.SerializeToString()
 
+
 @feed_bp.post("/trip_update")
 @login_required
 def trip_update():

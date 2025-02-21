@@ -1,28 +1,39 @@
-import { useState} from 'react';
-import  {login} from  './Auth.js'
+import { useContext, useState } from 'react';
+import { login } from './Auth.js'
+import { UserContext } from './Globals.js';
 
-export function LoginForm(){
+export function LoginForm() {
+    let [user, setUser ] = useContext(UserContext)
 
     let [error, setError] = useState("")
     let [username, setUsername] = useState("")
     let [password, setPassword] = useState("")
     let [remember_me, setRememberMe] = useState(true)
 
-
-    return <form onSubmit={(e)=>login(username, password, remember_me).then((r)=>{window.location.reload()}).catch((e)=>setError(e))} >
-        <div>{error}</div>
-        <div className='form-control'>
-            <label>Username</label>
-            <input  type='text' value={username} onChange={(e)=>setUsername(e.target.value)} />
+    return <form className='container' onSubmit={async (e) => {
+        e.preventDefault()
+        try {
+            await login(username, password, remember_me)
+            setUser(username)
+            window.location.reload()
+        } catch (error) {
+            setError(error.message)
+            console.log(error)
+        }
+    }} >
+        <div style={{"background":"red", "color":"white"}}>{error}</div>
+        <div className='form-group'>
+            <label htmlFor='username-input' >Username</label>
+            <input id = "username-input" className='form-control' type='text' value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
-        <div className='form-control'>
-            <label>Password</label>
-            <input type='password' value={password} onChange={(e)=>setPassword(e.target.value)} />
+        <div className='form-group'>
+            <label htmlFor="pass-input"> Password</label>
+            <input id="pass-input" className='form-control' type='password' value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
-        <div className='form-control'>
-            <label>Username</label>
-            <input type='checkbox' value={remember_me} onChange={(e)=>setRememberMe(e.target.value)} />
+        <div className='form-check'>
+            <label htmlFor='remember-check' className='form-check-label'>Remember Me</label>
+            <input id="remember-check"className='form-check-input' type='checkbox' checked={remember_me} onChange={(e) => setRememberMe(e.target.value)} />
         </div>
-        <input type='submit'> Submit</input>
+        <input className='btn' value="Submit" type='submit' />
     </form>
 }
