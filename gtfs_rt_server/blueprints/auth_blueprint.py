@@ -40,5 +40,5 @@ def login_endpoint():
 @login_required
 def logout():
     logout_user()
-    return "Success"
+    return "Successful"
 #

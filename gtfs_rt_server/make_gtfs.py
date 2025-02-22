@@ -48,33 +48,42 @@ def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None)
             if update_method:
                 update_method(status="working", message=stdout or "")
 
+def read_sheet_as_df(excel_file, sheet_name, **kwargs):
+    try:
+        print("hey", kwargs )
+        return pd.read_excel(excel_file, sheet_name, **kwargs)
+    except ValueError as e:
+        if "Excel file format cannot be determined" in str(e):
+            raise Exception("Invalid Excel file") 
+        raise e
+
 
 def getRoutesDataFrame(excel_file):
-    return pd.read_excel(excel_file, "Routes")
+    return read_sheet_as_df(excel_file, "Routes")
 
 
 def getStopsDataFrame(excel_file):
-    return pd.read_excel(excel_file, "Stops")
+    return read_sheet_as_df(excel_file, "Stops")
 
 
 def getServicesDataFrame(excel_file):
-    return pd.read_excel(excel_file, "Services")
+    return read_sheet_as_df(excel_file, "Services")
 
 
 def getShapesDataFrame(excel_file):
-    return pd.read_excel(excel_file, "Shapes")
+    return read_sheet_as_df(excel_file, "Shapes")
 
 
 def getAgencyDataFrame(excel_file):
-    return pd.read_excel(excel_file, "AgencyInfo")
+    return read_sheet_as_df(excel_file, "AgencyInfo")
 
 
 def getFeedInfoDataFrame(excel_file):
-    return pd.read_excel(excel_file, "FeedInfo")
+    return read_sheet_as_df(excel_file, "FeedInfo")
 
 
 def getCalendarDaysDataFrame(excel_file):
-    return pd.read_excel(excel_file, "CalendarDays")
+    return read_sheet_as_df(excel_file, "CalendarDays")
 
 
 def getStops(stops_df):
@@ -94,7 +103,7 @@ def getServices(services_df):
 
 
 def get_metadata(excel_file, sheet_name, services, shapes):
-    df = pd.read_excel(excel_file, sheet_name=sheet_name, nrows=2)
+    df = read_sheet_as_df(excel_file, sheet_name, nrows=2)
 
     if df["Service"][0] not in services:
         raise ValueError(
@@ -111,7 +120,7 @@ def get_metadata(excel_file, sheet_name, services, shapes):
 
 
 def read_schedule_as_df(excel_file, sheet_name):
-    return pd.read_excel(excel_file, sheet_name=sheet_name, skiprows=2)
+    return read_sheet_as_df(excel_file, sheet_name, skiprows=2)
 
 
 def add_schedule(

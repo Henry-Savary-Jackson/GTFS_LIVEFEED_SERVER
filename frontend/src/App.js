@@ -25,6 +25,7 @@ export function Feed() {
     }
     catch (error) {
       console.log(error)
+      alert("Error deleting feed:"+ error.message)
     }
   }
 
@@ -45,7 +46,7 @@ export function Feed() {
               <td>{entity.id}</td>
               <td>{entity.tripUpdate ? "TripUpdate" : "ServiceAlert"}</td>
               <td><Link to={entity.tripUpdate ? "/trip_update" : "/service_alert"} state={entity} >Edit</Link> </td>
-              <td ><button className='btn' onClick={() => { delete_feed_entity_callback(entity.id) }}>X</button></td>
+              <td ><button className='btn btn-danger' onClick={(e) => { delete_feed_entity_callback(entity.id) }}>X</button></td>
             </tr>)}
         </tbody>
       </table>

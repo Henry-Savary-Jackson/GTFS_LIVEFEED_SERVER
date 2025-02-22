@@ -4,7 +4,7 @@ import { getTrips, getStops } from './Utils'
 export function RouteSelect({ route, setRoute, routes }) {
 
     return <div className='container'>
-        <select className='form-control' id='route_list' value={route} onChange={(event) => {
+        <select className='form-control' id='route_list' value={route || (routes.length > 0 && routes[0] )|| ""} onChange={(event) => {
             setRoute(event.target.value)
         }}>
             {routes.map((val, i) => <option key={i} value={val.route_id}>{val.route_long_name}</option>)}
@@ -25,7 +25,7 @@ export function TripIdSeacher({ number, setSearchNumber }) {
 export function ServiceSelect({ setService, service, services }) {
 
     return <div className='container'>
-        <select className='form-control' id='service_list' value={service || ""} onChange={(event) => {
+        <select className='form-control' id='service_list' value={service || (services.length>0 && services[0]) || ""} onChange={(event) => {
             setService(event.target.value)
         }}>
             {services.map((val, i) => <option key={i} value={val}>{val}</option>)}

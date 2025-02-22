@@ -2,7 +2,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { useLocation } from 'react-router-dom'
 import { TripSearch } from './Search';
-import { getServices, deleteFeedEntity, getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
+import { getServices,  getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
 import { v4 } from 'uuid'
 
 
@@ -57,7 +57,7 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
 
             stoptimes_output[sequence].time = isoStr.slice(isoStr.indexOf("T") + 1, isoStr.lastIndexOf("."))
         }
-        if ('scheduleRelationship' in stoptimeUpdate && stoptimeUpdate.scheduleRelationship == transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]) {
+        if ('scheduleRelationship' in stoptimeUpdate && stoptimeUpdate.scheduleRelationship === transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]) {
             stoptimes_output[sequence].skip = true;
         }
     }
@@ -96,7 +96,7 @@ export function TripUpdate() {
     let id = trip_update_feedentity ? trip_update_feedentity.id : v4()
     const trip_update_inp = trip_update_feedentity ? trip_update_feedentity.tripUpdate : undefined
 
-    let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship == transit_realtime.TripDescriptor.ScheduleRelationship["CANCELLED"])
+    let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELLED"])
 
     let [trip_id, setTripID] = useState(trip_update_inp ? trip_update_inp.trip.tripId : "")
     let [routes, setRoutes] = useState([])
@@ -107,7 +107,7 @@ export function TripUpdate() {
             return action.map(val => val)
 
         return state.map((value, i) => {
-            if ("stopSequence" in action && action.stopSequence == i) {
+            if ("stopSequence" in action && action.stopSequence === i) {
                 return { ...value, ...action }
             }
             return value
@@ -130,7 +130,6 @@ export function TripUpdate() {
         setTripID(new_trip_id)
         disatchChangeStopTimes(await getStopTimesofTrip(new_trip_id))
     }
-
 
 
     return <div className='container flex-column d-flex align-items-center'>

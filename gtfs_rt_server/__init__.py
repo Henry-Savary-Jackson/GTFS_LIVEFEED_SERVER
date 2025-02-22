@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from typing import Optional
 from celery import Task, Celery
+from celery.exceptions import Ignore
 
 db = SQLAlchemy()
 
@@ -34,9 +35,32 @@ def create_login_manager(app):
 ## from https://flask.palletsprojects.com/en/stable/patterns/celery/
 def init_celery_app(app):
     class FlaskTask(Task):
+
+        status_dict = {"status":"starting", "message":"starting..."}
+
+        def on_success(self, retval, task_id, args, kwargs):
+        # Update result with custom structure
+            super().on_success(retval, task_id, args, kwargs)
+            self.update_task_status(task_id, "success", f"{retval}\nDone")
+
+        def on_failure(self, exc, task_id, args, kwargs, einfo):
+            # Handle failure and update status and message
+            super().on_failure(exc, task_id, args, kwargs, einfo)
+            self.update_task_status(task_id, "error", str(exc))
+
+        def update_task_status(self, task_id, status, message):
+            result = self.AsyncResult(task_id)
+            self.status_dict.update({"status": status, "message": f"{ result.info["message"] if result.info and "message" in result.info else ''}\n{message}"})
+            result.backend.store_result(task_id, self.status_dict , status)
+        
         def __call__(self, *args: object, **kwargs: object) -> object:
-            with app.app_context():
-                return self.run(*args, **kwargs)
+            try :
+                with app.app_context():
+                    return self.run(*args, **kwargs)
+            except Exception as e:
+                # Handle any errors
+                raise Ignore(f"Task failed due to exception:{e}")
+
     celery_app = Celery(app.name, task_cls=FlaskTask)
     celery_app.config_from_object(app.config["CELERY"])
     celery_app.set_default()

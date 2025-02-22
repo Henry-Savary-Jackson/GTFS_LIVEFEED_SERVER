@@ -6,15 +6,15 @@ from flask import g
 def test_login(app, client):
     auth =AuthActions(client)
     response = auth.login(app.config["ADMIN_USERNAME"], app.config["ADMIN_PASS"])
-    assert "GTFS Server" in response.text
+    assert "Successful" == response.text
 
 
 def test_logout(app, client):
     auth =AuthActions(client)
     response = auth.login(app.config["ADMIN_USERNAME"], app.config["ADMIN_PASS"])
-    assert "GTFS Server" in response.text
+    assert "Successful" == response.text
     response = auth.logout()
-    assert "Login"  in response.text
+    assert "Successful" == response.text
 
 
 def test_login_user_doesnt_exist(app, client):
@@ -37,7 +37,7 @@ def test_logout_unauthenticated(app, client):
     auth =AuthActions(client)
     response =  auth.logout()
     assert response.status_code == 200
-    assert "Login" in response.text 
+    assert "Successful" == response.text 
 
 
 

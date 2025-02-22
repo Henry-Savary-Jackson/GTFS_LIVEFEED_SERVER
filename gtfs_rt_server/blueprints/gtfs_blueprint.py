@@ -26,24 +26,11 @@ gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 
 @celery.shared_task()
 def generate_gtfs_from_xlsx(excel_file_path):
-    print("wtf")
+    print("stating generate gtfs xlsx task")
     # use this method as a helper to update the tasks metainfo to contain status and messages
     def send_status_to_task(status=None, message=None):
-        print(current_task.request.id)
-        result = AsyncResult(current_task.request.id).info
-        print(result)
-        if not result:
-            result = {}
-        if message:
-            if "message" in result:
-                result["message"] +=  f"\n{message}"
-            else:
-                result["message"] =  f"{message}"
-        if status:
-            result["status"] = status
-        current_task.update_state(
-            meta={"status": result["status"] if "status" in result else "starting", "message": result["message"] if "message" in result else ""}
-        )
+        print(status, message)
+        current_task.update_task_status(current_task.request.id, status=status, message=message)
 
     ## create temp file to store zip
     named_temp_zip = NamedTemporaryFile(mode="w+b")
@@ -85,15 +72,10 @@ def get_status():
         and current_app.config["upload_gtfs_task_id"]
     ):
         result = AsyncResult(current_app.config["upload_gtfs_task_id"])
-        if  result.ready():
-            return {"status":"done" , "message":"done"}
-        if (isinstance(result.info, Exception)):
-            return  {"status": "error", "message":str(result.info)}
-        if (result.info is None):
-            return {"status":"starting", "message":"starting..."}
-        return result.info
-
-    return "No task running", 400
+        if (result.ready() and not result.failed()):
+            return {"status":"done", "message":"done"}
+        return result.info or dict(status="starting", message="starting...") 
+    return {"status":"not started", "message":"No such task exists"} 
 
 
 @gtfs_blueprint.post("/upload_gtfs")
@@ -102,6 +84,8 @@ def upload_gtfs():
     excel_file = request.files.get("file", None)
     if excel_file:
 
+        ## stop current thread running if any
+        ## start
         if (
             "upload_gtfs_task_id" in current_app.config
             and current_app.config["upload_gtfs_task_id"]
@@ -114,6 +98,7 @@ def upload_gtfs():
         )
         with open(excel_file_perm_path, "wb") as excel_file_perm:
             excel_file_perm.write(excel_file.read())
+        
         result = generate_gtfs_from_xlsx.delay(excel_file_perm_path)
         current_app.config["upload_gtfs_task_id"] = result.id
         return result.id

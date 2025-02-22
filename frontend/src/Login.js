@@ -21,7 +21,7 @@ export function LoginForm() {
             console.log(error)
         }
     }} >
-        <div style={{"background":"red", "color":"white"}}>{error}</div>
+        <div className='text-center' style={{"background":"red", "color":"white"}}>{error}</div>
         <div className='form-group'>
             <label htmlFor='username-input' >Username</label>
             <input id = "username-input" className='form-control' type='text' value={username} onChange={(e) => setUsername(e.target.value)} />

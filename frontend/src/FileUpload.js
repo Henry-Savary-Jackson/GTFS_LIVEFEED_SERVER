@@ -17,14 +17,17 @@ export function UploadsGTFS() {
                 const status = await getGTFSStatus(abort.signal)
                 // careful
                 setStatus(status)
+                let textarea = document.getElementById("status-text-area")
+                if (textarea)
+                    textarea.scrollTop = textarea.scrollHeight
                 if (status.status === "done" || status.status === "error") {
                     clearInterval(interval)
+                    setUploading(false)
                 }
             } catch (error) {
                 alert(error.message)
                 setUploading(false)
                 clearInterval(interval)
-
             }
         }, 1000)
 
@@ -35,10 +38,9 @@ export function UploadsGTFS() {
 
     }, [uploading])
 
-    return <div className='container d-flex flex-column align-items-center'>
+    return <div >
 
-        {status && status.status !== "done" && <div className='border-2 border-primary rounded' >{(status.message || "").split("\n").map((val, i) => <>{val} <br /></>)}</div>}
-        <form onSubmit={async (e) => {
+        <form className='container d-flex flex-column align-items-center' onSubmit={async (e) => {
             e.preventDefault()
             if (files.length === 0) {
                 alert("Upload file!")
@@ -55,14 +57,19 @@ export function UploadsGTFS() {
                 setUploading(false)
             }
         }} >
+            {status && status.status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-50 form-control' value={status.message || ""}></textarea>}
             {
                 status && status.status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!
                     < a href={window.location.host + '/static/gtfs.zip'}>Zip file</a>
                     <a href={window.location.host + '/static/result/report.html'}>Validation report</a>
                 </div>}
+            {status && status.status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
+
+                <a href={window.location.host + '/static/result/report.html'}>Validation report</a>
+            </div>}
             <div className='form-group'>
-                <label htmlFor='file_input' >File</label>
+                <label htmlFor='file_input' >Excel File:</label>
                 <input onChange={(e) => setFiles([...e.target.files])} className='form-control-file' id='file_input' type='file' />
             </div>
             <input className='btn btn-primary' value="Submit" type='submit' />

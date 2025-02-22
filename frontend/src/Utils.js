@@ -74,6 +74,7 @@ export async function getFeedMessage() {
     } catch (error) {
         alert("Error fetching feed!")
         console.error(error);
+        return 
     }
     try {
         console.log(response.data)

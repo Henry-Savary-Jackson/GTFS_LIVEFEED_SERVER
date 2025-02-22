@@ -1,12 +1,11 @@
 import { useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
-import { getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, deleteFeedEntity, system_languages } from './Utils';
+import { getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
 import { useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
 
 function convertServiceAlertDictToGTFS(dict) {
-    let tr = transit_realtime
     let feedEntity = transit_realtime.FeedEntity.create()
     let alert = transit_realtime.Alert.create()
 
@@ -117,7 +116,7 @@ export function ServiceAlert() {
             case "modify":
 
                 return state.map((val, i) => {
-                    if (i == action.index) {
+                    if (i === action.index) {
                         return { ...val, ...action.entity }
                     }
                     return val
@@ -178,7 +177,7 @@ export function ServiceAlert() {
             </div>
             <div className="form-group" >
                 <label>Description/s</label>
-                <button hidden={system_languages.length == 0} className='btn btn-primary' onClick={(e) => {
+                <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
                     changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
                 }}>Add Description</button>
                 {descriptions.map((desc, i) => <div key={i} className='form-group'>
