@@ -94,6 +94,7 @@ def init_app():
     config = os.getenv("FLASK_ENVIRON")
     app.config.from_object( config if config else "config.DevConfig")
     from gtfs_rt_server.protobuf_utils import get_feed_object_from_file
+    app.static_folder = app.config["STATIC_FOLDER"]
     app.config["feed"] = get_feed_object_from_file(app.config["FEED_LOCATION"])
 
     login_manager = create_login_manager(app)

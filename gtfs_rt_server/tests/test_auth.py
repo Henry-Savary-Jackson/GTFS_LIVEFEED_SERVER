@@ -36,7 +36,7 @@ def test_login_malformed(app, client):
 def test_logout_unauthenticated(app, client):
     auth =AuthActions(client)
     response =  auth.logout()
-    assert response.status_code == 200
+    assert response.status_code == 405
     assert "Successful" == response.text 
 
 

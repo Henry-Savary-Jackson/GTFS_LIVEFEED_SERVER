@@ -1,0 +1,15 @@
+{
+  "short_name": "GTFS server",
+  "name": "GTFS Feed server",
+  "icons": [
+    {
+      "src": "/static/prasa-icon.svg",
+      "sizes": "525x525",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

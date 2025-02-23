@@ -41,16 +41,17 @@ def generate_gtfs_from_xlsx(excel_file_path):
             excel_file_path,
             named_temp_zip.name,
             current_app.config["GTFS_VALIDATOR_PATH"],
+            current_app.config["GTFS_VALIDATOR_RESULT_PATH"],
             send_status_to_task,
         )
         ## read notices in report.json
 
-        result_path = os.path.join(f"{current_app.config["STATIC_PATH"]}", "result")
+        result_path = os.path.join(f"{current_app.config["SHARED_FOLDER"]}", "result")
         if not os.path.exists(result_path):
             send_status_to_task(status="error", message="No /static/result")
         if not has_errors(result_path):
             with open(
-                os.path.join(current_app.config["STATIC_PATH"],"gtfs.zip"), "wb"
+                os.path.join(current_app.config["SHARED_FOLDER"],"gtfs.zip"), "wb"
             ) as gtfs_file:
                 ##  wrtie data from temporary file to file on server permanently
                 gtfs_file.write(named_temp_zip.read())
@@ -94,7 +95,7 @@ def upload_gtfs():
             result = AsyncResult(current_app.config["upload_gtfs_task_id"])
             result.revoke()
         excel_file_perm_path = os.path.join(
-            current_app.config["STATIC_PATH"], "gtfs.xlsx"
+            current_app.config["SHARED_FOLDER"], "gtfs.xlsx"
         )
         with open(excel_file_perm_path, "wb") as excel_file_perm:
             excel_file_perm.write(excel_file.read())

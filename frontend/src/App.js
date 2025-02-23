@@ -3,10 +3,11 @@ import { getFeedMessage, deleteFeedEntity, setCSRFToken, get_csrf } from './Util
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
-import {  UserContext } from './Globals';
+import { UserContext } from './Globals';
 import { LoginForm } from './Login';
-import {useCookies} from 'react-cookie'
+import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
+import { logout } from './Auth';
 
 export function Feed() {
   const [feed, setFeed] = useState([])
@@ -25,7 +26,7 @@ export function Feed() {
     }
     catch (error) {
       console.log(error)
-      alert("Error deleting feed:"+ error.message)
+      alert("Error deleting feed:" + error.message)
     }
   }
 
@@ -56,8 +57,10 @@ export function Feed() {
 
 
 export default function App() {
-  let [cookies , setCookies ]= useCookies() 
+  let [cookies, setCookies, removeCookie] = useCookies()
   let [user, setUser] = useState(cookies.username || "")
+
+  let logout_cookie = () => { removeCookie("username"); setUser("") }
 
   useEffect(() => {
     async function funcSetCSRF() {
@@ -65,9 +68,9 @@ export default function App() {
       setCSRFToken(token)
     }
     funcSetCSRF()
-  },[])
+  }, [])
 
-  function setUserCallback(username){
+  function setUserCallback(username) {
     setUser(username)
     setCookies("username", username)
   }
@@ -75,23 +78,32 @@ export default function App() {
     <UserContext.Provider value={[user, setUserCallback]}>
       <Routes>
         <Route path='/'>
-          <Route index element={user ? <Main /> : <LoginForm />} />
+          <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
           <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
-          <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />}/>
-          <Route path='upload_gtfs' element={user ? <UploadsGTFS /> : <LoginForm />}/>
+          <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
+          <Route path='upload_gtfs' element={user ? <UploadsGTFS /> : <LoginForm />} />
         </Route>
       </Routes>
     </UserContext.Provider>
   </BrowserRouter>
 }
 
-export function Main() {
+export function Main({logout_cookie}) {
   return <div className='d-flex flex-column align-items-center'  >
     <Link to="/upload_gtfs">Upload GTFS file form</Link>
     <Link to="/service_alert">Create Service Alert</Link>
     <Link to="/trip_update">Create trip update</Link>
-    <a href={window.location.origin+'/static/gtfs.zip'}>GTFS zip</a>
-    <a href={window.location.origin+'/auth/logout'}>Logout</a>
+    <a href='/static/shared/gtfs.zip'>GTFS zip</a>
+    <a onClick={async (e) => {
+      try {
+        e.preventDefault()
+        logout_cookie()
+        await logout()
+        window.location.reload()
+      } catch (error) {
+        alert(error)
+      }
+    }} href='/auth/logout'>Logout</a>
     <Feed />
   </div>
 }

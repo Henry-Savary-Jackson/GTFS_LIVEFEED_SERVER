@@ -177,7 +177,7 @@ def add_schedule(
         raise e
 
 
-def generate_gtfs_zip(excel_file, export_location, validator_path, update_method=None):
+def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, update_method=None):
     trip_df = pd.DataFrame(
         columns=["route_id", "service_id", "trip_id", "trip_headsign", "shape_id"]
     )
@@ -275,7 +275,7 @@ def generate_gtfs_zip(excel_file, export_location, validator_path, update_method
         validate_gtfs(
             validator_path,
             export_location,
-            os.path.normpath(f"{FILE_PATH}/static/result"),update_method=update_method
+            result_path,update_method=update_method
         )
     except Exception as e:
         if update_method:

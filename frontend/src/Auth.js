@@ -11,3 +11,14 @@ export async function login(username, password, remember_me) {
     }
 
 }
+
+export async function logout() {
+    try {
+        await axios.get("/auth/logout", { withCredentials: true })
+    } catch (error) {
+        if (error.response) {
+            throw new Error(error.response.data)
+        }
+        throw error
+    }
+}

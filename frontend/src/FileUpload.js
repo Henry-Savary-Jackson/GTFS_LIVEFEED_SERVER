@@ -61,12 +61,12 @@ export function UploadsGTFS() {
             {
                 status && status.status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!
-                    < a href={window.location.host + '/static/gtfs.zip'}>Zip file</a>
-                    <a href={window.location.host + '/static/result/report.html'}>Validation report</a>
+                    < a href='/static/shared/gtfs.zip'>Zip file</a>
+                    <a href='/static/shared/result/report.html'>Validation report</a>
                 </div>}
             {status && status.status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
 
-                <a href={window.location.host + '/static/result/report.html'}>Validation report</a>
+                <a href= '/static/shared/result/report.html'>Validation report</a>
             </div>}
             <div className='form-group'>
                 <label htmlFor='file_input' >Excel File:</label>
