@@ -1,9 +1,10 @@
-import { useState, useEffect, useReducer } from 'react';
+import { useState, useEffect, useReducer, useContext } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
-import { getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
+import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
 import { useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
+import { RoutesContext, ServicesContext, UserContext } from './Globals';
 
 function convertServiceAlertDictToGTFS(dict) {
     let feedEntity = transit_realtime.FeedEntity.create()
@@ -41,20 +42,40 @@ function convertServiceAlertDictToGTFS(dict) {
     return feedEntity
 }
 
-function EntitySelectorTabs({ setInformedEntities, routes, services }) {
+function EntitySelectorTabs({ setInformedEntities }) {
     let [tab, setTab] = useState("trip")
+    let [TripSearchRoute, setTripSearchRoute] = useState("")
+    let [routeSelectRoute, setRouteSelectRoute] = useState("")
+    let [TripSearchservice, setTripSearchService] = useState("")
+    let [routes, setRoutes] = useState([])
+    let [services, setServices] = useState([])
+    useEffect(() => {
+        async function setData() {
+            setRoutes(await getRoutes())
+            setServices(await getServices())
+        }
+        setData()
+    }, [])
+   
+    useEffect(() => {
+        setRouteSelectRoute(routes.length > 0 ? routes[0].route_id : "")
+        setTripSearchRoute(routes.length > 0 ? routes[0].route_id : "")
+        setTripSearchService(services.length > 0 ? services[0] : "")
+    }, [routes, services])
 
-    function setRoute(route_id) {
+
+    function setRouteInformedEntity(route_id) {
+        setRouteSelectRoute(route_id)
         setInformedEntities({
             "routeId": route_id
         })
     }
-    function setStop(stop_id) {
+    function setStopInformedEntity(stop_id) {
         setInformedEntities({
             "stopId": stop_id
         })
     }
-    function setTripID(trip_id) {
+    function setTripIDInformedEntity(trip_id) {
         setInformedEntities({
             "tripId": trip_id
         })
@@ -66,23 +87,15 @@ function EntitySelectorTabs({ setInformedEntities, routes, services }) {
             <button className='btn' onClick={(e) => { setTab("route") }} >Route</button>
             <button className='btn' onClick={(e) => { setTab("stop") }} >Stop</button>
         </div>
-        {tab === "trip" && <TripSearch setTripID={setTripID} routes={routes} services={services} />}
-        {tab === "route" && <RouteSelect setRoute={setRoute} routes={routes} />}
-        {tab === "stop" && <StopSearch finish_search_callback={setStop} />}
+        {tab === "trip" && <TripSearch setTripID={setTripIDInformedEntity} setRoute={setTripSearchRoute} route={TripSearchRoute} setService={setTripSearchService} service={TripSearchservice} routes={routes} services={services} />}
+        {tab === "route" && <RouteSelect setRoute={setRouteInformedEntity} routes={routes} route={routeSelectRoute} />}
+        {tab === "stop" && <StopSearch finish_search_callback={setStopInformedEntity} />}
     </div>
 
 }
 
 function InformedEntities({ entities, changeInformedEntities }) {
-    function getHtmlForEntity(entity) {
-        if (entity.trip || entity.tripId) {
-            return <span>Trip:{entity.trip ? entity.trip.tripId : entity.tripId}</span>
-        } else if (entity.routeId) {
-            return <span>Route:{entity.routeId}</span>
-        } else {
-            return <span>Stop:{entity.stopId}</span>
-        }
-    }
+
     return <ul className='list-group'>{entities.map((entity, index) => <li key={index}>{getHtmlForEntity(entity)}<button className='btn btn-danger' onClick={(e) => { changeInformedEntities({ "action": "delete", "index": index }) }}>X</button></li>)}</ul>
 }
 
@@ -128,25 +141,16 @@ export function ServiceAlert() {
 
     let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : '')
     let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].end ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
+    
 
-    let [routes, setRoutes] = useState([])
-    let [services, setServices] = useState([])
-
-    useEffect(() => {
-        async function setData() {
-            setRoutes(await getRoutes())
-            setServices(await getServices())
-        }
-        setData()
-    }, [])
 
     function addInformedEntity(entity) {
         changeInformedEntities({ "action": "save", "entity": entity })
     }
 
 
-    return <div  className="d-flex flex-column align-items-center">
-        <EntitySelectorTabs routes={routes} services={services} setInformedEntities={addInformedEntity} informed_entities={informed_entities} />
+    return <div className="d-flex flex-column align-items-center">
+        <EntitySelectorTabs setInformedEntities={addInformedEntity}  />
         {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
         <div className='d-flex flex-column align-items-center' >
             <div className="form-group" >
@@ -208,12 +212,13 @@ export function ServiceAlert() {
                 await sendServiceAlert(service_alert_gtfs)
                 alert("Successfully saved Alert!")
             } catch (error) {
-                alert(error)
+                alert(error.message || error)
             }
             // save object
         }} >Save</button>
-        <button className='btn btn-danger' onClick={async (e) => {
-            window.location = "/"
+        <button className='btn btn-danger' onClick={(e) => {
+            if (window.confirm("Are you sure you want to cancel? You might lose unsaved changes"))
+                window.location = "/"
 
         }}>Cancel</button>
     </div>

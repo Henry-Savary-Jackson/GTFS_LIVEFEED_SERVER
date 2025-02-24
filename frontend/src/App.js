@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getFeedMessage, deleteFeedEntity, setCSRFToken, get_csrf } from './Utils'
+import { getFeedMessage, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf } from './Utils'
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -8,6 +8,53 @@ import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
 import { logout } from './Auth';
+
+function FeedEntityRow({ entity, delete_feed_entity_callback }) {
+
+  function renderServiceAlert() {
+    let informed_entities = entity.alert.informedEntity
+    function returnTime() {
+      let activePeriod = entity.alert.activePeriod
+      if (!activePeriod || activePeriod.length == 0)
+        return <td>No active period</td>
+
+      let start_date = new Date(activePeriod[0].start * 1000)
+      let end_date = new Date(activePeriod[0].end * 1000)
+      let start = activePeriod[0].start ? start_date.toDateString() + start_date.toLocaleTimeString() : "Unspecified"
+      let end = activePeriod[0].end ? end_date.toDateString() + end_date.toLocaleTimeString() : "Unspecified"
+      return <td><ul>
+        <li>Start:{start}</li>
+        <li>End:{end}</li>
+      </ul>
+      </td>
+    }
+    return <>
+      {returnTime()}
+      <td><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
+      <td>Service Alert</td>
+      <td><Link to="/service_alert" state={entity} >Edit</Link> </td>
+    </>
+  }
+  function renderTripUpdate() {
+    return <>
+      <td colSpan={2}>{entity.tripUpdate.trip ? entity.tripUpdate.trip.tripId : ""}</td>
+      <td>Trip Update</td>
+      <td><Link to="/trip_update" state={entity} >Edit</Link> </td>
+    </>
+  }
+
+  return <tr key={entity.id} >
+    <td>{entity.id}</td>
+    {entity.tripUpdate ? renderTripUpdate() : renderServiceAlert()}
+    <td ><button className='btn btn-danger' onClick={(e) => {
+      if (window.confirm("Are you sure you want to delete")) {
+        delete_feed_entity_callback(entity.id)
+      }
+
+    }
+    }>X</button></td>
+  </tr>
+}
 
 export function Feed() {
   const [feed, setFeed] = useState([])
@@ -25,7 +72,6 @@ export function Feed() {
       await set_feed()
     }
     catch (error) {
-      console.log(error)
       alert("Error deleting feed:" + error.message)
     }
   }
@@ -37,18 +83,14 @@ export function Feed() {
         <thead>
           <tr>
             <th>Id</th>
+            <th>Active Times</th>
+            <th>Entities</th>
             <th>Type</th>
             <th>Edit</th>
             <th>Delete</th>
           </tr></thead>
         <tbody>
-          {feed.map((entity) =>
-            <tr key={entity.id} >
-              <td>{entity.id}</td>
-              <td>{entity.tripUpdate ? "TripUpdate" : "ServiceAlert"}</td>
-              <td><Link to={entity.tripUpdate ? "/trip_update" : "/service_alert"} state={entity} >Edit</Link> </td>
-              <td ><button className='btn btn-danger' onClick={(e) => { delete_feed_entity_callback(entity.id) }}>X</button></td>
-            </tr>)}
+          {feed.map((entity) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
         </tbody>
       </table>
     </div>
@@ -88,8 +130,9 @@ export default function App() {
   </BrowserRouter>
 }
 
-export function Main({logout_cookie}) {
+export function Main({ logout_cookie }) {
   return <div className='d-flex flex-column align-items-center'  >
+    <img src='/static/prasa-main.png' width={250} height={100} />
     <Link to="/upload_gtfs">Upload GTFS file form</Link>
     <Link to="/service_alert">Create Service Alert</Link>
     <Link to="/trip_update">Create trip update</Link>
@@ -105,5 +148,6 @@ export function Main({logout_cookie}) {
       }
     }} href='/auth/logout'>Logout</a>
     <Feed />
+    <img src='/static/lines.png' width={500} height={500} />
   </div>
 }

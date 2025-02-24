@@ -4,7 +4,7 @@ import { getTrips, getStops } from './Utils'
 export function RouteSelect({ route, setRoute, routes }) {
 
     return <div className='container'>
-        <select className='form-control' id='route_list' value={route || (routes.length > 0 && routes[0] )|| ""} onChange={(event) => {
+        <select className='form-control' id='route_list' value={route} onChange={(event) => {
             setRoute(event.target.value)
         }}>
             {routes.map((val, i) => <option key={i} value={val.route_id}>{val.route_long_name}</option>)}
@@ -25,7 +25,7 @@ export function TripIdSeacher({ number, setSearchNumber }) {
 export function ServiceSelect({ setService, service, services }) {
 
     return <div className='container'>
-        <select className='form-control' id='service_list' value={service || (services.length>0 && services[0]) || ""} onChange={(event) => {
+        <select className='form-control' id='service_list' value={service} onChange={(event) => {
             setService(event.target.value)
         }}>
             {services.map((val, i) => <option key={i} value={val}>{val}</option>)}
@@ -33,10 +33,8 @@ export function ServiceSelect({ setService, service, services }) {
     </div>
 }
 
-export function TripSearch({ setTripID, routes, services }) {
+export function TripSearch({route, setRoute, service, setService, setTripID, routes, services }) {
 
-    let [route, setRoute] = useState(undefined)
-    let [service, setService] = useState(undefined)
     let [number, setNumber] = useState(undefined)
     let [trips, setTrips] = useState([])
 
@@ -45,12 +43,13 @@ export function TripSearch({ setTripID, routes, services }) {
         setTripID(trip_id)
     }
     const searchState = useRef(false)
-
+        // need to pass this stuff with route, because otherwise it initially gives emoty value
+        // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
     return <div className='d-flex flex-column justify-content-center'>
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
         <ServiceSelect service={service} setService={setService} services={services} />
         <TripIdSeacher number={number} setSearchNumber={setNumber} />
-        <button className='btn' disabled={searchState.current} onClick={async (e) => {
+        <button className='btn btn-primary' disabled={searchState.current} onClick={async (e) => {
             searchState.current = true
             try {
                 setTrips(await getTrips(route, service, number))

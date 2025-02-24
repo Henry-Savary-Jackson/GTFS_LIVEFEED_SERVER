@@ -2,7 +2,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { useLocation } from 'react-router-dom'
 import { TripSearch } from './Search';
-import { getServices,  getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
+import { getServices, getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
 import { v4 } from 'uuid'
 
 
@@ -99,8 +99,25 @@ export function TripUpdate() {
     let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELLED"])
 
     let [trip_id, setTripID] = useState(trip_update_inp ? trip_update_inp.trip.tripId : "")
+    let [TripSearchRoute, setTripSearchRoute] = useState("")
+    let [TripSearchservice, setTripSearchService] = useState("")
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
+
+    useEffect(() => {
+        async function setData() {
+            setRoutes(await getRoutes())
+            setServices(await getServices())
+            if (trip_id)
+                disatchChangeStopTimes(getUpdatesWithStopTimes(trip_update_inp.stopTimeUpdate, await getStopTimesofTrip(trip_id)))
+        }
+        setData()
+    }, [])
+
+    useEffect(() => {
+        setTripSearchRoute(routes.length > 0 ? routes[0].route_id : "")
+        setTripSearchService(services.length > 0 ? services[0] : "")
+    }, [routes, services])
 
     let [stoptimes, disatchChangeStopTimes] = useReducer((state, action) => {
         if (Array.isArray(action))
@@ -114,26 +131,13 @@ export function TripUpdate() {
         })
     }, [])
 
-
-    useEffect(() => {
-        async function setData() {
-            setRoutes(await getRoutes())
-            setServices(await getServices())
-            if (trip_id)
-                disatchChangeStopTimes(getUpdatesWithStopTimes(trip_update_inp.stopTimeUpdate, await getStopTimesofTrip(trip_id)))
-        }
-        setData()
-    }, [])
-
-
     async function onClickTripID(new_trip_id) {
         setTripID(new_trip_id)
         disatchChangeStopTimes(await getStopTimesofTrip(new_trip_id))
     }
 
-
     return <div className='container flex-column d-flex align-items-center'>
-        <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
+        <TripSearch route={TripSearchRoute} setRoute={setTripSearchRoute} service={TripSearchservice} setService={setTripSearchService} routes={routes} services={services} setTripID={onClickTripID} />
         <div>{trip_id}</div>
         {trip_id !== "" && <div className='form-check'>
             <label className='form-check-label' htmlFor='cancel-checkbox'>Cancel Trip?</label>
@@ -156,13 +160,14 @@ export function TripUpdate() {
                 await sendTripUpdate(trip_update_gtfs)
                 alert("Sucessfully saved")
             } catch (error) {
-                alert(error)
+                alert(error.message || error)
             }
 
             // save object
         }} >Save</button>
-        <button className='btn btn-danger' onClick={async (e) => {
-            window.location = "/"
+        <button className='btn btn-danger' onClick={(e) => {
+            if (window.confirm("Are you sure you want to cancel? You might lose unsaved changes"))
+                window.location = "/"
         }}> Cancel</button>
 
     </div>

@@ -58,6 +58,8 @@ def delete_feed_entity_from_feed(entity_id:str, feed: gtfs_rt.FeedMessage):
             del feed.entity[i]
 
 def verify_service_alert(alert: dict):
+    if "informedEntity" not in alert:
+        raise ValueError("You must specifiy affected entities in the service alert!")
     for informed_entity in alert["informedEntity"]:
         verify_entity_selector(informed_entity)
 

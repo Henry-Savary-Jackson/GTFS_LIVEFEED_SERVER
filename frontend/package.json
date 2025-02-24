@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "ajv": "^7.2.4",
     "axios": "^1.7.9",
     "gtfs-realtime-bindings": "^1.1.1",
     "protobufjs": "^7.4.0",
@@ -10,9 +11,9 @@
     "react-cookie": "^7.2.2",
     "react-dom": "^19.0.0",
     "react-router": "^7.1.5",
+    "react-router-dom": "^7.2.0",
     "react-scripts": "5.0.1",
-    "ajv": "^7.2.4",
-    "react-router-dom": "^7.2.0"
+    "serve": "^14.2.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -22,8 +23,7 @@
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
     ]
   },
   "browserslist": {
@@ -38,5 +38,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://127.0.0.1:5000/"
+  "proxy": "http://localhost:5000/"
 }
