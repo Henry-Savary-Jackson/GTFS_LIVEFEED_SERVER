@@ -2,7 +2,7 @@ services:
   flask:
     build: .
     ports:
-      - 5000:5000
+      - 443:5000
     volumes:
       - ./server_files/static/shared:/server_files/static/shared
       - ./server_files/shared_private:/server_files/shared_private

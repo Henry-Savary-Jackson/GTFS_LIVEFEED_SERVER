@@ -17,8 +17,10 @@ COPY server_files ./server_files
 WORKDIR /frontend
 RUN cp -r build/static/* ../server_files/static/
 RUN cp -f build/index.html  ../gtfs_rt_server/templates/index.html
+COPY fullchain.pem .
+COPY privkey.pem .
 WORKDIR /
 RUN apk add curl
 RUN apk add openjdk11
 EXPOSE 5000
-CMD flask run --host=0.0.0.0 & celery -A app.celery_app  worker --logfile /server_files/shared_private/celery.log
+CMD flask run --cert fullchain.pem --key privkey.pem --host=0.0.0.0 & celery -A app.celery_app  worker --logfile /server_files/shared_private/celery.log
