@@ -8,8 +8,38 @@ from pathlib import Path
 from typing import Optional
 from celery import Task, Celery
 from celery.exceptions import Ignore
+from flask.logging import default_handler
+from flask import has_request_context, request
+from logging import getLogger, FileHandler, DEBUG
+import logging
 
 db = SQLAlchemy()
+# from https://flask.palletsprojects.com/en/stable/logging/#injecting-request-information 
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        if has_request_context():
+            record.url = request.url
+            record.remote_addr = request.remote_addr
+        else:
+            record.url = None
+            record.remote_addr = None
+
+        return super().format(record)
+
+def create_logger(app):
+    fm=  RequestFormatter(
+    '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
+    '%(levelname)s in %(module)s: %(message)s'
+    )
+    logger = getLogger()
+    default_handler.setFormatter(fm)
+    fileHandler = FileHandler(app.config["LOGGING_FILE_PATH"], mode="a")
+    fileHandler.setFormatter(fm)
+    fileHandler.setLevel(DEBUG)
+    logger.addHandler(default_handler)
+    logger.addHandler(fileHandler)
+    app.logger = logger
+    return logger
 
 def create_app():
     app = Flask("gtfs_rt_server")
@@ -85,7 +115,7 @@ def init_csrf(app):
     return CSRFProtect(app)
 
 def init_CORS(app):
-    return CORS(app,supports_credentials=True,origins=["http://localhost:5000", "http://localhost:3000"])
+    return CORS(app,supports_credentials=True,origins=["http://localhost:5000"]) # TODO: fix this by putting https
 
 def init_app():
     global db
@@ -104,6 +134,7 @@ def init_app():
     init_CORS(app)
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
+    create_logger(app)
     celery_app = init_celery_app(app)
     return app
 

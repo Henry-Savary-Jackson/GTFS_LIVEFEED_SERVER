@@ -14,13 +14,13 @@ export function UploadsGTFS() {
         const abort = new AbortController()
         var interval = setInterval(async () => {
             try {
-                const status = await getGTFSStatus(abort.signal)
+                const status_result = await getGTFSStatus(abort.signal)
                 // careful
-                setStatus(status)
+                setStatus(status_result)
                 let textarea = document.getElementById("status-text-area")
                 if (textarea)
                     textarea.scrollTop = textarea.scrollHeight
-                if (status.status === "done" || status.status === "error") {
+                if (status_result.status === "done" || status_result.status === "error") {
                     clearInterval(interval)
                     setUploading(false)
                 }

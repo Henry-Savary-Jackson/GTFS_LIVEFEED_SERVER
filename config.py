@@ -5,10 +5,11 @@ class Config(object):
     SERVER_FILES = os.path.join(FILE_DIR, "server_files")
     STATIC_FOLDER = os.path.join(SERVER_FILES, "static")
     SHARED_FOLDER = os.path.join(STATIC_FOLDER, "shared")
+    SHARED_PRIVATE_FOLDER = os.path.join(SERVER_FILES, "shared_private")
     SECRET_KEY = os.getenv("FLASK_SECURE_KEY")
     ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
     ADMIN_PASS = os.getenv("ADMIN_PASS")
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(SERVER_FILES, "gtfs.sqlite3")}"
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(SHARED_PRIVATE_FOLDER, "gtfs.sqlite3")}"
     GTFS_VALIDATOR_PATH = os.path.join(SERVER_FILES, "gtfs-validator-6.0.0-cli.jar") 
     FEED_LOCATION = os.path.join(SHARED_FOLDER,"feed.bin") 
     CELERY = dict(
@@ -22,6 +23,8 @@ class Config(object):
     )
     WTF_CSRF_ENABLED =True 
     SESSION_COOKIE_DOMAIN =True 
+    LOGGING_FILE_PATH=os.path.join(SHARED_PRIVATE_FOLDER, "server.log")
+    GTFS_VALIDATOR_RESULT_PATH=os.path.join(SHARED_FOLDER, "result")
 
 
 class DevConfig(Config):

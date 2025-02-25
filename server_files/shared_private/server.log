@@ -1,0 +1,444 @@
+[2025-02-24 19:12:16,322] None requested None
+INFO in _internal: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.3:5000
+[2025-02-24 19:12:16,322] None requested None
+INFO in _internal: [33mPress CTRL+C to quit[0m
+[2025-02-24 19:12:33,087] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:12:33] "GET / HTTP/1.1" 200 -
+[2025-02-24 19:12:33,184] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:12:33] "GET /static/js/main.e38be1c3.js HTTP/1.1" 200 -
+[2025-02-24 19:12:33,370] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:12:33] "GET /static/prasa-icon.svg HTTP/1.1" 200 -
+[2025-02-24 19:12:33,418] 172.18.0.1 requested http://localhost:5000/auth/csrf
+ERROR in app: Exception on /auth/csrf [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 920, in full_dispatch_request
+    return self.finalize_request(rv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 941, in finalize_request
+    response = self.process_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1322, in process_response
+    self.session_interface.save_session(self, ctx.session, response)
+  File "/usr/local/lib/python3.12/site-packages/flask/sessions.py", line 387, in save_session
+    response.set_cookie(
+  File "/usr/local/lib/python3.12/site-packages/werkzeug/sansio/response.py", line 232, in set_cookie
+    dump_cookie(
+  File "/usr/local/lib/python3.12/site-packages/werkzeug/http.py", line 1313, in dump_cookie
+    domain = domain.partition(":")[0].lstrip(".").encode("idna").decode("ascii")
+             ^^^^^^^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'partition'
+[2025-02-24 19:12:33,434] 172.18.0.1 requested http://localhost:5000/auth/csrf
+ERROR in app: Request finalizing failed with an error while handling an error
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 920, in full_dispatch_request
+    return self.finalize_request(rv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 941, in finalize_request
+    response = self.process_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1322, in process_response
+    self.session_interface.save_session(self, ctx.session, response)
+  File "/usr/local/lib/python3.12/site-packages/flask/sessions.py", line 387, in save_session
+    response.set_cookie(
+  File "/usr/local/lib/python3.12/site-packages/werkzeug/sansio/response.py", line 232, in set_cookie
+    dump_cookie(
+  File "/usr/local/lib/python3.12/site-packages/werkzeug/http.py", line 1313, in dump_cookie
+    domain = domain.partition(":")[0].lstrip(".").encode("idna").decode("ascii")
+             ^^^^^^^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'partition'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 941, in finalize_request
+    response = self.process_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1322, in process_response
+    self.session_interface.save_session(self, ctx.session, response)
+  File "/usr/local/lib/python3.12/site-packages/flask/sessions.py", line 387, in save_session
+    response.set_cookie(
+  File "/usr/local/lib/python3.12/site-packages/werkzeug/sansio/response.py", line 232, in set_cookie
+    dump_cookie(
+  File "/usr/local/lib/python3.12/site-packages/werkzeug/http.py", line 1313, in dump_cookie
+    domain = domain.partition(":")[0].lstrip(".").encode("idna").decode("ascii")
+             ^^^^^^^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'partition'
+[2025-02-24 19:12:33,446] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:12:33] "[35m[1mGET /auth/csrf HTTP/1.1[0m" 500 -
+[2025-02-24 19:12:35,582] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:12:35] "[31m[1mPOST /auth/login HTTP/1.1[0m" 400 -
+[2025-02-24 19:24:46,108] None requested None
+INFO in _internal: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.3:5000
+[2025-02-24 19:24:46,108] None requested None
+INFO in _internal: [33mPress CTRL+C to quit[0m
+[2025-02-24 19:26:47,143] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:26:47] "[31m[1mPOST /auth/login HTTP/1.1[0m" 400 -
+[2025-02-24 19:26:49,226] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:26:49] "[31m[1mPOST /auth/login HTTP/1.1[0m" 400 -
+[2025-02-24 19:26:51,857] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:26:51] "[31m[1mPOST /auth/login HTTP/1.1[0m" 400 -
+[2025-02-24 19:26:54,230] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:26:54] "[31m[1mPOST /auth/login HTTP/1.1[0m" 400 -
+[2025-02-24 19:27:17,353] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "POST /auth/login HTTP/1.1" 200 -
+[2025-02-24 19:27:17,382] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /static/prasa-main.png HTTP/1.1" 200 -
+[2025-02-24 19:27:17,384] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /static/lines.png HTTP/1.1" 200 -
+[2025-02-24 19:27:17,420] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "[32mGET /feed HTTP/1.1[0m" 308 -
+[2025-02-24 19:27:17,433] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET / HTTP/1.1" 200 -
+[2025-02-24 19:27:17,439] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /feed/ HTTP/1.1" 200 -
+[2025-02-24 19:27:17,518] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /static/js/main.e38be1c3.js HTTP/1.1" 200 -
+[2025-02-24 19:27:17,660] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /static/prasa-main.png HTTP/1.1" 200 -
+[2025-02-24 19:27:17,662] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /static/lines.png HTTP/1.1" 200 -
+[2025-02-24 19:27:17,665] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 19:27:17,669] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:17] "GET /feed/ HTTP/1.1" 200 -
+[2025-02-24 19:27:27,571] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:27] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:27:28,606] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:28] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:27:52,157] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:52] "GET /static/prasa-icon.svg HTTP/1.1" 200 -
+[2025-02-24 19:27:54,742] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:54] "[33mGET /installHook.js.map HTTP/1.1[0m" 404 -
+[2025-02-24 19:27:54,743] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:54] "GET /static/js/main.e38be1c3.js.map HTTP/1.1" 200 -
+[2025-02-24 19:27:56,815] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:56] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:27:57,906] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:27:57] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:28:02,943] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:02] "[36mGET /static/js/main.e38be1c3.js.map HTTP/1.1[0m" 304 -
+[2025-02-24 19:28:04,603] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:04] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:28:05,657] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:05] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:28:27,981] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:27] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:28:29,023] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:29] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:28:57,154] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:57] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:28:58,192] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:28:58] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:29:34,342] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:29:34] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:30:12,235] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:30:12] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:30:13,272] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:30:13] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 19:42:06,712] None requested None
+INFO in _internal: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.3:5000
+[2025-02-24 19:42:06,713] None requested None
+INFO in _internal: [33mPress CTRL+C to quit[0m
+[2025-02-24 19:42:24,456] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:42:24] "GET /upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:42:24,760] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:42:24] "[33mGET /installHook.js.map HTTP/1.1[0m" 404 -
+[2025-02-24 19:42:24,821] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:42:24] "GET /static/js/main.e38be1c3.js HTTP/1.1" 200 -
+[2025-02-24 19:42:54,912] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:42:54] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 19:43:30,763] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:43:30] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 19:43:31,797] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 19:43:31] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:32,071] None requested None
+INFO in _internal: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.3:5000
+[2025-02-24 20:02:32,072] None requested None
+INFO in _internal: [33mPress CTRL+C to quit[0m
+[2025-02-24 20:02:41,935] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:41] "GET /upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 20:02:42,037] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:42] "GET /static/js/main.3d601df8.js HTTP/1.1" 200 -
+[2025-02-24 20:02:42,208] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:42] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 20:02:42,216] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:42] "GET /static/prasa-icon.svg HTTP/1.1" 200 -
+[2025-02-24 20:02:46,607] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:46] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 20:02:47,643] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:47] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:48,642] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:48] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:49,646] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:49] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:50,645] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:50] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:51,643] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:51] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:52,643] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:52] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:54,616] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:54] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:55,649] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:55] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:56,679] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:56] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:57,709] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:57] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:58,746] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:58] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:02:59,780] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:02:59] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:00,811] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:00] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:01,842] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:01] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:02,871] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:02] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:03,902] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:03] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:04,932] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:04] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:05,960] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:05] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:06,991] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:06] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:08,022] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:08] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:09,052] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:09] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:10,081] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:10] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:11,114] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:11] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:12,196] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:12] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:13,226] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:13] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:14,257] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:14] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:15,286] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:15] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:16,314] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:16] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:17,314] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:17] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:18,315] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:18] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:19,317] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:19] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:20,323] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:20] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:21,323] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:21] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:22,323] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:22] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:23,325] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:23] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:24,328] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:24] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:25,329] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:25] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:26,330] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:26] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:27,332] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:27] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:28,334] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:28] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:03:41,191] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:41] "GET /static/shared/result/report.html HTTP/1.1" 200 -
+[2025-02-24 20:03:41,428] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:03:41] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+[2025-02-24 20:08:11,522] None requested None
+INFO in _internal: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.3:5000
+[2025-02-24 20:08:11,523] None requested None
+INFO in _internal: [33mPress CTRL+C to quit[0m
+[2025-02-24 20:08:16,961] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:16] "GET /upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 20:08:17,063] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:17] "GET /static/js/main.3d601df8.js HTTP/1.1" 200 -
+[2025-02-24 20:08:17,235] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:17] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 20:08:20,807] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:20] "POST /gtfs/upload_gtfs HTTP/1.1" 200 -
+[2025-02-24 20:08:21,841] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:21] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:22,839] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:22] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:23,850] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:23] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:25,450] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:25] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:26,454] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:26] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:27,448] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:27] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:28,443] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:28] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:29,445] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:29] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:30,447] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:30] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:31,446] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:31] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:32,475] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:32] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:33,504] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:33] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:34,535] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:34] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:35,601] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:35] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:36,630] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:36] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:37,631] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:37] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:38,642] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:38] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:39,642] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:39] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:40,644] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:40] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:41,646] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:41] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:43,578] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:43] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:44,648] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:44] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:45,684] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:45] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:46,713] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:46] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:47,741] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:47] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:48,769] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:48] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:49,801] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:49] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:50,830] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:50] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:51,861] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:51] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:52,890] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:52] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:53,918] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:53] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:54,949] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:54] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:55,945] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:55] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:56,945] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:56] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:57,947] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:57] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:58,947] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:58] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:08:59,951] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:08:59] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:00,953] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:00] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:01,952] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:01] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:02,954] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:02] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:03,960] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:03] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:04,968] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:04] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:05,963] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:05] "GET /gtfs/status HTTP/1.1" 200 -
+[2025-02-24 20:09:09,286] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:09:09] "GET /static/shared/result/report.html HTTP/1.1" 200 -
+[2025-02-24 20:14:29,574] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "GET / HTTP/1.1" 200 -
+[2025-02-24 20:14:29,679] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "[36mGET /static/js/main.3d601df8.js HTTP/1.1[0m" 304 -
+[2025-02-24 20:14:29,850] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "GET /static/prasa-main.png HTTP/1.1" 200 -
+[2025-02-24 20:14:29,850] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "GET /static/lines.png HTTP/1.1" 200 -
+[2025-02-24 20:14:29,855] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 20:14:29,858] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "GET /feed/ HTTP/1.1" 200 -
+[2025-02-24 20:14:29,932] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:29] "GET /static/prasa-icon.svg HTTP/1.1" 200 -
+[2025-02-24 20:14:34,737] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:34] "GET /db/get_routes HTTP/1.1" 200 -
+[2025-02-24 20:14:34,758] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:34] "GET /db/get_services HTTP/1.1" 200 -
+[2025-02-24 20:14:55,704] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:14:55] "POST /feed/service_alert HTTP/1.1" 200 -
+[2025-02-24 20:15:01,124] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:15:01] "GET / HTTP/1.1" 200 -
+[2025-02-24 20:15:01,245] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:15:01] "[36mGET /static/js/main.3d601df8.js HTTP/1.1[0m" 304 -
+[2025-02-24 20:15:01,404] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:15:01] "[36mGET /static/prasa-main.png HTTP/1.1[0m" 304 -
+[2025-02-24 20:15:01,410] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:15:01] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 20:15:01,413] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:15:01] "[36mGET /static/lines.png HTTP/1.1[0m" 304 -
+[2025-02-24 20:15:01,416] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:15:01] "GET /feed/ HTTP/1.1" 200 -
+[2025-02-24 20:16:34,842] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:34] "GET /db/get_routes HTTP/1.1" 200 -
+[2025-02-24 20:16:34,856] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:34] "GET /db/get_services HTTP/1.1" 200 -
+[2025-02-24 20:16:40,150] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:40] "GET /db/get_trips?route=FSHSIM&service=WD HTTP/1.1" 200 -
+[2025-02-24 20:16:44,155] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:44] "POST /feed/service_alert HTTP/1.1" 200 -
+[2025-02-24 20:16:47,867] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:47] "GET / HTTP/1.1" 200 -
+[2025-02-24 20:16:47,963] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:47] "[36mGET /static/js/main.3d601df8.js HTTP/1.1[0m" 304 -
+[2025-02-24 20:16:48,104] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:48] "[36mGET /static/prasa-main.png HTTP/1.1[0m" 304 -
+[2025-02-24 20:16:48,106] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:48] "[36mGET /static/lines.png HTTP/1.1[0m" 304 -
+[2025-02-24 20:16:48,116] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:48] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 20:16:48,123] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:16:48] "GET /feed/ HTTP/1.1" 200 -
+[2025-02-24 20:17:35,381] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:35] "GET /db/get_routes HTTP/1.1" 200 -
+[2025-02-24 20:17:35,397] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:35] "GET /db/get_services HTTP/1.1" 200 -
+[2025-02-24 20:17:35,415] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:35] "GET /db/get_stop_times_trip?tripid=WD-3411 HTTP/1.1" 200 -
+[2025-02-24 20:17:45,836] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:45] "POST /feed/trip_update HTTP/1.1" 200 -
+[2025-02-24 20:17:50,824] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:50] "GET / HTTP/1.1" 200 -
+[2025-02-24 20:17:50,932] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:50] "[36mGET /static/js/main.3d601df8.js HTTP/1.1[0m" 304 -
+[2025-02-24 20:17:51,098] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:51] "[36mGET /static/prasa-main.png HTTP/1.1[0m" 304 -
+[2025-02-24 20:17:51,105] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:51] "GET /auth/csrf HTTP/1.1" 200 -
+[2025-02-24 20:17:51,110] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:51] "GET /feed/ HTTP/1.1" 200 -
+[2025-02-24 20:17:51,112] None requested None
+INFO in _internal: 172.18.0.1 - - [24/Feb/2025 20:17:51] "[36mGET /static/lines.png HTTP/1.1[0m" 304 -

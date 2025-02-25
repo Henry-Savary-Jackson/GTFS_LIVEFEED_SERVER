@@ -173,7 +173,7 @@ export async function submitGTFS(file_data) {
 }
 
 export async function getGTFSStatus(signal) {
-    await performRequest(async () => {
+    return await performRequest(async () => {
         let response = await axios.get("/gtfs/status", { signal: signal, withCredentials: true })
         return response.data
     })
