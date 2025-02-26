@@ -4,7 +4,6 @@ import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, 
 import { useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
-import { RoutesContext, ServicesContext, UserContext } from './Globals';
 
 function convertServiceAlertDictToGTFS(dict) {
     let feedEntity = transit_realtime.FeedEntity.create()
@@ -44,9 +43,7 @@ function convertServiceAlertDictToGTFS(dict) {
 
 function EntitySelectorTabs({ setInformedEntities }) {
     let [tab, setTab] = useState("trip")
-    let [TripSearchRoute, setTripSearchRoute] = useState("")
-    let [routeSelectRoute, setRouteSelectRoute] = useState("")
-    let [TripSearchservice, setTripSearchService] = useState("")
+    let [routeSelect, setRouteSelect] = useState("")
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
     useEffect(() => {
@@ -56,26 +53,25 @@ function EntitySelectorTabs({ setInformedEntities }) {
         }
         setData()
     }, [])
-   
-    useEffect(() => {
-        setRouteSelectRoute(routes.length > 0 ? routes[0].route_id : "")
-        setTripSearchRoute(routes.length > 0 ? routes[0].route_id : "")
-        setTripSearchService(services.length > 0 ? services[0] : "")
-    }, [routes, services])
-
 
     function setRouteInformedEntity(route_id) {
-        setRouteSelectRoute(route_id)
+        setRouteSelect(route_id)
+        if (!route_id)
+            return
         setInformedEntities({
             "routeId": route_id
         })
     }
     function setStopInformedEntity(stop_id) {
+        if (!stop_id)
+            return
         setInformedEntities({
             "stopId": stop_id
         })
     }
     function setTripIDInformedEntity(trip_id) {
+        if (!trip_id)
+            return
         setInformedEntities({
             "tripId": trip_id
         })
@@ -87,8 +83,8 @@ function EntitySelectorTabs({ setInformedEntities }) {
             <button className='btn' onClick={(e) => { setTab("route") }} >Route</button>
             <button className='btn' onClick={(e) => { setTab("stop") }} >Stop</button>
         </div>
-        {tab === "trip" && <TripSearch setTripID={setTripIDInformedEntity} setRoute={setTripSearchRoute} route={TripSearchRoute} setService={setTripSearchService} service={TripSearchservice} routes={routes} services={services} />}
-        {tab === "route" && <RouteSelect setRoute={setRouteInformedEntity} routes={routes} route={routeSelectRoute} />}
+        {tab === "trip" && <TripSearch setTripID={setTripIDInformedEntity} routes={routes} services={services} />}
+        {tab === "route" && <RouteSelect setRoute={setRouteInformedEntity} routes={routes} route={routeSelect} />}
         {tab === "stop" && <StopSearch finish_search_callback={setStopInformedEntity} />}
     </div>
 
@@ -141,7 +137,7 @@ export function ServiceAlert() {
 
     let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : '')
     let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].end ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
-    
+
 
 
     function addInformedEntity(entity) {
@@ -149,10 +145,10 @@ export function ServiceAlert() {
     }
 
 
-    return <div className="d-flex flex-column align-items-center">
-        <EntitySelectorTabs setInformedEntities={addInformedEntity}  />
+    return <div className="d-flex flex-column align-items-center gap-5">
+        <EntitySelectorTabs setInformedEntities={addInformedEntity} />
         {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
-        <div className='d-flex flex-column align-items-center' >
+        <div className='d-flex flex-column align-items-center gap-3' >
             <div className="form-group" >
                 <label htmlFor='input-start'> Start Time</label>
                 <input id="input-start" className='form-control' type='datetime-local' onChange={(e) => {
@@ -180,22 +176,27 @@ export function ServiceAlert() {
                 </select>
             </div>
             <div className="form-group" >
-                <label>Description/s</label>
-                <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
-                    changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
-                }}>Add Description</button>
-                {descriptions.map((desc, i) => <div key={i} className='form-group'>
-                    <textarea className="form-control" value={desc.text} onChange={(e) => {
-                        changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
-                    }}></textarea>
-                    <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
-                        {system_languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
-                    </select>
-                    <button className='btn btn-danger' onClick={(e) => {
-                        changeDescriptions({ "action": "delete", "index": i })
-                    }} >X</button>
+                <div className='form-group'>
+                    <label htmlFor='addDescButton'>Description/s</label>
+                    <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
+                        changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
+                    }} id='addDescButton'>Add Description</button>
                 </div>
-                )}
+                <div className=' d-flex flex-column align-items-center gap-3'>
+                    {descriptions.map((desc, i) => <div key={i} className='form-group'>
+                        <textarea className="form-control" value={desc.text} onChange={(e) => {
+                            changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
+                        }}></textarea>
+                        <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
+                            {system_languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
+                        </select>
+                        <button className='btn btn-danger' onClick={(e) => {
+                            changeDescriptions({ "action": "delete", "index": i })
+                        }} >X</button>
+                    </div>
+                    )}
+
+                </div>
             </div>
         </div>
         <button className="btn btn-success " onClick={async (e) => {

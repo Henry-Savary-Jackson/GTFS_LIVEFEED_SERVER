@@ -99,8 +99,6 @@ export function TripUpdate() {
     let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELLED"])
 
     let [trip_id, setTripID] = useState(trip_update_inp ? trip_update_inp.trip.tripId : "")
-    let [TripSearchRoute, setTripSearchRoute] = useState("")
-    let [TripSearchservice, setTripSearchService] = useState("")
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
 
@@ -113,11 +111,6 @@ export function TripUpdate() {
         }
         setData()
     }, [])
-
-    useEffect(() => {
-        setTripSearchRoute(routes.length > 0 ? routes[0].route_id : "")
-        setTripSearchService(services.length > 0 ? services[0] : "")
-    }, [routes, services])
 
     let [stoptimes, disatchChangeStopTimes] = useReducer((state, action) => {
         if (Array.isArray(action))
@@ -136,8 +129,8 @@ export function TripUpdate() {
         disatchChangeStopTimes(await getStopTimesofTrip(new_trip_id))
     }
 
-    return <div className='container flex-column d-flex align-items-center'>
-        <TripSearch route={TripSearchRoute} setRoute={setTripSearchRoute} service={TripSearchservice} setService={setTripSearchService} routes={routes} services={services} setTripID={onClickTripID} />
+    return <div className='container flex-column d-flex align-items-center gap-5'>
+        <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
         <div>{trip_id}</div>
         {trip_id !== "" && <div className='form-check'>
             <label className='form-check-label' htmlFor='cancel-checkbox'>Cancel Trip?</label>

@@ -122,7 +122,7 @@ def init_app():
 
     app = create_app()
     config = os.getenv("FLASK_ENVIRON")
-    app.config.from_object( config if config else "config.DevConfig")
+    app.config.from_object( config if config else "config.Config")
     from gtfs_rt_server.protobuf_utils import get_feed_object_from_file
     app.static_folder = app.config["STATIC_FOLDER"]
     app.config["feed"] = get_feed_object_from_file(app.config["FEED_LOCATION"])

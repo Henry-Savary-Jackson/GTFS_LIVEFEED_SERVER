@@ -2,6 +2,8 @@ import os
 
 FILE_DIR = os.path.dirname(__file__)
 class Config(object):
+    FLASK_ENV="production"
+    SERVER_FILES = os.path.join(FILE_DIR, "server_files")
     SERVER_FILES = os.path.join(FILE_DIR, "server_files")
     STATIC_FOLDER = os.path.join(SERVER_FILES, "static")
     SHARED_FOLDER = os.path.join(STATIC_FOLDER, "shared")
@@ -22,7 +24,6 @@ class Config(object):
         result_serializer='json'
     )
     WTF_CSRF_ENABLED =True 
-    SESSION_COOKIE_DOMAIN =True 
     LOGGING_FILE_PATH=os.path.join(SHARED_PRIVATE_FOLDER, "server.log")
     GTFS_VALIDATOR_RESULT_PATH=os.path.join(SHARED_FOLDER, "result")
 
@@ -41,5 +42,5 @@ class TestConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
     SESSION_COOKIE_DOMAIN = False
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join("resources", "testgtfs.sqlite3")}"
+    SQLALCHEMY_DATABASE_URI = f"sqlite+db:///{os.path.join("resources", "testgtfs.sqlite3")}"
     FEED_LOCATION = os.path.join("resources", "feed.bin")

@@ -7,6 +7,7 @@ export function RouteSelect({ route, setRoute, routes }) {
         <select className='form-control' id='route_list' value={route} onChange={(event) => {
             setRoute(event.target.value)
         }}>
+            <option key="All" value="" >All</option>
             {routes.map((val, i) => <option key={i} value={val.route_id}>{val.route_long_name}</option>)}
         </select>
     </div>
@@ -28,34 +29,48 @@ export function ServiceSelect({ setService, service, services }) {
         <select className='form-control' id='service_list' value={service} onChange={(event) => {
             setService(event.target.value)
         }}>
+            <option key="All" value="" >All</option>
             {services.map((val, i) => <option key={i} value={val}>{val}</option>)}
         </select>
     </div>
 }
 
-export function TripSearch({route, setRoute, service, setService, setTripID, routes, services }) {
+export function TripSearch({ setTripID, routes, services }) {
 
     let [number, setNumber] = useState(undefined)
     let [trips, setTrips] = useState([])
+    let [route, setRoute] = useState("")
+    let [service, setService] = useState("")
+    const searchState = useRef(false)
 
     function select_trip_callback(trip_id) {
         setTrips([])
         setTripID(trip_id)
     }
-    const searchState = useRef(false)
-        // need to pass this stuff with route, because otherwise it initially gives emoty value
-        // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
+    async function setTripsCallback(new_number) {
+        searchState.current = true
+        try {
+            setTrips(await getTrips(route, service, new_number))
+        } finally {
+            searchState.current = false
+        }
+    }
+    function setNumberCallback(new_number) {
+        setNumber(new_number)
+        var timeOut = setTimeout(async () => {
+            if (searchState.current)
+                clearTimeout(timeOut)
+            setTripsCallback(new_number)
+        }, 250)
+    }
+    // need to pass this stuff with route, because otherwise it initially gives emoty value
+    // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
     return <div className='d-flex flex-column justify-content-center'>
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
         <ServiceSelect service={service} setService={setService} services={services} />
-        <TripIdSeacher number={number} setSearchNumber={setNumber} />
+        <TripIdSeacher number={number} setSearchNumber={setNumberCallback} />
         <button className='btn btn-primary' disabled={searchState.current} onClick={async (e) => {
-            searchState.current = true
-            try {
-                setTrips(await getTrips(route, service, number))
-            } finally {
-                searchState.current = false
-            }
+            setTripsCallback(number)
         }}>
             Search
         </button>
@@ -81,7 +96,7 @@ export function StopSearch({ finish_search_callback }) {
             } finally {
                 searchState.current = false
             }
-        }, 1000)
+        }, 250)
 
     }
 
@@ -93,7 +108,8 @@ export function StopSearch({ finish_search_callback }) {
     }
 
     return <div className='form-group'>
-        <input className='form-control' type='search' value={stop_name} onChange={async (e) => {
+        <label htmlFor='stop-search-input' >Search for stop:</label>
+        <input id="stop-search-input" className='form-control' type='search' value={stop_name} onChange={async (e) => {
             setStopName(e.target.value)
             await populateStops(e.target.value)
         }} />

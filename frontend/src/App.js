@@ -20,8 +20,8 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
       let start_date = new Date(activePeriod[0].start * 1000)
       let end_date = new Date(activePeriod[0].end * 1000)
-      let start = activePeriod[0].start ? start_date.toDateString() + start_date.toLocaleTimeString() : "Unspecified"
-      let end = activePeriod[0].end ? end_date.toDateString() + end_date.toLocaleTimeString() : "Unspecified"
+      let start = activePeriod[0].start ? start_date.toDateString() + " "+ start_date.toLocaleTimeString() : "Unspecified"
+      let end = activePeriod[0].end ? end_date.toDateString()+ " " + end_date.toLocaleTimeString() : "Unspecified"
       return <td><ul>
         <li>Start:{start}</li>
         <li>End:{end}</li>
@@ -131,7 +131,7 @@ export default function App() {
 }
 
 export function Main({ logout_cookie }) {
-  return <div className='d-flex flex-column align-items-center'  >
+  return <div className='d-flex flex-column align-items-center gap-3'  >
     <img src='/static/prasa-main.png' width={250} height={100} />
     <Link to="/upload_gtfs">Upload GTFS file form</Link>
     <Link to="/service_alert">Create Service Alert</Link>

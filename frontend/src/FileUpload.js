@@ -40,7 +40,7 @@ export function UploadsGTFS() {
 
     return <div >
 
-        <form className='container d-flex flex-column align-items-center' onSubmit={async (e) => {
+        <form className='container d-flex flex-column align-items-center gaps-5 justify-content-center' onSubmit={async (e) => {
             e.preventDefault()
             if (files.length === 0) {
                 alert("Upload file!")

@@ -10,7 +10,7 @@ export function LoginForm() {
     let [password, setPassword] = useState("")
     let [remember_me, setRememberMe] = useState(true)
 
-    return <form className='container' onSubmit={async (e) => {
+    return <form className='container gap-3 d-flex flex-column align-items-center justify-content-center' onSubmit={async (e) => {
         e.preventDefault()
         try {
             await login(username, password, remember_me)
