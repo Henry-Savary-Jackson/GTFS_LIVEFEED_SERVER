@@ -1,27 +1,35 @@
 FROM python:3.12-alpine
 
-COPY requirements.txt .
-RUN pip3 install --upgrade pip && pip install -r requirements.txt
-RUN apk add --update nodejs npm
+RUN apk add --update nodejs npm openjdk11 curl
 
-COPY .env .
-COPY frontend ./frontend
-RUN rm -rf frontend/node_modules
-WORKDIR /frontend
+RUN mkdir flask-app
+WORKDIR /flask-app 
+COPY requirements.txt .
+
+RUN pip3 install --upgrade pip && pip install -r requirements.txt
+
+RUN mkdir frontend 
+WORKDIR /flask-app/frontend
+COPY frontend/package.json .
+COPY frontend/package-lock.json . 
 RUN npm install  --only=production
+COPY frontend/public ./public
+COPY frontend/src ./src
+# RUN echo $(ls -al) && sleep 10
 RUN npm run build
-WORKDIR /
-COPY config.py app.py ./
-COPY gtfs_rt_server ./gtfs_rt_server
+
+WORKDIR /flask-app
+COPY .env fullchain.pem privkey.pem config.py app.py ./
 COPY server_files ./server_files
-WORKDIR /frontend
-RUN rm ../server_files/static/js/*
-RUN cp -r build/static/* ../server_files/static/
-RUN cp -f build/index.html  ../gtfs_rt_server/templates/index.html
-COPY fullchain.pem .
-COPY privkey.pem .
-WORKDIR /
-RUN apk add curl
-RUN apk add openjdk11
+COPY gtfs_rt_server ./gtfs_rt_server
+
+WORKDIR /flask-app/frontend
+RUN rm /flask-app/server_files/static/js/*
+RUN cp -r build/static/* /flask-app/server_files/static/
+RUN cp -f build/index.html  /flask-app/gtfs_rt_server/templates/index.html
+
+WORKDIR /flask-app
+
 EXPOSE 5000
-CMD flask run --cert fullchain.pem --key privkey.pem --host=0.0.0.0 & celery -A app.celery_app  worker --logfile /server_files/shared_private/celery.log
+
+CMD flask run --cert fullchain.pem --key privkey.pem --host=0.0.0.0 & celery -A app.celery_app  worker --logfile /flask-app/server_files/shared_private/celery.log

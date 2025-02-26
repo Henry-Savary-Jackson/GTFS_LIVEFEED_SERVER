@@ -115,7 +115,7 @@ def init_csrf(app):
     return CSRFProtect(app)
 
 def init_CORS(app):
-    return CORS(app,supports_credentials=True,origins=["http://localhost:5000"]) # TODO: fix this by putting https
+    return CORS(app,supports_credentials=True) 
 
 def init_app():
     global db

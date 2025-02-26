@@ -14,7 +14,7 @@ export function convertDictToGTFSTripUpdate(dict) {
 
     trip_update.trip = { "tripId": dict.trip_id }
     if (dict.cancelled)
-        trip_update.scheduleRelationship = transit_realtime.TripDescriptor.ScheduleRelationship["CANCELLED"];
+        trip_update.trip.scheduleRelationship = transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"];
 
     for (let i = 0; i < dict.stoptimes.length; i++) {
         const element = dict.stoptimes[i]
@@ -96,7 +96,7 @@ export function TripUpdate() {
     let id = trip_update_feedentity ? trip_update_feedentity.id : v4()
     const trip_update_inp = trip_update_feedentity ? trip_update_feedentity.tripUpdate : undefined
 
-    let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELLED"])
+    let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"])
 
     let [trip_id, setTripID] = useState(trip_update_inp ? trip_update_inp.trip.tripId : "")
     let [routes, setRoutes] = useState([])

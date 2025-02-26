@@ -4,8 +4,8 @@ services:
     ports:
       - 443:5000
     volumes:
-      - ./server_files/static/shared:/server_files/static/shared
-      - ./server_files/shared_private:/server_files/shared_private
+      - ./server_files/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/shared_private:/flask-app/server_files/shared_private
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 

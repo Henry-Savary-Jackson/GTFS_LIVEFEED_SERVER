@@ -34,6 +34,6 @@ export function LoginForm() {
             <label htmlFor='remember-check' className='form-check-label'>Remember Me</label>
             <input id="remember-check"className='form-check-input' type='checkbox' checked={remember_me} onChange={(e) => setRememberMe(e.target.value)} />
         </div>
-        <input className='btn' value="Submit" type='submit' />
+        <input className='btn btn-primary' value="Submit" type='submit' />
     </form>
 }
