@@ -15,6 +15,7 @@ COPY config.py app.py ./
 COPY gtfs_rt_server ./gtfs_rt_server
 COPY server_files ./server_files
 WORKDIR /frontend
+RUN rm ../server_files/static/js/*
 RUN cp -r build/static/* ../server_files/static/
 RUN cp -f build/index.html  ../gtfs_rt_server/templates/index.html
 COPY fullchain.pem .
