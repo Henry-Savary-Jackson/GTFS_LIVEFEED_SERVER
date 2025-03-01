@@ -11,7 +11,9 @@ feed_bp = Blueprint("feeds", __name__, url_prefix="/feed")
 @feed_bp.get("/")
 def get_feed():
     feed_object = current_app.config["feed"]
-    return feed_object.SerializeToString()
+    resp = make_response(feed_object.SerializeToString())
+    resp.content_type = "application/octet-stream"
+    return  resp
 
 @feed_bp.post("/trip_update")
 @login_required
