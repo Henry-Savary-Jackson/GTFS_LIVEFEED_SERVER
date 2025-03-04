@@ -2,7 +2,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { useLocation } from 'react-router-dom'
 import { TripSearch } from './Search';
-import { getServices, getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
+import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
 import { v4 } from 'uuid'
 
 
@@ -20,21 +20,24 @@ export function convertDictToGTFSTripUpdate(dict) {
         const element = dict.stoptimes[i]
         if ('delay' in element || 'skip' in element || 'newTime' in element) {
             const newStopTimeUpdate = transit_realtime.TripUpdate.StopTimeUpdate.create()
-            newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
             newStopTimeUpdate.stopSequence = i
-            if ('delay' in element)
-                newStopTimeUpdate.arrival.delay = element.delay
-
-            if ('skip' in element && element.skip)
+            if ('skip' in element && element.skip) {
                 newStopTimeUpdate.scheduleRelationship = transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]
 
-            if ('newTime' in element) {
-                let [hours, minutes] = element.time.split(':')
-                let time = new Date()
-                time.setHours(hours)
-                time.setMinutes(minutes)
-                newStopTimeUpdate.arrival.time = Math.round(time.valueOf() / 1000)
+            } else {
+                newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
+                if ('delay' in element)
+                    newStopTimeUpdate.arrival.delay = element.delay
+
+                if ('time' in element) {
+                    let [hours, minutes] = element.time.split(':')
+                    let time = new Date()
+                    time.setHours(hours)
+                    time.setMinutes(minutes)
+                    newStopTimeUpdate.arrival.time = Math.round(time.valueOf() / 1000)
+                }
             }
+
             trip_update.stopTimeUpdate.push(newStopTimeUpdate)
         }
     }
@@ -43,7 +46,7 @@ export function convertDictToGTFSTripUpdate(dict) {
 }
 
 export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
-    trip_stoptimes.sort((a, b) => a.stopSequence - b.stopSequence)
+    trip_stoptimes.sort((a, b) => a.stopSequence - b.stopSequence) // just a safeguard to sort by stop sequence
 
     const stoptimes_output = [...trip_stoptimes]
 
@@ -53,9 +56,7 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
             stoptimes_output[sequence].delay = stoptimeUpdate.arrival.delay
         }
         if ('arrival' in stoptimeUpdate && 'time' in stoptimeUpdate.arrival) {
-            let isoStr = new Date(stoptimeUpdate.arrival.time * 1000).toISOString()
-
-            stoptimes_output[sequence].time = isoStr.slice(isoStr.indexOf("T") + 1, isoStr.lastIndexOf("."))
+            stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000)) 
         }
         if ('scheduleRelationship' in stoptimeUpdate && stoptimeUpdate.scheduleRelationship === transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]) {
             stoptimes_output[sequence].skip = true;
@@ -79,8 +80,8 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
         <tbody>
             {stoptimes.map((val, i) => <tr key={i}>
                 <td>{val.stopId}</td>
-                <td><input disabled={val.skip || false} type='time' onChange={(e) => { dispatchStopTimesChange({ "newTime": e.target.value, "stopSequence": i }) }} value={val.newTime ? val.newTime : val.time} /></td>
-                <td><input disabled={val.skip || false} type='number' onChange={(e) => { dispatchStopTimesChange({ "delay": Number(e.target.value), "stopSequence": i }) }} value={val.delay || 0} /><span>{val.delay > 0 ? "Late" : "Early"}</span> </td>
+                <td><input disabled={val.skip || false} type='time' onChange={(e) => { dispatchStopTimesChange({ "time": e.currentTarget.value, "stopSequence": i }) }} value={val.time ? val.time : val.time} /></td>
+                <td><input disabled={val.skip || false} type='number' onChange={(e) => { dispatchStopTimesChange({ "delay": Number(e.currentTarget.value), "stopSequence": i }) }} value={val.delay || 0} /><span>{val.delay > 0 ? "Late" : "Early"}</span> </td>
                 <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": i }) }} checked={val.skip || false} /></td>
             </tr>
             )}

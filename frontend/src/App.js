@@ -20,8 +20,8 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
       let start_date = new Date(activePeriod[0].start * 1000)
       let end_date = new Date(activePeriod[0].end * 1000)
-      let start = activePeriod[0].start ? start_date.toDateString() + " "+ start_date.toLocaleTimeString() : "Unspecified"
-      let end = activePeriod[0].end ? end_date.toDateString()+ " " + end_date.toLocaleTimeString() : "Unspecified"
+      let start = activePeriod[0].start ?   `${start_date.toDateString()} ${start_date.toLocaleTimeString()}`  : "Unspecified"
+      let end = activePeriod[0].end ?  `${ end_date.toDateString()} ${end_date.toLocaleTimeString() }` :   "Unspecified"
       return <td><ul>
         <li>Start:{start}</li>
         <li>End:{end}</li>
