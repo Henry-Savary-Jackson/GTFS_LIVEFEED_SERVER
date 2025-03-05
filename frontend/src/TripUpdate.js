@@ -26,14 +26,14 @@ export function convertDictToGTFSTripUpdate(dict) {
 
             } else {
                 newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
-                if ('delay' in element)
+                if ('delay' in element && element.delay !== 0){
                     newStopTimeUpdate.arrival.delay = element.delay
-
-                if ('time' in element) {
-                    let [hours, minutes] = element.time.split(':')
+                } else if ('newTime' in element){
+                    let [hours, minutes, seconds] = element.newTime.split(':')
                     let time = new Date()
                     time.setHours(hours)
                     time.setMinutes(minutes)
+                    time.setSeconds(seconds)
                     newStopTimeUpdate.arrival.time = Math.round(time.valueOf() / 1000)
                 }
             }
@@ -80,7 +80,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
         <tbody>
             {stoptimes.map((val, i) => <tr key={i}>
                 <td>{val.stopId}</td>
-                <td><input disabled={val.skip || false} type='time' onChange={(e) => { dispatchStopTimesChange({ "time": e.currentTarget.value, "stopSequence": i }) }} value={val.time ? val.time : val.time} /></td>
+                <td><input disabled={val.skip || false} type='time' onInput={(e) => { dispatchStopTimesChange({ "newTime": e.currentTarget.value, "stopSequence": i }) }} value={val.newTime && (!("delay" in val) || val.delay === 0) ? val.newTime : val.time} /></td>
                 <td><input disabled={val.skip || false} type='number' onChange={(e) => { dispatchStopTimesChange({ "delay": Number(e.currentTarget.value), "stopSequence": i }) }} value={val.delay || 0} /><span>{val.delay > 0 ? "Late" : "Early"}</span> </td>
                 <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": i }) }} checked={val.skip || false} /></td>
             </tr>

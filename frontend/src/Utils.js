@@ -63,9 +63,9 @@ export async function getRoutes() {
     })
 }
 
-export async function getFeedMessage() {
+export async function getFeedMessage(type) {
     let response = await performRequest(async () => {
-        return await axios.get("/feed", { responseType: "arraybuffer" })
+        return await axios.get(`/feed/${type}`, { responseType: "arraybuffer" })
     })
 
     try {

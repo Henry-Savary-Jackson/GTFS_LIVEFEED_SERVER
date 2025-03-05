@@ -20,8 +20,8 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
       let start_date = new Date(activePeriod[0].start * 1000)
       let end_date = new Date(activePeriod[0].end * 1000)
-      let start = activePeriod[0].start ?   `${start_date.toDateString()} ${start_date.toLocaleTimeString()}`  : "Unspecified"
-      let end = activePeriod[0].end ?  `${ end_date.toDateString()} ${end_date.toLocaleTimeString() }` :   "Unspecified"
+      let start = activePeriod[0].start ? `${start_date.toDateString()} ${start_date.toLocaleTimeString()}` : "Unspecified"
+      let end = activePeriod[0].end ? `${end_date.toDateString()} ${end_date.toLocaleTimeString()}` : "Unspecified"
       return <td><ul>
         <li>Start:{start}</li>
         <li>End:{end}</li>
@@ -37,7 +37,7 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
   }
   function renderTripUpdate() {
     return <>
-      <td colSpan={2}>{entity.tripUpdate.trip ? entity.tripUpdate.trip.tripId : ""}</td>
+      <td >{entity.tripUpdate.trip ? entity.tripUpdate.trip.tripId : ""}</td>
       <td>Trip Update</td>
       <td><Link to="/trip_update" state={entity} >Edit</Link> </td>
     </>
@@ -57,14 +57,31 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 }
 
 export function Feed() {
-  const [feed, setFeed] = useState([])
-  async function set_feed() {
-    let feed_message = await getFeedMessage()
-    setFeed(feed_message.entity)
+  const [feed_alerts, setFeedAlerts] = useState([])
+  const [feed_type, setFeedType] = useState("alerts")
+  const [feed_updates, setFeedUpdates] = useState([])
+  async function set_feed(type) {
+    let feed_message = await getFeedMessage(type)
+    switch (type) {
+      case "alerts":
+        setFeedAlerts(feed_message.entity)
+        break;
+      case "updates":
+        setFeedUpdates(feed_message.entity)
+        break;
+      default:
+        break;
+    }
+
   }
   useEffect(() => {
-    set_feed()
+    refreshFeeds()
   }, [])
+
+  function refreshFeeds() {
+    set_feed("alerts")
+    set_feed("updates")
+  }
 
   async function delete_feed_entity_callback(id) {
     try {
@@ -78,19 +95,30 @@ export function Feed() {
 
 
   return (
-    <div className="container">
+    <div className="container d-flex flex-column align-items-center">
+      <div className='container'>
+        <button className='btn' onClick={(e) => { setFeedType("alerts") }}>Alerts</button>
+        <button className='btn' onClick={(e) => { setFeedType("updates") }}>Trip Updates</button>
+        <button className='btn' onClick={(e) => { refreshFeeds() }}>Refresh</button>
+      </div>
       <table className='table table-hover' id="feed-table">
         <thead>
           <tr>
             <th>Id</th>
-            <th>Active Times</th>
-            <th>Entities</th>
+            {feed_type === "alerts" ?
+              <><th>Active Times</th>
+                <th>Entities</th></> :
+              <>
+                <th>Trip ID</th>
+              </>
+            }
+
             <th>Type</th>
             <th>Edit</th>
             <th>Delete</th>
           </tr></thead>
         <tbody>
-          {feed.map((entity) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
+          {(feed_type == "alerts" ? feed_alerts : feed_updates).map((entity) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
         </tbody>
       </table>
     </div>

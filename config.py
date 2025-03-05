@@ -17,7 +17,7 @@ class Config(object):
         f"sqlite:///{os.path.join(SHARED_PRIVATE_FOLDER, "gtfs.sqlite3")}"
     )
     GTFS_VALIDATOR_PATH = os.path.join(SERVER_FILES, "gtfs-validator-6.0.0-cli.jar")
-    FEED_LOCATION = os.path.join(SHARED_FOLDER, "feed.bin")
+    FEEDS_LOCATION = SHARED_FOLDER 
     CELERY = dict(
         track_started=True,
         broker_url=f"redis://{os.getenv("REDIS_HOST") or "localhost"}:{os.getenv("REDIS_PORT") or 6379}/0",
@@ -47,4 +47,4 @@ class TestConfig(Config):
     WTF_CSRF_ENABLED = False
     SESSION_COOKIE_DOMAIN = False
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join("gtfs_rt_server","tests","resources", "testgtfs.sqlite3")}"
-    FEED_LOCATION = os.path.join("gtfs_rt_server", "tests", "resources", "feed.bin")
+    FEEDS_LOCATION = os.path.join("gtfs_rt_server", "tests", "resources" )

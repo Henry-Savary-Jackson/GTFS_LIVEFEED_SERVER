@@ -151,14 +151,14 @@ export function ServiceAlert() {
         <div className='d-flex flex-column align-items-center gap-3' >
             <div className="form-group" >
                 <label htmlFor='input-start'> Start Time</label>
-                <input id="input-start" className='form-control' type='datetime-local' onChange={(e) => {
+                <input id="input-start" className='form-control' type='datetime-local' onBlur={(e) => { setStart(e.target.value) }} onInput={(e) => {
                     setStart(e.target.value)
                 }}
                     value={start} />
             </div>
             <div className="form-group">
                 <label htmlFor='input-end'>End Time</label>
-                <input id="input-end" className='form-control' type='datetime-local' onChange={(e) => {
+                <input id="input-end" className='form-control' type='datetime-local' onBlur={(e) => { setEnd(e.target.value) }} onInput={(e) => {
                     setEnd(e.target.value)
                 }} value={end} />
 
