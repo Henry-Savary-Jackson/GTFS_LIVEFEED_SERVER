@@ -22,6 +22,16 @@ function convertServiceAlertDictToGTFS(dict) {
         alert.descriptionText.translation = dict.descriptions.map((val, i) => transit_realtime.TranslatedString.Translation.fromObject(val))
     }
 
+    if ("url" in dict && dict.url) {
+        const pattern = /^http(s?):\/\/(\w+?\.){1,}(\w+?)$/
+        if (pattern.test(dict.url)) {
+            alert.url = transit_realtime.TranslatedString.fromObject({ "translation": [{ "language": "en-ZA", "text": dict.url }] })
+        }
+        else {
+            throw new Error("Alert URL is invalid")
+        }
+    }
+
     alert.informedEntity = dict.informed_entities.map((val, i) => {
         let out = { ...val }
         if ("tripId" in out)
@@ -139,6 +149,7 @@ export function ServiceAlert() {
     let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].end ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
 
 
+    let [url, setURL] = useState((service_alert_inp && service_alert_inp.alert.url && service_alert_inp.alert.url.translation[0].text) || "")
 
     function addInformedEntity(entity) {
         changeInformedEntities({ "action": "save", "entity": entity })
@@ -175,6 +186,10 @@ export function ServiceAlert() {
                     {effects.map((val, i) => <option key={i} value={val}>{val}</option>)}
                 </select>
             </div>
+            <div className="form-group">
+                <label htmlFor='url-input'>URL</label>
+                <input className='form-control' id='url-input' value={url} onChange={(e) => { setURL(e.target.value) }} />
+            </div>
             <div className="form-group" >
                 <div className='form-group'>
                     <label htmlFor='addDescButton'>Description/s</label>
@@ -207,7 +222,8 @@ export function ServiceAlert() {
                     "cause": cause,
                     "effect": effect,
                     "descriptions": descriptions,
-                    "informed_entities": informed_entities
+                    "informed_entities": informed_entities,
+                    "url": url
                 }
                 let service_alert_gtfs = convertServiceAlertDictToGTFS(object)
                 await sendServiceAlert(service_alert_gtfs)
