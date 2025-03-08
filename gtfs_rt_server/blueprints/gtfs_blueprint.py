@@ -57,6 +57,8 @@ def generate_gtfs_from_xlsx(excel_file_path):
                 gtfs_file.write(named_temp_zip.read())
             add_gtfs_tables_to_db(db.engine, df_dict)
             send_status_to_task(status="done", message=" Finished adding tabled to db")
+        else:
+            raise Exception("Error validating the gtfs zip, check the validation report!")
     except Exception as e:
         print(e)
         send_status_to_task(status="error", message=str(e))

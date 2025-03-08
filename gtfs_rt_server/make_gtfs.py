@@ -1,5 +1,6 @@
 import pandas as pd
 import openpyxl
+import re
 import zipfile
 from celery.states import *
 import sqlalchemy
@@ -14,12 +15,14 @@ FILE_PATH = os.path.dirname(__file__)
 
 
 def has_errors(result_path):
-    report_json = json.load(open(os.path.normpath(f"{result_path}/report.json"), "r"))
-    notices = report_json["notices"]
-    for notice in notices:
-        if notice["severity"] == "WARNING":
-            return True
-    return False
+    with open(os.path.normpath(f"{result_path}/report.json"), "r") as file:
+        report_json = json.load(file)
+        notices = report_json["notices"]
+        print(notices)
+        for notice in notices:
+            if notice["severity"] in ["ERROR", "WARNING"]:
+                return True
+        return False
 
 
 def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None):
@@ -54,6 +57,7 @@ def read_sheet_as_df(excel_file, sheet_name, **kwargs):
         return pd.read_excel(excel_file, sheet_name, **kwargs)
     except ValueError as e:
         if "Excel file format cannot be determined" in str(e):
+            print(str(r))
             raise Exception("Invalid Excel file") 
         raise e
 
@@ -105,16 +109,19 @@ def getServices(services_df):
 def get_metadata(excel_file, sheet_name, services, shapes):
     df = read_sheet_as_df(excel_file, sheet_name, nrows=2)
 
+    if "Service" not in df.columns:
+        raise ValueError(f"No Service column provided in sheet {sheet_name}")
     if df["Service"][0] not in services:
         raise ValueError(
             f"No such service ( {df["Service"][0] or ""} ) in sheet {sheet_name}  "
         )
 
+    if "Shape" not in df.columns:
+        raise ValueError(f"No Shape column provided in sheet {sheet_name}")
+
     if pd.notna(df["Shape"][0]) and df["Shape"][0] not in shapes:
         raise ValueError(f"No such shape ( {df["Shape"][0]} ) in sheet {sheet_name}  ")
 
-    if not df["TripHeadsign"][0]:
-        raise ValueError(f"No trip Headsign given in {sheet_name} ")
 
     return df["Service"][0], df["Shape"][0]
 
@@ -146,17 +153,22 @@ def add_schedule(
                 raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_name}.")
 
             stop = ""
-            for i, stop in enumerate(df_schedule.index):
+            skip = 0;
+            for i in range(len(df_schedule.index)):
+                time = df_schedule[train_number].iloc[i]
+                if not time or pd.isna(time) or time == "..":
+                    skip += 1;
+                    continue
+                stop = df_schedule.index[i]
                 if stop not in stops:
                     raise ValueError(f"Stop {stop} in sheet {sheet_name} doesnt exist.")
-                time = df_schedule[train_number].iloc[i]
                 stop_times_trip_df = stop_times_trip_df._append(
                     {
                         "trip_id": trip_id,
                         "arrival_time": time,
                         "departure_time": time,
                         "stop_id": stop,
-                        "stop_sequence": i,
+                        "stop_sequence": i-skip,
                         "timepoint": 1,
                     },
                     ignore_index=True,

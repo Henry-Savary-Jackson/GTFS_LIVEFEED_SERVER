@@ -172,8 +172,8 @@ def get_metadata(excel_file, sheet_name, services, shapes):
     if pd.notna(df["Shape"][0]) and df["Shape"][0] not in shapes:
         raise ValueError(f"No such shape ( {df["Shape"][0]} ) in sheet {sheet_name}  ")
     
-    if not df["TripHeadsign"][0]   :
-        raise ValueError(f"No trip Headsign given in {sheet_name} ")
+    # if not df["TripHeadsign"][0]   :
+    #     raise ValueError(f"No trip Headsign given in {sheet_name} ")
 
     return  df["Service"][0], df["Shape"][0]
     
