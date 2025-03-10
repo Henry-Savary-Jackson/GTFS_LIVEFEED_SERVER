@@ -108,7 +108,10 @@ def register_blueprints(app):
 def init_db(app,db):
     db.init_app(app)
     with app.app_context():
-        db.drop_all()
+        try :
+            db.drop_all()
+        except:
+            pass
         db.create_all()
 
 def init_csrf(app):
