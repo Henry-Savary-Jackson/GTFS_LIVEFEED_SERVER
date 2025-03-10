@@ -3,6 +3,7 @@ FROM python:3.12-alpine
 RUN apk add --update nodejs npm openjdk11 curl
 
 RUN mkdir flask-app
+
 WORKDIR /flask-app 
 COPY requirements.txt .
 
@@ -32,4 +33,12 @@ WORKDIR /flask-app
 
 EXPOSE 5000
 
-CMD flask run --cert fullchain.pem --key privkey.pem --host=0.0.0.0 & celery -A app.celery_app  worker --logfile /flask-app/server_files/shared_private/celery.log
+RUN addgroup flaskuser
+RUN adduser -G flaskuser -D -h /flask-app flaskuser
+RUN chown -R  flaskuser:flaskuser /flask-app
+RUN chmod -R a+rw .
+USER flaskuser
+
+
+
+CMD gunicorn -b 0.0.0.0:5000 --certfile fullchain.pem --keyfile privkey.pem app:app  & celery -A app.celery_app  worker --logfile ~/server_files/shared_private/celery.log
