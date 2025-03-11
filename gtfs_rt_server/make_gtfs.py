@@ -144,6 +144,8 @@ def add_schedule(
     try:
         service_id, shape_id = get_metadata(excel_file, sheet_name, services, shapes)
         df_schedule = read_schedule_as_df(excel_file, sheet_name)
+        if ("TRAIN NO."not in df_schedule.columns):
+            raise ValueError(f"TRAIN NO. not in the sheet {sheet_name}")
         df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
         for train_number in df_schedule:
 
@@ -222,7 +224,8 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
     print("getting directory")
 
     directory = workbook["Directory"]
-    for route in directory.iter_cols():
+    for route in directory.iter_cols(min_col=2):
+        
         route_name = route[0].value
         # get route id
         route_id = routes_df[routes_df["route_long_name"] == route_name].iloc[0][

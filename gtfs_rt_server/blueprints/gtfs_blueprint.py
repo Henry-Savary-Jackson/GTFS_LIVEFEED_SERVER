@@ -28,8 +28,8 @@ gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 def generate_gtfs_from_xlsx(excel_file_path):
     print("stating generate gtfs xlsx task")
     # use this method as a helper to update the tasks metainfo to contain status and messages
-    def send_status_to_task(status=None, message=None):
-        print(status, message)
+    def send_status_to_task(status=None, message=None, **kwargs):
+        print(f"{status} {message}")
         current_task.update_task_status(current_task.request.id, status=status, message=message)
 
     ## create temp file to store zip
@@ -37,16 +37,16 @@ def generate_gtfs_from_xlsx(excel_file_path):
 
     try:
         send_status_to_task(status="starting", message="Starting ...")
+        result_path = current_app.config["GTFS_VALIDATOR_RESULT_PATH"]
         df_dict = generate_gtfs_zip(
             excel_file_path,
             named_temp_zip.name,
             current_app.config["GTFS_VALIDATOR_PATH"],
-            current_app.config["GTFS_VALIDATOR_RESULT_PATH"],
+            result_path,
             send_status_to_task,
         )
-        ## read notices in report.json
+        ## read notices in report.json to find errors or warnings
 
-        result_path = os.path.join(f"{current_app.config["SHARED_FOLDER"]}", "result")
         if not os.path.exists(result_path):
             send_status_to_task(status="error", message="No /static/result")
         if not has_errors(result_path):
