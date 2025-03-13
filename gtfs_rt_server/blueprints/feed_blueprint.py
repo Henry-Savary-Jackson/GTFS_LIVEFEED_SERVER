@@ -99,7 +99,7 @@ def vehicle_postion():
 @feed_bp.delete("/delete_feed_entity")
 @login_required
 def delete_feed_entity():
-    feed_location = current_app.config["FEED_LOCATION"]
+    feed_location = current_app.config["FEEDS_LOCATION"]
     feed_object = current_app.config["feed"]
     entity_id = request.data.decode()
     delete_feed_entity_from_feed(entity_id, feed_object)

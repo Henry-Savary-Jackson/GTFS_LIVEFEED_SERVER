@@ -35,8 +35,10 @@ EXPOSE 5000
 
 RUN addgroup flaskuser
 RUN adduser -G flaskuser -D -h /flask-app flaskuser
-RUN chown -R  flaskuser:flaskuser /flask-app
-RUN chmod -R a+rw .
+
+RUN chown -R  flaskuser:flaskuser ./server_files
+RUN chmod -R u+rw ./server_files
+RUN chown -R  flaskuser:flaskuser *.pem
 USER flaskuser
 
 
