@@ -9,6 +9,7 @@ from pathlib import Path
 
 feed_bp = Blueprint("feeds", __name__, url_prefix="/feed")
 
+import datetime
 
 @feed_bp.get("/<type>")
 def get_feed(type):
@@ -18,6 +19,8 @@ def get_feed(type):
         feed_object = current_app.config["feed_updates"]
     elif type == "positions":
         feed_object = current_app.config["feed_positions"]
+
+    feed_object.header.timestamp =int(datetime.datetime.now().timestamp())
 
     resp = make_response(feed_object.SerializeToString())
     resp.content_type = "application/octet-stream"
