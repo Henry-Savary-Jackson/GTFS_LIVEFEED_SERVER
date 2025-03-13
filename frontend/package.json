@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "ajv": "^7.2.4",
-    "axios": "^1.7.9",
+    "axios": "^1.8.2",
     "gtfs-realtime-bindings": "^1.1.1",
     "protobufjs": "^7.4.0",
     "react": "^19.0.0",
