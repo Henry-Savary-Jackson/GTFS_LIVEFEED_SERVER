@@ -96,11 +96,20 @@ def vehicle_postion():
 
 
 
-@feed_bp.delete("/delete_feed_entity")
+@feed_bp.delete("/<type>/delete_feed_entity")
 @login_required
-def delete_feed_entity():
-    feed_location = current_app.config["FEEDS_LOCATION"]
-    feed_object = current_app.config["feed"]
+def delete_feed_entity(type):
+
+    feed_object = current_app.config["feed_alerts"]
+    feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
+    if type=="updates":
+        feed_object = current_app.config["feed_updates"]
+        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
+    elif type == "positions":
+        feed_object = current_app.config["feed_positions"]
+        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
+
+
     entity_id = request.data.decode()
     delete_feed_entity_from_feed(entity_id, feed_object)
     save_feed_to_file(feed_object, feed_location)

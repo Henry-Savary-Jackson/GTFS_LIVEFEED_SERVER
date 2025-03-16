@@ -26,9 +26,9 @@ export function convertDictToGTFSTripUpdate(dict) {
 
             } else {
                 newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
-                if ('delay' in element && element.delay !== 0){
+                if ('delay' in element && element.delay !== 0) {
                     newStopTimeUpdate.arrival.delay = element.delay
-                } else if ('newTime' in element){
+                } else if ('newTime' in element) {
                     let [hours, minutes, seconds] = element.newTime.split(':')
                     let time = new Date()
                     time.setHours(hours)
@@ -56,7 +56,7 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
             stoptimes_output[sequence].delay = stoptimeUpdate.arrival.delay
         }
         if ('arrival' in stoptimeUpdate && 'time' in stoptimeUpdate.arrival) {
-            stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000)) 
+            stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000))
         }
         if ('scheduleRelationship' in stoptimeUpdate && stoptimeUpdate.scheduleRelationship === transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]) {
             stoptimes_output[sequence].skip = true;
@@ -65,6 +65,22 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
     return stoptimes_output
 }
 
+
+function StopTimeRow({ stoptime, dispatchStopTimesChange }) {
+// do more shit
+    let [onTime, setOnTime] = useState(false);
+    <tr key={stoptime.stopSequence}>
+        <td>{stoptime.stopId}</td>
+        <td><input disabled={stoptime.skip || false} type='time' onInput={(e) => { dispatchStopTimesChange({ "newTime": e.currentTarget.value, "stopSequence": i }) }} value={stoptime.newTime && !onTime ) ? stoptime.newTime : stoptime.time} />
+            <input type='checkbox' onChange={(e) => {setOnTime(e.target.checked)  }} checked={onTime} />
+        </td>
+        <td><input disabled={stoptime.skip || false} type='number' onChange={(e) => {
+            if (!onTime)
+             dispatchStopTimesChange({ "delay": Number(e.currentTarget.value), "stopSequence": i }) 
+            }} value={stoptime.delay || 0} /><span>{stoptime.delay > 0 ? "Late" : "Early"}</span> </td>
+        <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": i }) }} checked={stoptime.skip || false} /></td>
+    </tr>
+}
 
 function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 

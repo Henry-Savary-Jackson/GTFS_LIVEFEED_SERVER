@@ -107,9 +107,9 @@ export async function sendServiceAlert(service_alert) {
         })
     })
 }
-export async function deleteFeedEntity(feed_entity_id) {
+export async function deleteFeedEntity(feed_entity_id, type) {
     await performRequest(async () => {
-        await axios.delete("/feed/delete_feed_entity", { withCredentials: true, data: feed_entity_id })
+        await axios.delete(`/feed/${type}/delete_feed_entity`, { withCredentials: true, data: feed_entity_id })
     })
 }
 

@@ -11,6 +11,8 @@ import { logout } from './Auth';
 
 function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
+  let type = 
+
   function renderServiceAlert() {
     let informed_entities = entity.alert.informedEntity
     function returnTime() {
@@ -48,7 +50,7 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
     {entity.tripUpdate ? renderTripUpdate() : renderServiceAlert()}
     <td ><button className='btn btn-danger' onClick={(e) => {
       if (window.confirm("Are you sure you want to delete")) {
-        delete_feed_entity_callback(entity.id)
+        delete_feed_entity_callback(entity.id, entity.tripUpdate? "updates": "alerts")
       }
 
     }
@@ -83,9 +85,9 @@ export function Feed() {
     set_feed("updates")
   }
 
-  async function delete_feed_entity_callback(id) {
+  async function delete_feed_entity_callback(id, type) {
     try {
-      await deleteFeedEntity(id)
+      await deleteFeedEntity(id, type)
       await set_feed()
     }
     catch (error) {
