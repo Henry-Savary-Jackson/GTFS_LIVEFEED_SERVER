@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { transit_realtime } from "gtfs-realtime-bindings"
 
 async function performRequest(callback) {
@@ -15,7 +15,7 @@ async function performRequest(callback) {
 export async function getStopTimesofTrip(trip_id) {
     return await performRequest(async () => {
         let response = await axios.get("/db/get_stop_times_trip", { params: { "tripid": trip_id } })
-        return response.data.map((val, i) => { return { stopSequence: val[0], stopId: val[1], time: val[2] }; });
+        return response.data.map((val, i) => { return { stopSequence: Number(val[0]), stopId: val[1], time: val[2] }; });
     })
 }
 export function getHtmlForEntity(entity) {
@@ -148,12 +148,25 @@ export function getEffects() {
 
 }
 
-export function convertDateToDateTimeString(date) {
-    return date.toLocaleString("sv", {offset:date.getTimezoneOffset()}).replace(" ", "T")
+export function convertTimeStrToDate(time_str) {
+    let [hours, minutes, seconds] = time_str.split(':')
+    let time = new Date()
+    time.setHours(hours)
+    time.setMinutes(minutes)
+    time.setSeconds(seconds)
+    return time
 }
-export function convertDateToTimeString(date){
 
-    return date.toLocaleTimeString("sv", {offset:date.getTimezoneOffset()}) // this is a nice hack to get a ISO format datetime with timezone offset
+export function convertTimeStrToUNIXEpoch(time_str) {
+    return Math.round(convertTimeStrToDate(time_str).valueOf() / 1000)
+}
+
+export function convertDateToDateTimeString(date) {
+    return date.toLocaleString("sv", { offset: date.getTimezoneOffset() }).replace(" ", "T")
+}
+export function convertDateToTimeString(date) {
+
+    return date.toLocaleTimeString("sv", { offset: date.getTimezoneOffset() }) // this is a nice hack to get a ISO format datetime with timezone offset
     // here is the link https://stackoverflow.com/questions/12413243/javascript-date-format-like-iso-but-local
 }
 

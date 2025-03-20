@@ -11,7 +11,6 @@ import { logout } from './Auth';
 
 function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
-  let type = 
 
   function renderServiceAlert() {
     let informed_entities = entity.alert.informedEntity

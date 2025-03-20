@@ -2,7 +2,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { useLocation } from 'react-router-dom'
 import { TripSearch } from './Search';
-import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate } from './Utils';
+import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate, convertTimeStrToUNIXEpoch } from './Utils';
 import { v4 } from 'uuid'
 
 
@@ -18,7 +18,7 @@ export function convertDictToGTFSTripUpdate(dict) {
 
     for (let i = 0; i < dict.stoptimes.length; i++) {
         const element = dict.stoptimes[i]
-        if ('delay' in element || 'skip' in element || 'newTime' in element) {
+        if ('delay' in element || 'skip' in element || 'newTime' in element || 'onTime' in element) {
             const newStopTimeUpdate = transit_realtime.TripUpdate.StopTimeUpdate.create()
             newStopTimeUpdate.stopSequence = i
             if ('skip' in element && element.skip) {
@@ -28,13 +28,10 @@ export function convertDictToGTFSTripUpdate(dict) {
                 newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
                 if ('delay' in element && element.delay !== 0) {
                     newStopTimeUpdate.arrival.delay = element.delay
+                } else if ('onTime' in element) {
+                    newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.time);
                 } else if ('newTime' in element) {
-                    let [hours, minutes, seconds] = element.newTime.split(':')
-                    let time = new Date()
-                    time.setHours(hours)
-                    time.setMinutes(minutes)
-                    time.setSeconds(seconds)
-                    newStopTimeUpdate.arrival.time = Math.round(time.valueOf() / 1000)
+                    newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.newTime);
                 }
             }
 
@@ -48,7 +45,8 @@ export function convertDictToGTFSTripUpdate(dict) {
 export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
     trip_stoptimes.sort((a, b) => a.stopSequence - b.stopSequence) // just a safeguard to sort by stop sequence
 
-    const stoptimes_output = [...trip_stoptimes]
+    // make sure the stop sequence is of type integer
+    const stoptimes_output = [...trip_stoptimes] 
 
     for (const stoptimeUpdate of stopTimeUpdates) {
         const sequence = stoptimeUpdate.stopSequence
@@ -67,18 +65,22 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
 
 
 function StopTimeRow({ stoptime, dispatchStopTimesChange }) {
-// do more shit
-    let [onTime, setOnTime] = useState(false);
-    <tr key={stoptime.stopSequence}>
+    let changeStopOnTime = (onTime, index) => { dispatchStopTimesChange({ "onTime": onTime, "stopSequence": index }) }
+    let changeTimeStop = (time, index) => { dispatchStopTimesChange({ "newTime": time, "stopSequence": index }) }
+    let changeDelayStop = (delay, index) => { dispatchStopTimesChange({ "delay": delay, "stopSequence": index }) }
+
+    return <tr key={stoptime.stopSequence}>
         <td>{stoptime.stopId}</td>
-        <td><input disabled={stoptime.skip || false} type='time' onInput={(e) => { dispatchStopTimesChange({ "newTime": e.currentTarget.value, "stopSequence": i }) }} value={stoptime.newTime && !onTime ) ? stoptime.newTime : stoptime.time} />
-            <input type='checkbox' onChange={(e) => {setOnTime(e.target.checked)  }} checked={onTime} />
+        <td className='d-flex flex-column align-items-center'>
+            <input disabled={stoptime.skip || false} type='time' onInput={(e) => { changeTimeStop(e.currentTarget.value, stoptime.stopSequence) }} value={(stoptime.newTime && !stoptime.onTime) ? stoptime.newTime : stoptime.time} />
+            <div>Arrives on Time:
+                <input type='checkbox' onChange={(e) => { changeStopOnTime(e.target.checked, stoptime.stopSequence); }} checked={stoptime.onTime} /></div>
         </td>
         <td><input disabled={stoptime.skip || false} type='number' onChange={(e) => {
-            if (!onTime)
-             dispatchStopTimesChange({ "delay": Number(e.currentTarget.value), "stopSequence": i }) 
-            }} value={stoptime.delay || 0} /><span>{stoptime.delay > 0 ? "Late" : "Early"}</span> </td>
-        <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": i }) }} checked={stoptime.skip || false} /></td>
+            if (!("onTime" in stoptime) || !stoptime.onTime)
+                changeDelayStop(Number(e.currentTarget.value), stoptime.stopSequence)
+        }} value={(!stoptime.onTime && stoptime.delay) || 0} /><span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span> </td>
+        <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": stoptime.stopSequence }) }} checked={stoptime.skip || false} /></td>
     </tr>
 }
 
@@ -94,13 +96,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
             </tr>
         </thead>
         <tbody>
-            {stoptimes.map((val, i) => <tr key={i}>
-                <td>{val.stopId}</td>
-                <td><input disabled={val.skip || false} type='time' onInput={(e) => { dispatchStopTimesChange({ "newTime": e.currentTarget.value, "stopSequence": i }) }} value={val.newTime && (!("delay" in val) || val.delay === 0) ? val.newTime : val.time} /></td>
-                <td><input disabled={val.skip || false} type='number' onChange={(e) => { dispatchStopTimesChange({ "delay": Number(e.currentTarget.value), "stopSequence": i }) }} value={val.delay || 0} /><span>{val.delay > 0 ? "Late" : "Early"}</span> </td>
-                <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": i }) }} checked={val.skip || false} /></td>
-            </tr>
-            )}
+            {stoptimes.map((stoptime) => <StopTimeRow stoptime={stoptime} dispatchStopTimesChange={dispatchStopTimesChange} />)}
         </tbody>
     </table>
 
@@ -110,7 +106,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 export function TripUpdate() {
     const trip_update_feedentity = useLocation().state
     // check if any state passes
-    let id = trip_update_feedentity ? trip_update_feedentity.id : v4()
+    let id = trip_update_feedentity ? trip_update_feedentity.id : v4() // create a new uuid if a new trip update is being made
     const trip_update_inp = trip_update_feedentity ? trip_update_feedentity.tripUpdate : undefined
 
     let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"])
@@ -118,6 +114,7 @@ export function TripUpdate() {
     let [trip_id, setTripID] = useState(trip_update_inp ? trip_update_inp.trip.tripId : "")
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
+
 
     useEffect(() => {
         async function setData() {
@@ -163,10 +160,7 @@ export function TripUpdate() {
                 "cancelled": cancelled
             }
             try {
-
-
                 let trip_update_gtfs = convertDictToGTFSTripUpdate(object)
-
                 await sendTripUpdate(trip_update_gtfs)
                 alert("Sucessfully saved")
             } catch (error) {
