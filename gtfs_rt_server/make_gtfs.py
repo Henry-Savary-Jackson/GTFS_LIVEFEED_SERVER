@@ -9,7 +9,7 @@ import os
 import io
 import sys
 import json
-
+import numpy as np
 
 FILE_PATH = os.path.dirname(__file__)
 
@@ -65,6 +65,16 @@ def read_sheet_as_df(excel_file, sheet_name, **kwargs):
 def getRoutesDataFrame(excel_file):
     return read_sheet_as_df(excel_file, "Routes")
 
+def getFareRulesDataFrame(excel_file):
+    return read_sheet_as_df(excel_file, "FareRules")
+
+def getFareAttributesDataFrame(excel_file):
+    df = read_sheet_as_df(excel_file, "FareAttributes")
+    if "transfers" in df:
+        print(df["transfers"])
+        df["transfers"]= df["transfers"].fillna(-1).astype(np.int64).astype(str)
+        df["transfers"]= df["transfers"].replace("-1","")
+    return df
 
 def getStopsDataFrame(excel_file):
     return read_sheet_as_df(excel_file, "Stops")
@@ -211,6 +221,8 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
     routes_df = getRoutesDataFrame(excel_file)
     services_df = getServicesDataFrame(excel_file)
     shapes_df = getShapesDataFrame(excel_file)
+    fare_rules_df = getFareRulesDataFrame(excel_file)
+    fare_attributes_df = getFareAttributesDataFrame(excel_file)
     agency_df = getAgencyDataFrame(excel_file)
     calendar_days_df = getCalendarDaysDataFrame(excel_file)
     feed_info_df = getFeedInfoDataFrame(excel_file)
@@ -268,6 +280,8 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
         "calendar_dates.txt": calendar_days_df,
         "shapes.txt": shapes_df,
         "calendar.txt": services_df,
+        "fare_attributes.txt":fare_attributes_df,
+        "fare_rules.txt":fare_rules_df
     }
 
     if update_method:
