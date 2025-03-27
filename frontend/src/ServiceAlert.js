@@ -17,7 +17,7 @@ function convertServiceAlertDictToGTFS(dict) {
     if ('effect' in dict)
         alert.effect = transit_realtime.Alert.Effect[dict.effect]
 
-    if ('descriptions' in dict) {
+    if ('descriptions' in dict && dict.descriptions.length > 0) {
         alert.descriptionText = transit_realtime.TranslatedString.create()
         alert.descriptionText.translation = dict.descriptions.map((val, i) => transit_realtime.TranslatedString.Translation.fromObject(val))
     }
