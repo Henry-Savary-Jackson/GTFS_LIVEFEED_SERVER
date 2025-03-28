@@ -43,4 +43,4 @@ USER flaskuser
 
 
 
-CMD gunicorn -b 0.0.0.0:5000 --certfile fullchain.pem --keyfile privkey.pem app:app  & celery -A app.celery_app  worker --logfile ~/server_files/shared_private/celery.log
+CMD gunicorn -b 0.0.0.0:5000 --certfile fullchain.pem --keyfile privkey.pem  --log-file ~/server_files/shared_private/server.log app:app  & celery -A app.celery_app  worker --logfile ~/server_files/shared_private/celery.log

@@ -46,12 +46,12 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
     trip_stoptimes.sort((a, b) => a.stopSequence - b.stopSequence) // just a safeguard to sort by stop sequence
 
     // make sure the stop sequence is of type integer
-    const stoptimes_output = [...trip_stoptimes] 
+    const stoptimes_output = [...trip_stoptimes]
 
     for (const stoptimeUpdate of stopTimeUpdates) {
         const sequence = stoptimeUpdate.stopSequence
         if ('arrival' in stoptimeUpdate && 'delay' in stoptimeUpdate.arrival) {
-            stoptimes_output[sequence].delay = Math.floor(stoptimeUpdate.arrival.delay /60)
+            stoptimes_output[sequence].delay = Math.floor(stoptimeUpdate.arrival.delay / 60)
         }
         if ('arrival' in stoptimeUpdate && 'time' in stoptimeUpdate.arrival) {
             stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000))
@@ -106,7 +106,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 export function TripUpdate() {
     const trip_update_feedentity = useLocation().state
     // check if any state passes
-    let id = trip_update_feedentity ? trip_update_feedentity.id : v4() // create a new uuid if a new trip update is being made
+    let [id, setEntityId] = useState("")// create a new uuid if a new trip update is being made
     const trip_update_inp = trip_update_feedentity ? trip_update_feedentity.tripUpdate : undefined
 
     let [cancelled, setCancelled] = useState(trip_update_inp && trip_update_inp.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"])
@@ -115,6 +115,13 @@ export function TripUpdate() {
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
 
+    useEffect(() => {
+        if (id == "") {
+            setEntityId(trip_update_feedentity ? trip_update_feedentity.id : v4())
+            return
+        }
+        setEntityId(v4())
+    }, [trip_id])
 
     useEffect(() => {
         async function setData() {

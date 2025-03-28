@@ -87,7 +87,7 @@ export function Feed() {
   async function delete_feed_entity_callback(id, type) {
     try {
       await deleteFeedEntity(id, type)
-      await set_feed()
+      refreshFeeds()
     }
     catch (error) {
       alert("Error deleting feed:" + error.message)
