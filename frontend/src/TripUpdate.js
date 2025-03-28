@@ -27,7 +27,7 @@ export function convertDictToGTFSTripUpdate(dict) {
             } else {
                 newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
                 if ('delay' in element && element.delay !== 0) {
-                    newStopTimeUpdate.arrival.delay = element.delay
+                    newStopTimeUpdate.arrival.delay = element.delay * 60
                 } else if ('onTime' in element) {
                     newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.time);
                 } else if ('newTime' in element) {
@@ -51,7 +51,7 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
     for (const stoptimeUpdate of stopTimeUpdates) {
         const sequence = stoptimeUpdate.stopSequence
         if ('arrival' in stoptimeUpdate && 'delay' in stoptimeUpdate.arrival) {
-            stoptimes_output[sequence].delay = stoptimeUpdate.arrival.delay
+            stoptimes_output[sequence].delay = Math.floor(stoptimeUpdate.arrival.delay /60)
         }
         if ('arrival' in stoptimeUpdate && 'time' in stoptimeUpdate.arrival) {
             stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000))
