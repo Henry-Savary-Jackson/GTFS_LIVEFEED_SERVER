@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { getTrips, getStops } from './Utils'
+import { roots } from 'protobufjs';
 
 export function RouteSelect({ route, setRoute, routes }) {
 
@@ -50,7 +51,9 @@ export function TripSearch({ setTripID, routes, services }) {
     async function setTripsCallback(new_number) {
         searchState.current = true
         try {
-            setTrips(await getTrips(route, service, new_number))
+            let current_datetime_str = new Date().toISOString()
+            let current_time_str = current_datetime_str.slice(current_datetime_str.indexOf("T"), current_datetime_str.lastIndexOf("."))
+            setTrips(await getTrips(route, service, new_number, current_time_str))
         } finally {
             searchState.current = false
         }
@@ -75,6 +78,15 @@ export function TripSearch({ setTripID, routes, services }) {
             Search
         </button>
         {trips.length > 0 ? <TripIDResults select_trip_callback={select_trip_callback} trips={trips} /> : ''}
+    </div>
+
+}
+
+
+export function TripUpdateFilter({ setNumber, route, number, setRoute, routes }) {
+    return <div className='container d-flex flex-column align-items-center'>
+        <TripIdSeacher number={number} setSearchNumber={setNumber} />
+        <RouteSelect route={route} setRoute={setRoute} routes={routes} />
     </div>
 
 }

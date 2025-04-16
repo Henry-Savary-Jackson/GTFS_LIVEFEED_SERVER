@@ -27,7 +27,7 @@ export function getHtmlForEntity(entity) {
         return <span>Stop:{entity.stopId}</span>
     }
 }
-export async function getTrips(route = undefined, service = undefined, number = undefined) {
+export async function getTrips(route = undefined, service = undefined, number = undefined, after = undefined) {
     return await performRequest(async () => {
         let params = {}
         if (route)
@@ -36,8 +36,10 @@ export async function getTrips(route = undefined, service = undefined, number = 
             params.service = service
         if (number)
             params.number = number
+        if (after)
+            params.after = after
 
-        let response = await axios.get("/db/get_trips", { params: { "route": route, "service": service, "number": number } })
+        let response = await axios.get("/db/get_trips", { params: params })
         return response.data;
     })
 
@@ -59,7 +61,8 @@ export async function getRoutes() {
 
     return await performRequest(async () => {
         let response = await axios.get("/db/get_routes")
-        return response.data.map((val, i) => { return { route_id: val[0], route_long_name: val[1] }; });;
+        console.log(response)
+        return response.data.map((val, i) => { return { route_id: val[0], route_long_name: val[1] } })
     })
 }
 
@@ -146,6 +149,14 @@ export function getEffects() {
         "ACCESSIBILITY_ISSUE"
     ]
 
+}
+
+export async function getTripsToRouteID() {
+    return await performRequest(async () => {
+        return (await axios.get("/db/trips_to_routes", {
+            withCredentials: true,
+        })).data
+    })
 }
 
 export function convertTimeStrToDate(time_str) {

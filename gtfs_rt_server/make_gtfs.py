@@ -350,5 +350,5 @@ def write_df_to_zipfile(zip_file, filename, df):
         zip_file.writestr(zipfile.ZipInfo(filename), data_stream.getvalue())
 
 
-# if __name__ == "__main__":
-#     generate_gtfs_zip(open("schedules(3).xlsx", "rb"), "./")
+if __name__ == "__main__":
+    generate_gtfs_zip(open("Schedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.java", "server_files/static/shared/result")

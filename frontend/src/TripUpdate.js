@@ -13,6 +13,7 @@ export function convertDictToGTFSTripUpdate(dict) {
     feed_entity.id = dict.id
 
     trip_update.trip = { "tripId": dict.trip_id }
+    trip_update.timestamp = Math.floor(new Date().getTime()/1000)
     if (dict.cancelled)
         trip_update.trip.scheduleRelationship = transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"];
 
@@ -38,6 +39,7 @@ export function convertDictToGTFSTripUpdate(dict) {
             trip_update.stopTimeUpdate.push(newStopTimeUpdate)
         }
     }
+
     return feed_entity
 
 }
@@ -105,7 +107,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 
 export function TripUpdate() {
     const trip_update_feedentity = useLocation().state
-    // check if any state passes
+    // check if any state passed
     let [id, setEntityId] = useState("")// create a new uuid if a new trip update is being made
     const trip_update_inp = trip_update_feedentity ? trip_update_feedentity.tripUpdate : undefined
 
@@ -123,14 +125,14 @@ export function TripUpdate() {
         setEntityId(v4())
     }, [trip_id])
 
-    useEffect(() => {
+    useEffect(async () => {
         async function setData() {
             setRoutes(await getRoutes())
             setServices(await getServices())
             if (trip_id)
                 disatchChangeStopTimes(getUpdatesWithStopTimes(trip_update_inp.stopTimeUpdate, await getStopTimesofTrip(trip_id)))
         }
-        setData()
+        await setData()
     }, [])
 
     let [stoptimes, disatchChangeStopTimes] = useReducer((state, action) => {

@@ -18,10 +18,10 @@ def insert_user(username, rawPassword):
     except Exception as e:
         db.session.rollback()
 
-def get_trips( service=None, route=None, number=None):
+def get_trips( service=None, route=None, number=None, time_after=None):
     with db.session.begin():
         sql = "SELECT trip_id FROM trips "
-        if service or route or number:
+        if service or route or number or time_after:
             sql += " WHERE "
         if service:
             sql += " service_id = :service "
@@ -33,10 +33,15 @@ def get_trips( service=None, route=None, number=None):
                 sql += "AND "
         if number:
             sql += "  trip_id LIKE :tripid "
+            if time_after:
+                sql += " AND "
+        if time_after:
+            sql += " arrival_time >= :time_after   "
         params = dict()
         params["service"] = service
         params["route"] =route 
         params["tripid"] =f"%-{number}%" 
+        params["time_after"] =  time_after
         trips = db.session.execute(text(sql),params=params ).fetchall()
         return [trip[0] for trip in trips] 
 
@@ -51,7 +56,12 @@ def get_stops(stop_name=None):
         stops= db.session.execute(text(sql), params).fetchall();
         return [ list(stop) for stop in stops ]
 
-
+def get_trip_ids_routes():
+    # create dict of trips to their route
+    with db.session.begin():
+        sql = "SELECT trip_id , route_id FROM trips "
+        rows = db.session.execute(text(sql)).fetchall();
+        return { row[0]: row[1] for row in rows}
 
 def get_routes():
     with db.session.begin():

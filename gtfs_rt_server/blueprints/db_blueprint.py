@@ -1,5 +1,6 @@
 from flask import Blueprint,request 
-from gtfs_rt_server.db_utils import get_trips, get_routes, get_stops, get_services,get_stoptimes_of_trip 
+import datetime
+from gtfs_rt_server.db_utils import get_trips, get_routes, get_trip_ids_routes,  get_stops, get_services,get_stoptimes_of_trip 
 db_bp = Blueprint("db", __name__, url_prefix="/db")
 
 @db_bp.get("/get_trips")
@@ -7,7 +8,12 @@ def get_trips_endp():
     service = request.args.get("service", None )
     route = request.args.get("route", None )
     number = request.args.get("number", None )
-    return get_trips( service, route, number) 
+    time_after = request.args.get("after", None )
+    return get_trips( service, route, number, time_after ) 
+
+@db_bp.get("/trips_to_routes")
+def get_trips_to_routes():
+    return get_trip_ids_routes()
 
 @db_bp.get("/get_routes")
 def get_routes_endp():

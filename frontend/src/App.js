@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { getFeedMessage, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf } from './Utils'
+import { useState, useEffect, useReducer, useRef } from 'react';
+import { getFeedMessage, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes } from './Utils'
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -8,6 +8,7 @@ import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
 import { logout } from './Auth';
+import { TripUpdateFilter } from './Search';
 
 function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
@@ -32,14 +33,15 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
     return <>
       {returnTime()}
       <td><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
-      <td>Service Alert</td>
       <td><Link to="/service_alert" state={entity} >Edit</Link> </td>
     </>
   }
   function renderTripUpdate() {
+    let modified_datetime = entity.tripUpdate.timestamp ? new Date(entity.tripUpdate.timestamp * 1000) : undefined
+    let modified = modified_datetime ? `${modified_datetime.toDateString()} ${modified_datetime.toLocaleTimeString()}` : ``
     return <>
       <td >{entity.tripUpdate.trip ? entity.tripUpdate.trip.tripId : ""}</td>
-      <td>Trip Update</td>
+      <td>{modified}</td>
       <td><Link to="/trip_update" state={entity} >Edit</Link> </td>
     </>
   }
@@ -49,7 +51,7 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
     {entity.tripUpdate ? renderTripUpdate() : renderServiceAlert()}
     <td ><button className='btn btn-danger' onClick={(e) => {
       if (window.confirm("Are you sure you want to delete")) {
-        delete_feed_entity_callback(entity.id, entity.tripUpdate? "updates": "alerts")
+        delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts")
       }
 
     }
@@ -75,13 +77,68 @@ export function Feed() {
     }
 
   }
+
+
+  let [trips_to_route, setTripToRoute] = useState({})
+
+  useEffect(() => {
+    async function action() {
+      setTripToRoute(await getTripsToRouteID())
+    }
+    action()
+  }, [])
+
+  let [route, setRoute] = useState("")
+  let [number, setNumber] = useState("")
+  let [routes, setRoutes] = useState([])
+  useEffect(() => {
+    async function action() {
+      setRoutes(await getRoutes())
+    }
+    action()
+  }, [])
+
+
+  let [feed_updates_filtered, setFeedUpdatesMirrored] = useReducer((state, action) => {
+    let routeFilter = action.route || ""
+    let numberFilter = action.number || ""
+    let output = feed_updates
+
+    if (routeFilter) {
+      output = output.filter((v) => {
+        const trip_id = v.tripUpdate.trip.tripId
+        return (trip_id in trips_to_route) && trips_to_route[trip_id] == routeFilter || !(trip_id in trips_to_route)
+      }
+      )
+    }
+    if (numberFilter) {
+      const pattern = new RegExp(`^\\w*-${numberFilter}(\\d*)$`) // TODO: FIX THIS
+      output = output.filter((v) => {
+        const trip_id = v.tripUpdate.trip.tripId
+        return pattern.test(trip_id)
+      })
+    }
+
+    // sort by timestamp descending
+    return output.sort((u_1, u_2) => u_1.tripUpdate.timestamp - u_2.tripUpdate.timestamp)
+
+  }, feed_updates)
+
+  let updateMirroredUpdates = () => { setFeedUpdatesMirrored({ "route": route, "number": number }) }
+
   useEffect(() => {
     refreshFeeds()
   }, [])
 
+  useEffect(() => {
+    updateMirroredUpdates()
+  }, [route, number])
+
+
   function refreshFeeds() {
     set_feed("alerts")
     set_feed("updates")
+    updateMirroredUpdates()
   }
 
   async function delete_feed_entity_callback(id, type) {
@@ -90,7 +147,7 @@ export function Feed() {
       refreshFeeds()
     }
     catch (error) {
-      alert("Error deleting feed:" + error.message)
+      alert(`Error deleting feed:${error.message}`)
     }
   }
 
@@ -101,7 +158,8 @@ export function Feed() {
         <button className='btn' onClick={(e) => { setFeedType("alerts") }}>Alerts</button>
         <button className='btn' onClick={(e) => { setFeedType("updates") }}>Trip Updates</button>
         <button className='btn' onClick={(e) => { refreshFeeds() }}>Refresh</button>
-      </div>
+      </div >
+      {feed_type == "updates" ? <TripUpdateFilter setNumber={setNumber} number={number} route={route} setRoute={setRoute} routes={routes} /> : <></>}
       <table className='table table-hover' id="feed-table">
         <thead>
           <tr>
@@ -111,15 +169,15 @@ export function Feed() {
                 <th>Entities</th></> :
               <>
                 <th>Trip ID</th>
+                <th>Last modified</th>
               </>
             }
 
-            <th>Type</th>
             <th>Edit</th>
             <th>Delete</th>
           </tr></thead>
         <tbody>
-          {(feed_type == "alerts" ? feed_alerts : feed_updates).map((entity) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
+          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
         </tbody>
       </table>
     </div>
@@ -162,11 +220,11 @@ export default function App() {
 export function Main({ logout_cookie }) {
   return <div className='d-flex flex-column align-items-center gap-3'  >
     <img src='/static/prasa-main.png' width={250} height={100} />
-    <Link to="/upload_gtfs">Upload GTFS file form</Link>
-    <Link to="/service_alert">Create Service Alert</Link>
-    <Link to="/trip_update">Create trip update</Link>
-    <a href='/static/shared/gtfs.zip'>GTFS zip</a>
-    <a onClick={async (e) => {
+    <Link className='btn-primary' to="/upload_gtfs">Upload GTFS file form</Link>
+    <Link className='btn-primary' to="/service_alert">Create Service Alert</Link>
+    <Link className='btn-primary' to="/trip_update">Create trip update</Link>
+    <a className='btn-primary' href='/static/shared/gtfs.zip'>GTFS zip</a>
+    <a className='btn-danger' onClick={async (e) => {
       try {
         e.preventDefault()
         logout_cookie()
