@@ -54,6 +54,11 @@ export function UploadsGTFS() {
             }
             catch (error) {
                 console.log(error)
+                if (error.response )
+                {
+                    alert((error.response.status >= 500 ? "Error occurred on server" : "Error with request:" ) + "\n" + error.response.data)
+                }
+
                 setUploading(false)
             }
         }} >

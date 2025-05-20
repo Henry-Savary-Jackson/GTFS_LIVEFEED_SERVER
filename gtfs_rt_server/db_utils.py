@@ -20,19 +20,21 @@ def insert_user(username, rawPassword):
 
 def get_trips( service=None, route=None, number=None, time_after=None):
     with db.session.begin():
-        sql = "SELECT trip_id FROM trips "
+        sql = "SELECT DISTINCT trips.trip_id FROM trips "
+        if time_after:
+            sql += " INNER JOIN stop_times ON stop_times.trip_id = trips.trip_id "
         if service or route or number or time_after:
             sql += " WHERE "
         if service:
             sql += " service_id = :service "
-            if route or number:
+            if route or number or time_after:
                 sql += " AND "
         if route:
             sql += " route_id = :route " 
-            if number:
+            if number or time_after:
                 sql += "AND "
         if number:
-            sql += "  trip_id LIKE :tripid "
+            sql += "  trips.trip_id LIKE :tripid "
             if time_after:
                 sql += " AND "
         if time_after:

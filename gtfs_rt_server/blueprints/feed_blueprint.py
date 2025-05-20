@@ -1,5 +1,5 @@
 
-from gtfs_rt_server.protobuf_utils import delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
+from gtfs_rt_server.protobuf_utils import verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from google.protobuf.message import DecodeError, EncodeError
 import  google.transit.gtfs_realtime_pb2  as gtfs_rt
@@ -81,12 +81,11 @@ def vehicle_postion():
         entity = gtfs_rt.FeedEntity()
         entity.ParseFromString(request.data)
         entity_dict = MessageToDict(entity) 
-        # print("on server:",entity_dict)
-        # if not is_feed_entity_alert(entity_dict):
-        #     return "Entity is not of type Alert", 400
-        # verify_service_alert(entity_dict["alert"])
-        # save_feed_entity_to_feed(entity, feed_object)
-        # save_feed_to_file(feed_object, feed_location) 
+        if not is_feed_entity_position(entity_dict):
+            return "Entity is not of type VehiclePosition", 400
+        verify_vehicle_position(entity_dict["vehicle"])  ## TODO: check this
+        save_feed_entity_to_feed(entity, feed_object)
+        save_feed_to_file(feed_object, feed_location) 
         return "Successful"
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400

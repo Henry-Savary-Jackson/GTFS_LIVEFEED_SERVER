@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { getTrips, getStops } from './Utils'
-import { roots } from 'protobufjs';
 
 export function RouteSelect({ route, setRoute, routes }) {
 
     return <div className='container'>
+        <label htmlFor='route_list' >Routes:</label>
         <select className='form-control' id='route_list' value={route} onChange={(event) => {
             setRoute(event.target.value)
         }}>
@@ -27,6 +27,7 @@ export function TripIdSeacher({ number, setSearchNumber }) {
 export function ServiceSelect({ setService, service, services }) {
 
     return <div className='container'>
+        <label htmlFor='service_list'>Service:</label>
         <select className='form-control' id='service_list' value={service} onChange={(event) => {
             setService(event.target.value)
         }}>
@@ -52,7 +53,7 @@ export function TripSearch({ setTripID, routes, services }) {
         searchState.current = true
         try {
             let current_datetime_str = new Date().toISOString()
-            let current_time_str = current_datetime_str.slice(current_datetime_str.indexOf("T"), current_datetime_str.lastIndexOf("."))
+            let current_time_str = current_datetime_str.slice(current_datetime_str.indexOf("T")+1, current_datetime_str.lastIndexOf("."))
             setTrips(await getTrips(route, service, new_number, current_time_str))
         } finally {
             searchState.current = false
@@ -84,7 +85,7 @@ export function TripSearch({ setTripID, routes, services }) {
 
 
 export function TripUpdateFilter({ setNumber, route, number, setRoute, routes }) {
-    return <div className='container d-flex flex-column align-items-center'>
+    return <div className='container d-flex flex-column align-items-center gap-3'>
         <TripIdSeacher number={number} setSearchNumber={setNumber} />
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
     </div>

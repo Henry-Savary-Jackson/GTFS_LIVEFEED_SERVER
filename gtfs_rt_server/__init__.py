@@ -31,7 +31,7 @@ def create_logger(app):
     '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
     '%(levelname)s in %(module)s: %(message)s'
     )
-    logger = getLogger()
+    logger = getLogger("gunicorn.debug") # how to handle different levels and different configurations
     default_handler.setFormatter(fm)
     fileHandler = FileHandler(app.config["LOGGING_FILE_PATH"], mode="a")
     fileHandler.setFormatter(fm)
@@ -120,6 +120,11 @@ def init_csrf(app):
 def init_CORS(app):
     return CORS(app,supports_credentials=True) 
 
+def create_summary():
+
+    pass
+
+
 def init_app():
     global db
 
@@ -128,7 +133,7 @@ def init_app():
     app.config.from_object( config if config else "config.Config")
     from gtfs_rt_server.protobuf_utils import get_feed_object_from_file
     app.static_folder = app.config["STATIC_FOLDER"]
-    # get different feeds from files for alerts and stoptimes
+    # get different feeds from files for alerts and stoptimes and vehicle positions
 
     app.config["feed_alerts"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "alerts.bin" )
     app.config["feed_updates"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "updates.bin")

@@ -118,21 +118,21 @@ export function TripUpdate() {
     let [services, setServices] = useState([])
 
     useEffect(() => {
-        if (id == "") {
+        if (id === "") {
             setEntityId(trip_update_feedentity ? trip_update_feedentity.id : v4())
             return
         }
         setEntityId(v4())
     }, [trip_id])
 
-    useEffect(async () => {
+    useEffect(() => {
         async function setData() {
             setRoutes(await getRoutes())
             setServices(await getServices())
             if (trip_id)
                 disatchChangeStopTimes(getUpdatesWithStopTimes(trip_update_inp.stopTimeUpdate, await getStopTimesofTrip(trip_id)))
         }
-        await setData()
+        setData()
     }, [])
 
     let [stoptimes, disatchChangeStopTimes] = useReducer((state, action) => {

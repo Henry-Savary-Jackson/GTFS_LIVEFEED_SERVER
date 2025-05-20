@@ -15,3 +15,5 @@ class User(UserMixin, db.Model):
 def get_user_by_username(username) -> Optional[User]:
     with db.session.begin():
         return User.query.filter_by(username=username).first()
+
+     

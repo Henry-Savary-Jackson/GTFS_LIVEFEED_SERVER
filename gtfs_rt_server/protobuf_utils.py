@@ -53,6 +53,9 @@ def save_feed_to_file(feed_message: gtfs_rt.FeedMessage, feed_location):
 def is_feed_entity_alert(entity: dict):
     return "alert" in entity
 
+def is_feed_entity_position(entity:dict):
+    return "vehicle" in entity
+
 
 def is_feed_entity_trip_update(entity: dict):
     return "tripUpdate" in entity
@@ -77,6 +80,10 @@ def delete_feed_entity_from_feed(entity_id: str, feed: gtfs_rt.FeedMessage):
             print("deleting", f_entity.id, entity_id)
             del feed.entity[i]
 
+def verify_vehicle_position(position: dict):
+    if "trip" not in position :
+        raise ValueError("You must specifiy the trip_id in the Vehicle positions!")
+    verify_trip_descriptor(position["trip"])
 
 def verify_service_alert(alert: dict):
     if "informedEntity" not in alert:

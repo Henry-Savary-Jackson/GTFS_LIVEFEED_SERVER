@@ -53,11 +53,11 @@ def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None)
 
 def read_sheet_as_df(excel_file, sheet_name, **kwargs):
     try:
-        print("hey", kwargs )
+        # print("hey", kwargs )
         return pd.read_excel(excel_file, sheet_name, **kwargs)
     except ValueError as e:
         if "Excel file format cannot be determined" in str(e):
-            print(str(r))
+            print(str(e))
             raise Exception("Invalid Excel file") 
         raise e
 
@@ -350,5 +350,5 @@ def write_df_to_zipfile(zip_file, filename, df):
         zip_file.writestr(zipfile.ZipInfo(filename), data_stream.getvalue())
 
 
-if __name__ == "__main__":
-    generate_gtfs_zip(open("Schedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.java", "server_files/static/shared/result")
+# if __name__ == "__main__":
+    # generate_gtfs_zip(open("Schedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.java", "server_files/static/shared/result")

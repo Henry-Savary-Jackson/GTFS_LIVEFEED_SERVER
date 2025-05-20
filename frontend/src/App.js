@@ -75,7 +75,8 @@ export function Feed() {
       default:
         break;
     }
-
+    // returns the feed entities, as you may want to use them before the next update of state
+    return feed_message.entity
   }
 
 
@@ -91,7 +92,9 @@ export function Feed() {
   let [route, setRoute] = useState("")
   let [number, setNumber] = useState("")
   let [routes, setRoutes] = useState([])
+
   useEffect(() => {
+    // needs to be like  this with an async function being called else react gives errors
     async function action() {
       setRoutes(await getRoutes())
     }
@@ -102,9 +105,11 @@ export function Feed() {
   let [feed_updates_filtered, setFeedUpdatesMirrored] = useReducer((state, action) => {
     let routeFilter = action.route || ""
     let numberFilter = action.number || ""
-    let output = feed_updates
+    // action.entities is given if the feed_updates has not been updated 
+    let output = action.entities || feed_updates
 
     if (routeFilter) {
+      //filter by the route
       output = output.filter((v) => {
         const trip_id = v.tripUpdate.trip.tripId
         return (trip_id in trips_to_route) && trips_to_route[trip_id] == routeFilter || !(trip_id in trips_to_route)
@@ -112,6 +117,7 @@ export function Feed() {
       )
     }
     if (numberFilter) {
+      // filter by train number
       const pattern = new RegExp(`^\\w*-${numberFilter}(\\d*)$`) // TODO: FIX THIS
       output = output.filter((v) => {
         const trip_id = v.tripUpdate.trip.tripId
@@ -120,11 +126,11 @@ export function Feed() {
     }
 
     // sort by timestamp descending
-    return output.sort((u_1, u_2) => u_1.tripUpdate.timestamp - u_2.tripUpdate.timestamp)
+    return output.sort((u_1, u_2) => u_2.tripUpdate.timestamp - u_1.tripUpdate.timestamp)
 
   }, feed_updates)
 
-  let updateMirroredUpdates = () => { setFeedUpdatesMirrored({ "route": route, "number": number }) }
+  let updateMirroredUpdates = (entities = undefined) => { setFeedUpdatesMirrored({ "entities": entities, "route": route, "number": number }) }
 
   useEffect(() => {
     refreshFeeds()
@@ -135,16 +141,15 @@ export function Feed() {
   }, [route, number])
 
 
-  function refreshFeeds() {
+  async function refreshFeeds() {
     set_feed("alerts")
-    set_feed("updates")
-    updateMirroredUpdates()
+    updateMirroredUpdates(await set_feed("updates"))
   }
 
   async function delete_feed_entity_callback(id, type) {
     try {
       await deleteFeedEntity(id, type)
-      refreshFeeds()
+      await refreshFeeds()
     }
     catch (error) {
       alert(`Error deleting feed:${error.message}`)
@@ -192,6 +197,7 @@ export default function App() {
   let logout_cookie = () => { removeCookie("username"); setUser("") }
 
   useEffect(() => {
+    // fetch the csrf token asynchronously
     async function funcSetCSRF() {
       let token = await get_csrf()
       setCSRFToken(token)
@@ -220,11 +226,11 @@ export default function App() {
 export function Main({ logout_cookie }) {
   return <div className='d-flex flex-column align-items-center gap-3'  >
     <img src='/static/prasa-main.png' width={250} height={100} />
-    <Link className='btn-primary' to="/upload_gtfs">Upload GTFS file form</Link>
-    <Link className='btn-primary' to="/service_alert">Create Service Alert</Link>
-    <Link className='btn-primary' to="/trip_update">Create trip update</Link>
-    <a className='btn-primary' href='/static/shared/gtfs.zip'>GTFS zip</a>
-    <a className='btn-danger' onClick={async (e) => {
+    <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS file form</Link>
+    <Link className=' btn btn-primary' to="/service_alert">Create Service Alert</Link>
+    <Link className=' btn btn-primary' to="/trip_update">Create trip update</Link>
+    <a className=' btn btn-primary' href='/static/shared/gtfs.zip'>GTFS zip</a>
+    <a className=' btn btn-danger' onClick={async (e) => {
       try {
         e.preventDefault()
         logout_cookie()
