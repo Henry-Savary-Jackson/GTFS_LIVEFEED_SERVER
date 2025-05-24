@@ -9,6 +9,7 @@ class Config(object):
     SERVER_FILES = os.path.join(FILE_DIR, "server_files")
     STATIC_FOLDER = os.path.join(SERVER_FILES, "static")
     SHARED_FOLDER = os.path.join(STATIC_FOLDER, "shared")
+    EXCEL_SUMMARIES = os.path.join(SHARED_FOLDER, "excels")
     SHARED_PRIVATE_FOLDER = os.path.join(SERVER_FILES, "shared_private")
     SECRET_KEY = os.getenv("FLASK_SECURE_KEY")
     ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")

@@ -3,17 +3,94 @@ from flask_sqlalchemy import model
 from gtfs_rt_server import db
 from typing import Optional
 from uuid import uuid4
+
+
 class User(UserMixin, db.Model):
 
-    user_id = db.Column(db.String(36), default=str(uuid4()),primary_key=True)
+    user_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
     username = db.Column(db.String(100), unique=True)
-    hash_pass = db.Column( db.String(100), nullable=False)
+    hash_pass = db.Column(db.String(100), nullable=False)
 
     def get_id(self):
         return self.username
+
 
 def get_user_by_username(username) -> Optional[User]:
     with db.session.begin():
         return User.query.filter_by(username=username).first()
 
-     
+
+class Causes:
+    UNKNOWN_CAUSE = "UNKNOWN_CAUSE"
+    OTHER_CAUSE = "OTHER_CAUSE"
+    TECHNICAL_PROBLEM = "TECHNICAL_PROBLEM"
+    STRIKE = "STRIKE"
+    DEMONSTRATION = "DEMONSTRATION"
+    ACCIDENT = "ACCIDENT"
+    HOLIDAY = "HOLIDAY"
+    WEATHER = "WEATHER"
+    MAINTENANCE = "MAINTENANCE"
+    CONSTRUCTION = "CONSTRUCTION"
+    POLICE_ACTIVITY = "POLICE_ACTIVITY"
+    MEDICAL_EMERGENCY = "MEDICAL_EMERGENCY"
+
+
+class Effects:
+
+    NO_SERVICE = "NO_SERVICE"
+    REDUCED_SERVICE = "REDUCED_SERVICE"
+    SIGNIFICANT_DELAYS = "SIGNIFICANT_DELAYS"
+    DETOUR = "DETOUR"
+    ADDITIONAL_SERVICE = "ADDITIONAL_SERVICE"
+    MODIFIED_SERVICE = "MODIFIED_SERVICE"
+    OTHER_EFFECT = "OTHER_EFFECT"
+    UNKNOWN_EFFECT = "UNKNOWN_EFFECT"
+    STOP_MOVED = "STOP_MOVED"
+    NO_EFFECT = "NO_EFFECT"
+    ACCESSIBILITY_ISSUE = "ACCESSIBILITY_ISSUE"
+
+
+class EntityTypes:
+    stops = "stops"
+    trips = "trips"
+    routes = "routes"
+
+
+class InformedEntityToAlerts(db.Table):
+    __tablename__ = "alerts_to_entities"
+    alert_id = db.Column(db.String(36), ForeignKey("alerts.alert_id"), primary_key=True)
+    entity_id = db.Column(db.String(36), primary_key=True)
+    entity_type = db.Column(db.Enum(EntityTypes))
+
+
+class Alert(db.Model):
+    __tablename__ = "alerts"
+    alert_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
+    start_time = db.Column(db.Integer())
+    end_time = db.Column(db.Integer())
+    cause = db.Column(db.Enum(Causes))
+    effect = db.Column(db.Enum(Effects))
+    entities = db.relationship(
+        secondary=InformedEntityToAlerts.__tablename__, backref="alert"
+    )
+
+
+class TripUpdateToStop(db.Table):
+    __tablename__ = "trip_update_to_stops"
+    alert_id = db.Column(
+        db.String(36), ForeignKey("trip_update.trip_id"), primary_key=True
+    )
+    stop_id = db.Column(db.String(36), ForeignKey("stops.stop_id"), primary_key=True)
+    delay = db.Column(db.Integer())
+    skip = db.Column(db.Boolean())
+
+
+class TripUpdate(db.Model):
+    __tablename__ = "trip_update"
+    trip_update_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
+    trip_id = db.Column(db.String(36), ForeignKey("trips.trip_id"))
+    stops = db.relationship(
+        secondary=TripUpdateToStop.__tablename__, backref="trip_update"
+    )
+    route_id =  db.Column(db.String(36), ForeignKey("routes.route_id"))
+    cancelled = db.Column(db.Boolean())

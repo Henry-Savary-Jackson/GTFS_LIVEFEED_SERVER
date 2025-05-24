@@ -36,3 +36,57 @@ def get_stoptimes_endp():
     return get_stoptimes_of_trip(trip_id)
 
 
+@db_bp.post("/add_alert")
+@login_required
+def add_alert_endp():
+    alert = request.get_json()
+    if not alert:
+        return {"error": "Missing alert JSON"}, 400
+    add_alert_to_db(alert)
+    return {"status": "ok"}
+
+@db_bp.post("/add_trip_update")
+@login_required
+def add_trip_update_endp():
+    trip_update = request.get_json()
+    if not trip_update:
+        return {"error": "Missing trip update JSON"}, 400
+    add_trip_update_to_db(trip_update)
+    return {"status": "ok"}
+
+@db_bp.delete("/delete_alert/<alert_id>")
+@login_required
+def delete_alert_endp(alert_id):
+    delete_alert_from_log(alert_id)
+    return {"status": "deleted", "alert_id": alert_id}
+
+@db_bp.delete("/delete_trip_update/<trip_update_id>")
+@login_required
+def delete_trip_update_endp(trip_update_id):
+    delete_trip_update_from_log(trip_update_id)
+    return {"status": "deleted", "trip_update_id": trip_update_id}
+
+@db_bp.get("/alerts_by_trips")
+def alerts_by_trips_endp():
+    return jsonify(get_alerts_by_trips().to_dict(orient="records"))
+
+@db_bp.get("/alerts_by_routes")
+def alerts_by_routes_endp():
+    return jsonify(get_alerts_by_route().to_dict(orient="records"))
+
+@db_bp.get("/alerts_by_stops")
+def alerts_by_stops_endp():
+    return jsonify(get_alerts_by_stop().to_dict(orient="records"))
+
+@db_bp.get("/trip_updates_by_trips")
+def trip_updates_by_trips_endp():
+    return jsonify(get_trip_updates_by_trips().to_dict(orient="records"))
+
+@db_bp.get("/trip_updates_by_routes")
+def trip_updates_by_routes_endp():
+    return jsonify(get_trip_updates_by_routes().to_dict(orient="records"))
+
+@db_bp.get("/trip_updates_by_stops")
+def trip_updates_by_stops_endp():
+    return jsonify(get_trip_updates_by_stops().to_dict(orient="records"))
+

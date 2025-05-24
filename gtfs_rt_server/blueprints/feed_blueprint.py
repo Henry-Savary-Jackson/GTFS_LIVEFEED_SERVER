@@ -35,7 +35,7 @@ def trip_update():
         entity = gtfs_rt.FeedEntity()
         entity.ParseFromString(request.data)
         entity_dict = MessageToDict(entity) 
-        print("on server:",entity_dict)
+        # print("on server:",entity_dict)
         if not is_feed_entity_trip_update(entity_dict):
             return "Entity is not of type TripUpdate", 400
         verify_trip_update(entity_dict["tripUpdate"])
@@ -45,7 +45,7 @@ def trip_update():
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
     except ValueError as verify_error:
-        print("error server:", verify_error)
+        # print("error server:", verify_error)
         return str(verify_error), 400
 
 @feed_bp.post("/service_alert")
@@ -58,7 +58,7 @@ def service_alert():
         entity = gtfs_rt.FeedEntity()
         entity.ParseFromString(request.data)
         entity_dict = MessageToDict(entity) 
-        print("on server:",entity_dict)
+        # print("on server:",entity_dict)
         if not is_feed_entity_alert(entity_dict):
             return "Entity is not of type Alert", 400
         verify_service_alert(entity_dict["alert"])
@@ -68,7 +68,7 @@ def service_alert():
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
     except ValueError as verify_error:
-        print("error server:", verify_error)
+        # print("error server:", verify_error)
         return str(verify_error), 400
 
 
