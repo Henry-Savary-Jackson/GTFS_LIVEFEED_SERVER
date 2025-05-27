@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer, useRef } from 'react';
-import { getFeedMessage, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes } from './Utils'
+import { getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes } from './Utils'
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -7,7 +7,6 @@ import { UserContext } from './Globals';
 import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
-import { logout } from './Auth';
 import { TripUpdateFilter } from './Search';
 
 function FeedEntityRow({ entity, delete_feed_entity_callback }) {
@@ -51,9 +50,9 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
     {entity.tripUpdate ? renderTripUpdate() : renderServiceAlert()}
     <td ><button className='btn btn-danger' onClick={(e) => {
       if (window.confirm("Are you sure you want to delete")) {
-        delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts")
+        let deleteFromLog = window.confirm("Do you want to delete this entity from the log?")
+        delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts", deleteFromLog)
       }
-
     }
     }>X</button></td>
   </tr>
@@ -152,7 +151,7 @@ export function Feed() {
       await refreshFeeds()
     }
     catch (error) {
-      alert(`Error deleting feed:${error.message}`)
+      alert(`Error deleting feed:\n${error.title}\n${error.message}`)
     }
   }
 
@@ -237,7 +236,11 @@ export function Main({ logout_cookie }) {
         await logout()
         window.location.reload()
       } catch (error) {
-        alert(error)
+        if (error.title) {
+          alert(`${error.title}:\n${error.message}`)
+        } else {
+          alert(error)
+        }
       }
     }} href='/auth/logout'>Logout</a>
     <Feed />

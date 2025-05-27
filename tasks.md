@@ -1,10 +1,10 @@
 # Tasks
-- [] implement logging of feed_entites
+- [x] implement logging of feed_entites
 - [] implement making excels and serving excels
 - [] make request have a better standard for error codes
 - [] make handling of failed csrf or login request more user-friendly
 - [] make logging while testing and with gunicorn function so that problems are more diagnosable
-- [] fix UI bug with adding start and end time of an alert 
+- [x] fix UI bug with adding start and end time of an alert 
 - [] make the error handling for uploading excels more transparent
 - [] make the UI for uploading gtfs prettier and more responsive.
 - [] add access control for reports etc... by having multiple account with different roles. 

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { getTrips, getStops } from './Utils'
+import { getTrips, getStops, convertDateToTimeString } from './Utils'
 
 export function RouteSelect({ route, setRoute, routes }) {
 
@@ -9,7 +9,7 @@ export function RouteSelect({ route, setRoute, routes }) {
             setRoute(event.target.value)
         }}>
             <option key="All" value="" >All</option>
-            {routes.map((val, i) => <option key={i} value={val.route_id}>{val.route_long_name}</option>)}
+            {routes.map((route, i) => <option style={route.route_color? {"background": `#${route.route_color}`}: {}} key={i} value={route.route_id}>{route.route_long_name}</option>)}
         </select>
     </div>
 
@@ -52,9 +52,8 @@ export function TripSearch({ setTripID, routes, services }) {
     async function setTripsCallback(new_number) {
         searchState.current = true
         try {
-            let current_datetime_str = new Date().toISOString()
-            let current_time_str = current_datetime_str.slice(current_datetime_str.indexOf("T")+1, current_datetime_str.lastIndexOf("."))
-            setTrips(await getTrips(route, service, new_number, current_time_str))
+            let current_time_str =  convertDateToTimeString(new Date())
+            setTrips(await getTrips(route, service, new_number === ""? undefined: new_number, current_time_str))
         } finally {
             searchState.current = false
         }
@@ -69,7 +68,7 @@ export function TripSearch({ setTripID, routes, services }) {
     }
     // need to pass this stuff with route, because otherwise it initially gives emoty value
     // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
-    return <div className='d-flex flex-column justify-content-center'>
+    return <div className='d-flex  w-40 flex-column justify-content-center'>
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
         <ServiceSelect service={service} setService={setService} services={services} />
         <TripIdSeacher number={number} setSearchNumber={setNumberCallback} />
@@ -133,9 +132,10 @@ export function StopSearch({ finish_search_callback }) {
 }
 
 export function TripIDResults({ trips, select_trip_callback }) {
+//,{trip_object["direction"] == 0? "Inbound":"Outbound"}
     return <div className='container'>
         <ul className="list-group">
-            {trips.map((trip_id, i) => <li className='list-group-item' onClick={(e) => { select_trip_callback(trip_id) }} key={i}>{trip_id}</li>)}
+            {trips.map((trip_object, i) => <li className='list-group-item' style={"inprogress" in trip_object? {"background": trip_object["inprogress"] == 2 ?"indianred":trip_object["inprogress"]==0? "lightgreen": "white" , "color":trip_object["inprogress"] == 2? "white":"black"  } : {}} onClick={(e) => { select_trip_callback(trip_object["trip_id"]) }} key={i}>{trip_object["trip_id"]} { trip_object["inprogress"] == 0? "In progress" : trip_object["inprogress"] == 1? "Yet to start":  "Finished"}</li>)} 
         </ul>
     </div>
 }

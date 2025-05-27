@@ -13,10 +13,9 @@ export function convertDictToGTFSTripUpdate(dict) {
     feed_entity.id = dict.id
 
     trip_update.trip = { "tripId": dict.trip_id }
-    trip_update.timestamp = Math.floor(new Date().getTime()/1000)
+    trip_update.timestamp = Math.floor(new Date().getTime() / 1000)
     if (dict.cancelled)
         trip_update.trip.scheduleRelationship = transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"];
-
     for (let i = 0; i < dict.stoptimes.length; i++) {
         const element = dict.stoptimes[i]
         if ('delay' in element || 'skip' in element || 'newTime' in element || 'onTime' in element) {
@@ -66,12 +65,12 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
 }
 
 
-function StopTimeRow({ stoptime, dispatchStopTimesChange }) {
+function StopTimeRow({ current_time, stoptime, dispatchStopTimesChange }) {
     let changeStopOnTime = (onTime, index) => { dispatchStopTimesChange({ "onTime": onTime, "stopSequence": index }) }
     let changeTimeStop = (time, index) => { dispatchStopTimesChange({ "newTime": time, "stopSequence": index }) }
     let changeDelayStop = (delay, index) => { dispatchStopTimesChange({ "delay": delay, "stopSequence": index }) }
 
-    return <tr key={stoptime.stopSequence}>
+    return <tr className={convertDateToTimeString(current_time) >= stoptime.time ? "table-danger" : ""} key={stoptime.stopSequence}>
         <td>{stoptime.stopId}</td>
         <td className='d-flex flex-column align-items-center'>
             <input disabled={stoptime.skip || false} type='time' onInput={(e) => { changeTimeStop(e.currentTarget.value, stoptime.stopSequence) }} value={(stoptime.newTime && !stoptime.onTime) ? stoptime.newTime : stoptime.time} />
@@ -87,18 +86,18 @@ function StopTimeRow({ stoptime, dispatchStopTimesChange }) {
 }
 
 function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
-
+    let date = new Date()
     return <table className='table table-responsive'>
         <thead>
             <tr>
                 <th>Stop</th>
                 <th>Time</th>
                 <th>{"Delay (min)"}</th>
-                <th>skip</th>
+                <th>Skip stop?</th>
             </tr>
         </thead>
         <tbody>
-            {stoptimes.map((stoptime) => <StopTimeRow stoptime={stoptime} dispatchStopTimesChange={dispatchStopTimesChange} />)}
+            {stoptimes.map((stoptime) => <StopTimeRow current_time={date} stoptime={stoptime} dispatchStopTimesChange={dispatchStopTimesChange} />)}
         </tbody>
     </table>
 
@@ -116,6 +115,9 @@ export function TripUpdate() {
     let [trip_id, setTripID] = useState(trip_update_inp ? trip_update_inp.trip.tripId : "")
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
+
+    let [date, setDate] = useState("")
+
 
     useEffect(() => {
         if (id === "") {
@@ -154,26 +156,34 @@ export function TripUpdate() {
 
     return <div className='container flex-column d-flex align-items-center gap-5'>
         <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
-        <div>{trip_id}</div>
-        {trip_id !== "" && <div className='form-check'>
+        <div className='fs-2'>{trip_id}</div>
+        {trip_id !== "" && <><div className='form-check'>
             <label className='form-check-label' htmlFor='cancel-checkbox'>Cancel Trip?</label>
             <input className='form-check-input' id='cancel-checkbox' type='checkbox' checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} />
 
-        </div>}
+        </div><div>
+                <label className='form-check-label' htmlFor='date-input'>Date(default today):</label>
+                <input className='form-check-input' id='date-input' type='date' value={date} onInput={(e) => setDate(e.target.value)} />
+            </div></>}
         {stoptimes.length > 0 ? <StopTimeTable disabled={cancelled} stoptimes={stoptimes} dispatchStopTimesChange={disatchChangeStopTimes} /> : ''}
         <button className="btn btn-success" onClick={async (e) => {
             let object = {
                 "id": id,
                 "trip_id": trip_id,
                 "stoptimes": stoptimes,
-                "cancelled": cancelled
+                "cancelled": cancelled,
+                "date":new Date(date)
             }
             try {
                 let trip_update_gtfs = convertDictToGTFSTripUpdate(object)
                 await sendTripUpdate(trip_update_gtfs)
                 alert("Sucessfully saved")
             } catch (error) {
-                alert(error.message || error)
+                if (error.title){
+                    alert(`${error.title}:\n${error.message}`)
+                }else{
+                alert(error)
+                }
             }
 
             // save object

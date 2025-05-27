@@ -1,14 +1,50 @@
 
-from flask import Blueprint,request , make_response, redirect, url_for, render_template
+from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from flask_login import login_required, login_user, current_user, logout_user
 from wtforms import BooleanField, StringField,PasswordField, validators, SubmitField
 from flask_wtf import FlaskForm
-from gtfs_rt_server.db_utils import insert_user, password_hasher
+from gtfs_rt_server.db_utils import insert_user, password_hasher,delete_user_with_username 
 from gtfs_rt_server.schema import get_user_by_username
 import argon2
 from flask_wtf.csrf import generate_csrf
+from flask_security import roles_required
+from werkzeug.exceptions import BadRequest
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+# add
+@auth_bp.post("/add_user")
+@login_required
+@roles_required("admin")
+def add_user():
+    adduser_form = request.form
+    username = login_form.get("username", None)
+    if not username:
+        raise BadRequest( "No username given") 
+    password = login_form.get("password", None)
+    if not password:
+        raise BadRequest( "No password given") 
+    
+    user = get_user_by_username(username)
+    if user:
+        raise BadRequest( "User already exists") 
+    roles = adduser_form.get("roles", [])
+    insert_user(username, password, roles=roles)
+    current_app.logger.debug(f"{current_user.username} added {username}.")
+    return "Successful"
+
+@auth_bp.post("/delete_user")
+@login_required
+@roles_required("admin")
+def delete_user():
+    adduser_form = request.form
+    if not username:
+        raise BadRequest( "No username given") 
+    try :
+        delete_user_with_username(username)
+        return "Successful"
+    except Exception as e:
+        raise BadRequest( "User doesn't exists") 
 
 @auth_bp.get("/csrf")
 def csrf():
@@ -19,21 +55,21 @@ def login_endpoint():
     login_form = request.form
     username = login_form.get("username", None)
     if not username:
-        return "No username given", 400
+        raise BadRequest( "No username given") 
     password = login_form.get("password", None)
     if not password:
-        return "No password given", 400
+        raise BadRequest( "No password given") 
     remember_me = login_form.get("remember_me", True)
     user = get_user_by_username(username)
     if not user:
-        return "No such user" , 400
+        raise BadRequest( "User doesn't exists") 
     try:
         matches = password_hasher.verify(user.hash_pass, password)
         login_user(user, remember=remember_me)
-        print(current_user.username, "logged in ")
+        current_app.logger.debug(f"{current_user.username} logged in.")
         return "Successful"
     except argon2.exceptions.VerifyMismatchError:
-        return "Wrong password", 400 
+        raise BadRequest( "Wrong password") 
 ## store async protobuf as blob when edited and keep cache in memory
 
 @auth_bp.get("/logout")

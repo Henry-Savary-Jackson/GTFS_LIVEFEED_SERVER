@@ -1,15 +1,21 @@
-from flask_login import UserMixin
+import enum
 from flask_sqlalchemy import model
+from flask_security import UserMixin, RoleMixin
 from gtfs_rt_server import db
 from typing import Optional
 from uuid import uuid4
 
+roles_users = db.Table('roles_users',
+    db.Column('user_id', db.String(36), db.ForeignKey('user.user_id')),
+    db.Column('role_id', db.String(20), db.ForeignKey('role.role_id'))
+)
 
 class User(UserMixin, db.Model):
-
+    __tablename__="user"
     user_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
     username = db.Column(db.String(100), unique=True)
     hash_pass = db.Column(db.String(100), nullable=False)
+    roles = db.relationship('Role', secondary=roles_users , backref="roled" )
 
     def get_id(self):
         return self.username
@@ -19,8 +25,12 @@ def get_user_by_username(username) -> Optional[User]:
     with db.session.begin():
         return User.query.filter_by(username=username).first()
 
+class Role(RoleMixin, db.Model):
+    __tablename__="role"
+    role_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
+    role_name = db.Column(db.String(20) , unique=True, nullable=False)
 
-class Causes:
+class Causes(enum.Enum):
     UNKNOWN_CAUSE = "UNKNOWN_CAUSE"
     OTHER_CAUSE = "OTHER_CAUSE"
     TECHNICAL_PROBLEM = "TECHNICAL_PROBLEM"
@@ -35,7 +45,7 @@ class Causes:
     MEDICAL_EMERGENCY = "MEDICAL_EMERGENCY"
 
 
-class Effects:
+class Effects(enum.Enum):
 
     NO_SERVICE = "NO_SERVICE"
     REDUCED_SERVICE = "REDUCED_SERVICE"
@@ -50,15 +60,15 @@ class Effects:
     ACCESSIBILITY_ISSUE = "ACCESSIBILITY_ISSUE"
 
 
-class EntityTypes:
+class EntityTypes(enum.Enum):
     stops = "stops"
     trips = "trips"
     routes = "routes"
 
 
-class InformedEntityToAlerts(db.Table):
+class InformedEntityToAlerts(db.Model):
     __tablename__ = "alerts_to_entities"
-    alert_id = db.Column(db.String(36), ForeignKey("alerts.alert_id"), primary_key=True)
+    alert_id = db.Column(db.String(36), db.ForeignKey("alerts.alert_id"), primary_key=True)
     entity_id = db.Column(db.String(36), primary_key=True)
     entity_type = db.Column(db.Enum(EntityTypes))
 
@@ -71,16 +81,16 @@ class Alert(db.Model):
     cause = db.Column(db.Enum(Causes))
     effect = db.Column(db.Enum(Effects))
     entities = db.relationship(
-        secondary=InformedEntityToAlerts.__tablename__, backref="alert"
+        "InformedEntityToAlerts", backref="alert"
     )
 
 
-class TripUpdateToStop(db.Table):
+class TripUpdateToStop(db.Model):
     __tablename__ = "trip_update_to_stops"
-    alert_id = db.Column(
-        db.String(36), ForeignKey("trip_update.trip_id"), primary_key=True
+    trip_update_id = db.Column(
+        db.String(36), db.ForeignKey("trip_update.trip_id"), primary_key=True
     )
-    stop_id = db.Column(db.String(36), ForeignKey("stops.stop_id"), primary_key=True)
+    stop_id = db.Column(db.String(36), primary_key=True)
     delay = db.Column(db.Integer())
     skip = db.Column(db.Boolean())
 
@@ -88,9 +98,9 @@ class TripUpdateToStop(db.Table):
 class TripUpdate(db.Model):
     __tablename__ = "trip_update"
     trip_update_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
-    trip_id = db.Column(db.String(36), ForeignKey("trips.trip_id"))
+    trip_id = db.Column(db.String(36), nullable=False)
     stops = db.relationship(
-        secondary=TripUpdateToStop.__tablename__, backref="trip_update"
+        "TripUpdateToStop" , backref="trip_update"
     )
-    route_id =  db.Column(db.String(36), ForeignKey("routes.route_id"))
+    route_id =  db.Column(db.String(36), nullable=False)
     cancelled = db.Column(db.Boolean())

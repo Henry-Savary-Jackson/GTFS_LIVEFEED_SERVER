@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer  } from 'react';
+import { useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
 import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
 import { useLocation } from 'react-router-dom'
@@ -39,7 +39,7 @@ function convertServiceAlertDictToGTFS(dict) {
         return transit_realtime.EntitySelector.fromObject(out)
     })
 
-    if ('period' in dict && (dict.period.start || dict.period.end)) {
+    if ('period' in dict && dict.period && (dict.period.start || dict.period.end)) {
         let timerange = new transit_realtime.TimeRange.create()
         if (dict.period.start)
             timerange.start = Math.round(new Date(dict.period.start).valueOf() / 1000)
@@ -145,9 +145,14 @@ export function ServiceAlert() {
         }
     }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [])
 
-    let [start, setStart] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : '')
-    let [end, setEnd] = useState(service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].end ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : '')
 
+    let start_date_obj = service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : null;
+    let end_date_obj = service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].end * 1000)) : null;
+    let [startDate, setStartDate] = useState(start_date_obj ? start_date_obj.slice(0, start_date_obj.indexOf("T")) : "")
+    let [endDate, setEndDate] = useState(end_date_obj ? end_date_obj.slice(0, end_date_obj.indexOf("T")) : "")
+
+    let [startTime, setStartTime] = useState(start_date_obj ? start_date_obj.slice(start_date_obj.indexOf("T") + 1, start_date_obj.lastIndexOf(":")) : "")
+    let [endTime, setEndTime] = useState(end_date_obj ? end_date_obj.slice(end_date_obj.indexOf("T") + 1, end_date_obj.lastIndexOf(":")) : "")
 
     let [url, setURL] = useState((service_alert_inp && service_alert_inp.alert.url && service_alert_inp.alert.url.translation[0].text) || "")
 
@@ -162,16 +167,18 @@ export function ServiceAlert() {
         <div className='d-flex flex-column align-items-center gap-3' >
             <div className="form-group" >
                 <label htmlFor='input-start'> Start Time</label>
-                <input id="input-start" className='form-control' type='datetime-local' onBlur={(e) => { setStart(e.target.value) }} onInput={(e) => {
-                    setStart(e.target.value)
+                <input id="input-start" className='form-control' type='date' onInput={(e) => {
+                    setStartDate(e.target.value)
                 }}
-                    value={start} />
+                    value={startDate} />
+                <input id="input-end-time" className='form-control' type='time' value={startTime} onInput={(e) => { setStartTime(e.target.value) }} />
             </div>
             <div className="form-group">
-                <label htmlFor='input-end'>End Time</label>
-                <input id="input-end" className='form-control' type='datetime-local' onBlur={(e) => { setEnd(e.target.value) }} onInput={(e) => {
-                    setEnd(e.target.value)
-                }} value={end} />
+                <label htmlFor='input-end-date'>End Time</label>
+                <input id="input-end-date" className='form-control' type='date' onInput={(e) => {
+                    setEndDate(e.target.value)
+                }} value={endDate} />
+                <input id="input-end-time" className='form-control' type='time' value={endTime} onInput={(e) => { setEndTime(e.target.value) }} />
 
             </div>
             <div className="form-group" >
@@ -216,9 +223,14 @@ export function ServiceAlert() {
         </div>
         <button className="btn btn-success " onClick={async (e) => {
             try {
+
+                let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")) : null;
+                let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")) : null;
+                let period = startDate || endDate ? { "start": Math.round(start.valueOf()), "end": Math.round(end.valueOf()) } : undefined;
+                // combine date and time strings into date and then into unix time
                 let object = {
                     "id": id,
-                    "period": { "start": Math.round(new Date(start).valueOf()), "end": Math.round(new Date(end).valueOf()) },
+                    "period": period,
                     "cause": cause,
                     "effect": effect,
                     "descriptions": descriptions,
@@ -229,7 +241,11 @@ export function ServiceAlert() {
                 await sendServiceAlert(service_alert_gtfs)
                 alert("Successfully saved Alert!")
             } catch (error) {
-                alert(error.message || error)
+                if (error.title) {
+                    alert(`${error.title}:\n${error.message}`)
+                } else {
+                    alert(error)
+                }
             }
             // save object
         }} >Save</button>

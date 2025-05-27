@@ -1,4 +1,5 @@
 from flask_login import LoginManager
+from werkzeug.exceptions import HTTPException, BadRequest, InternalServerError
 from flask import Flask, redirect
 from flask_wtf import CSRFProtect
 from flask_cors import CORS
@@ -12,8 +13,8 @@ from flask.logging import default_handler
 from flask import has_request_context, request
 from logging import getLogger, FileHandler, DEBUG
 import logging
-
 db = SQLAlchemy()
+
 # from https://flask.palletsprojects.com/en/stable/logging/#injecting-request-information 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
@@ -31,7 +32,7 @@ def create_logger(app):
     '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
     '%(levelname)s in %(module)s: %(message)s'
     )
-    logger = getLogger("gunicorn.debug") # how to handle different levels and different configurations
+    logger = getLogger() # how to handle different levels and different configurations
     default_handler.setFormatter(fm)
     fileHandler = FileHandler(app.config["LOGGING_FILE_PATH"], mode="a")
     fileHandler.setFormatter(fm)
@@ -44,6 +45,20 @@ def create_logger(app):
 def create_app():
     app = Flask("gtfs_rt_server")
     return app
+
+def create_error_handlers(app):
+
+    @app.errorhandler(HTTPException)
+    def InternalErrorHandler(e):
+        response = e.get_response()
+        response.data = json.dumps({
+            "code": e.code,
+            "error": e.name,
+            "description": e.description,
+        })
+        response.content_type = "application/json"
+        return response
+
 
 def create_login_manager(app):
     from gtfs_rt_server.schema import User, get_user_by_username
@@ -108,10 +123,6 @@ def register_blueprints(app):
 def init_db(app,db):
     db.init_app(app)
     with app.app_context():
-        try :
-            db.drop_all()
-        except:
-            pass
         db.create_all()
 
 def init_csrf(app):
@@ -120,9 +131,6 @@ def init_csrf(app):
 def init_CORS(app):
     return CORS(app,supports_credentials=True) 
 
-def create_summary():
-
-    pass
 
 
 def init_app():
@@ -147,6 +155,7 @@ def init_app():
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
     create_logger(app)
+    create_error_handlers(app)
     celery_app = init_celery_app(app)
     return app
 

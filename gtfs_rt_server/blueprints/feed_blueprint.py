@@ -1,7 +1,8 @@
-
+import json
 from gtfs_rt_server.protobuf_utils import verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from google.protobuf.message import DecodeError, EncodeError
+from gtfs_rt_server.db_utils import delete_alert_from_log, delete_trip_update_from_log ,add_alert_to_db, add_trip_update_to_db
 import  google.transit.gtfs_realtime_pb2  as gtfs_rt
 from google.protobuf.json_format import  MessageToDict
 from flask_login import login_required
@@ -41,6 +42,8 @@ def trip_update():
         verify_trip_update(entity_dict["tripUpdate"])
         save_feed_entity_to_feed(entity, feed_object)
         save_feed_to_file(feed_object,feed_location ) 
+        if "LogEntity"  in request.headers and request.headers["LogEntity"]:
+            add_trip_update_to_db(entity_dict["id"], entity_dict["tripUpdate"])
         return "Successful"
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
@@ -64,6 +67,9 @@ def service_alert():
         verify_service_alert(entity_dict["alert"])
         save_feed_entity_to_feed(entity, feed_object)
         save_feed_to_file(feed_object, feed_location) 
+        # add to log
+        if "LogEntity"  in request.headers and request.headers["LogEntity"]:
+            add_alert_to_db(entity_dict["id"], entity_dict["alert"])
         return "Successful"
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
@@ -95,9 +101,9 @@ def vehicle_postion():
 
 
 
-@feed_bp.delete("/<type>/delete_feed_entity")
+@feed_bp.delete("/<type_entity>/delete_feed_entity")
 @login_required
-def delete_feed_entity(type):
+def delete_feed_entity(type_entity):
 
     feed_object = current_app.config["feed_alerts"]
     feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
@@ -109,7 +115,17 @@ def delete_feed_entity(type):
         feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
 
 
-    entity_id = request.data.decode()
+    request_data = json.loads(request.data.decode())
+    if "entity_id" not in request_data:
+        return "No entity ID given " , 400
+    entity_id = request_data["entity_id"] 
+    delete_from_log = request_data["deleteFromLog"] 
     delete_feed_entity_from_feed(entity_id, feed_object)
     save_feed_to_file(feed_object, feed_location)
+    if delete_from_log:
+        if type_entity == "alerts":
+            delete_alert_from_log(entity_id)
+        else:
+            delete_trip_update_from_log(entity_id)
+
     return "Successful"

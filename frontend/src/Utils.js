@@ -6,10 +6,27 @@ async function performRequest(callback) {
         return await callback()
     } catch (error) {
         console.error(error)
-        if (error.response)
-            error.message = error.response.data
+        if (error.response){
+            let message = error.response.data
+            let newError = new Error(message.description || message)
+            if (message.error)
+                newError.title = message.error
+            throw newError
+        }
         throw error
     }
+}
+
+export async function login(username, password, remember_me) {
+    return await performRequest(async()=> {
+        return await axios.vpostForm("/auth/login", { "username": username, "password": password, "remember_me": remember_me }, { withCredentials: true })
+    }) 
+}
+
+export async function logout() {
+    return await performRequest(async () => {
+        return await axios.get("/auth/logout", { withCredentials: true })
+    })
 }
 
 export async function getStopTimesofTrip(trip_id) {
@@ -80,7 +97,7 @@ export async function getFeedMessage(type) {
     }
 }
 
-export async function sendTripUpdate(trip_update) {
+export async function sendTripUpdate(trip_update, log=true) {
     let result = transit_realtime.FeedEntity.verify(trip_update)
     if (result)
         throw new Error(result)
@@ -90,12 +107,16 @@ export async function sendTripUpdate(trip_update) {
     await performRequest(async () => {
         await axios.post("/feed/trip_update", data.slice().buffer, {
             withCredentials: true, headers: {
-                'Content-Type': 'application/x-protobuf'
+                'Content-Type': 'application/x-protobuf',
+                // add a boolean to say if it should be logged or not in the database
+                'LogEntity': log
+
             }
         })
     })
 }
-export async function sendServiceAlert(service_alert) {
+export async function sendServiceAlert(service_alert, log=true) {
+    
     let result = transit_realtime.FeedEntity.verify(service_alert)
     if (result)
         throw new Error(result)
@@ -106,13 +127,15 @@ export async function sendServiceAlert(service_alert) {
             withCredentials: true,
             headers: {
                 'Content-Type': 'application/x-protobuf',
+                'LogEntity': log
             }
         })
     })
 }
-export async function deleteFeedEntity(feed_entity_id, type) {
+export async function deleteFeedEntity(feed_entity_id, type, log=false) {
     await performRequest(async () => {
-        await axios.delete(`/feed/${type}/delete_feed_entity`, { withCredentials: true, data: feed_entity_id })
+        await axios.delete(`/feed/${type}/delete_feed_entity`, { withCredentials: true, data: {"entity_id":feed_entity_id, "deleteFromLog":log } })
+// add some data to indicate if it should be deleted from logging or not 
     })
 }
 
@@ -206,6 +229,8 @@ export async function getGTFSStatus(signal) {
         return response.data
     })
 }
+
+
 
 export var createLangObject = (long_name, tag) => { return { "long_name": long_name, "tag": tag } }
 export var system_languages = [

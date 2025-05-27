@@ -1,10 +1,11 @@
 from gtfs_rt_server import db
 from sqlalchemy.dialects.sqlite import insert
 import pandas as pd
+from werkzeug.exceptions import BadRequest
 from pathlib import Path
 import datetime
 import openpyxl
-from gtfs_rt_server.schema import User, TripUpdate, Alert, EntityTypes, Causes, Effects
+from gtfs_rt_server.schema import User, TripUpdate, Alert, EntityTypes, Causes, Effects, InformedEntityToAlerts, TripUpdateToStop, get_user_by_username
 from sqlalchemy import text, func
 from typing import Optional
 from argon2 import PasswordHasher
@@ -25,44 +26,58 @@ def get_route_id_of_trip(trip_id):
 
         
 
-def insert_user(username, rawPassword):
-    user = User(username=username, hash_pass=password_hasher.hash(rawPassword))
+def delete_user_with_username(username):
+    user = get_user_by_username(username)
+    if user is None:
+        raise BadRequest(f"User '{username}' not found.")
+    
+    try :
+        with db.session.begin():
+            db.session.delete(user)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise e
+    
+
+def insert_user(username, rawPassword, roles=[] ):
+    user = User(username=username, hash_pass=password_hasher.hash(rawPassword), roles=roles)
     try:
         with db.session.begin():
             db.session.add(user)
             db.session.commit()
     except Exception as e:
         db.session.rollback()
+        raise e
 
-
+# add a column for active trips and inactive trips
 def get_trips(service=None, route=None, number=None, time_after=None):
     with db.session.begin():
-        sql = "SELECT DISTINCT trips.trip_id FROM trips "
+        sql = "SELECT DISTINCT stop_times.trip_id  " 
         if time_after:
-            sql += " INNER JOIN stop_times ON stop_times.trip_id = trips.trip_id "
-        if service or route or number or time_after:
+            sql += " , CASE WHEN ( MAX(arrival_time) >= :time_after ) THEN ( CASE WHEN ( MIN(arrival_time) <= :time_after ) THEN 0 ELSE 1 END ) ELSE 2 END  AS inprogress "
+        sql += " FROM stop_times INNER JOIN trips ON stop_times.trip_id = trips.trip_id" 
+        if service or route or number :
             sql += " WHERE "
         if service:
             sql += " service_id = :service "
-            if route or number or time_after:
+            if route or number :
                 sql += " AND "
         if route:
             sql += " route_id = :route "
-            if number or time_after:
+            if number :
                 sql += "AND "
         if number:
-            sql += "  trips.trip_id LIKE :tripid "
-            if time_after:
-                sql += " AND "
+            sql += " trips.trip_id LIKE :tripid "
         if time_after:
-            sql += " arrival_time >= :time_after   "
+            sql += " GROUP BY trips.trip_id ORDER BY inprogress "
         params = dict()
         params["service"] = service
         params["route"] = route
         params["tripid"] = f"%-{number}%"
         params["time_after"] = time_after
         trips = db.session.execute(text(sql), params=params).fetchall()
-        return [trip[0] for trip in trips]
+        return [trip._asdict() for trip in trips]
 
 
 def get_stops(stop_name=None):
@@ -87,9 +102,9 @@ def get_trip_ids_routes():
 
 def get_routes():
     with db.session.begin():
-        sql = "SELECT route_id, route_long_name FROM routes "
+        sql = "SELECT route_id, route_long_name, route_color FROM routes "
         routes = db.session.execute(text(sql)).fetchall()
-        return [list(route) for route in routes]
+        return [route._asdict() for route in routes]
 
 
 def get_services():
@@ -109,12 +124,12 @@ def get_number_of_stoptimes(trip_id):
         return count[0][0]
 
 
-def get_stoptimes_of_trip(trip_id):
+def get_stoptimes_of_trip(trip_id, include_time=True):
     # print(trip_id, "checking")
     with db.session.begin():
         stoptimes = db.session.execute(
             text(
-                "SELECT stop_sequence, stop_id, strftime('%H:%M:%S', arrival_time) as arrival FROM stop_times WHERE trip_id = :trip_id"
+                f"SELECT stop_sequence, stop_id {', strftime("%H:%M:%S", arrival_time) as arrival' if include_time else ''} FROM stop_times WHERE trip_id = :trip_id"
             ),
             {"trip_id": trip_id},
         ).fetchall()
@@ -190,11 +205,14 @@ def add_alert_to_db(id, alert):
 
     alert_data = {
         "alert_id": id,
-        "start_time": alert["start_time"],
-        "end_time": alert["end_time"],
         "cause": getattr(Causes, alert["cause"]),
         "effect": getattr(Effects, alert["effect"]),
     }
+    if "activePeriod" in alert and len(alert["activePeriod"]) > 0:
+        if "start" in alert["activePeriod"][0]:
+            alert_data.update( {"start_time": alert["activePeriod"][0]["start"]})
+        if "end" in alert["activePeriod"][0]:
+            alert_data.update( {"end_time": alert["activePeriod"][0]["end"]})
 
     stmt = (
         insert(Alert)
@@ -208,12 +226,12 @@ def add_alert_to_db(id, alert):
             alert_id=alert_data["alert_id"]
         ).delete()
 
-        for entity in alert.get("informed_entities", []):
+        for entity in alert.get("informedEntity", []):
 
             entity_type = EntityTypes.trips
             entity_id = ""
-            if "tripId" in entity:
-                entity_id = entity["tripId"]
+            if "trip" in entity:
+                entity_id = entity["trip"]["tripId"]
             if "stopId" in entity:
                 entity_type = EntityTypes.stops
                 entity_id = entity["stopId"]
@@ -239,6 +257,7 @@ def add_trip_update_to_db(id,trip_update):
         "cancelled": trip_update.get("cancelled", False),
     }
     update_data["route_id"] = get_route_id_of_trip(update_data["trip_id"])
+    stoptimes = get_stoptimes_of_trip(update_data["trip_id"], include_time=False)
 
     stmt = (
         insert(TripUpdate)
@@ -249,16 +268,16 @@ def add_trip_update_to_db(id,trip_update):
     with db.session.begin():
         db.session.execute(stmt)
         db.session.query(TripUpdateToStop).filter_by(
-            alert_id=trip_update["trip_update_id"]
+            trip_update_id=id
         ).delete()
 
-        for stop_update in trip_update.get("stopTimeUpdates", []):
+        for stop_update in trip_update.get("stopTimeUpdate", []):
             db.session.add(
                 TripUpdateToStop(
-                    alert_id=update_data["trip_update_id"],
-                    stop_id=stop_update["stopId"],
-                    delay=stop_update["arrival"].get("delay", None),
-                    skipped=stop_update.get("skip", False),
+                    trip_update_id=id,
+                    stop_id=stoptimes[stop_update["stopSequence"]][1],
+                    delay=None if "arrival" not in stop_update else stop_update["arrival"].get("delay", None),
+                    skip=stop_update.get("skip", False),
                 )
             )
 
@@ -333,7 +352,7 @@ def get_trip_updates_by_stops():
     result = (
         db.session.query(
             TripUpdateToStop.stop_id,
-            func.count(TripUpdateToStop.alert_id).label("update_count"),
+            func.count(TripUpdateToStop.trip_update_id).label("update_count"),
         )
         .group_by(TripUpdateToStop.stop_id)
         .all()
