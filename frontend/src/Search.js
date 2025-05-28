@@ -53,7 +53,7 @@ export function TripSearch({ setTripID, routes, services }) {
         searchState.current = true
         try {
             let current_time_str =  convertDateToTimeString(new Date())
-            setTrips(await getTrips(route, service, new_number === ""? undefined: new_number, current_time_str))
+            setTrips(await getTrips(route, new Date().getDay() > 5? "WE":"WD", new_number === ""? undefined: new_number, current_time_str))
         } finally {
             searchState.current = false
         }
@@ -68,7 +68,7 @@ export function TripSearch({ setTripID, routes, services }) {
     }
     // need to pass this stuff with route, because otherwise it initially gives emoty value
     // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
-    return <div className='d-flex  w-40 flex-column justify-content-center'>
+    return <div className='d-flex  fs-4 flex-column justify-content-center'>
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
         <ServiceSelect service={service} setService={setService} services={services} />
         <TripIdSeacher number={number} setSearchNumber={setNumberCallback} />
@@ -132,10 +132,9 @@ export function StopSearch({ finish_search_callback }) {
 }
 
 export function TripIDResults({ trips, select_trip_callback }) {
-//,{trip_object["direction"] == 0? "Inbound":"Outbound"}
-    return <div className='container'>
+    return <div  className='fs-6 container'>
         <ul className="list-group">
-            {trips.map((trip_object, i) => <li className='list-group-item' style={"inprogress" in trip_object? {"background": trip_object["inprogress"] == 2 ?"indianred":trip_object["inprogress"]==0? "lightgreen": "white" , "color":trip_object["inprogress"] == 2? "white":"black"  } : {}} onClick={(e) => { select_trip_callback(trip_object["trip_id"]) }} key={i}>{trip_object["trip_id"]} { trip_object["inprogress"] == 0? "In progress" : trip_object["inprogress"] == 1? "Yet to start":  "Finished"}</li>)} 
+            {trips.map((trip_object, i) => <li className='list-group-item' style={"inprogress" in trip_object? {"background": trip_object["inprogress"] === 2 ?"indianred":trip_object["inprogress"]===0? "lightgreen": "white" , "color":trip_object["inprogress"] === 2? "white":"black"  } : {}} onClick={(e) => { select_trip_callback(trip_object["trip_id"]) }} key={i}>{trip_object["trip_id"]} { trip_object["inprogress"] === 0? "In progress" : trip_object["inprogress"] === 1? "Yet to start":  "Finished"} &emsp;  End Terminus:{trip_object["endTerminus"]}</li>)} 
         </ul>
     </div>
 }

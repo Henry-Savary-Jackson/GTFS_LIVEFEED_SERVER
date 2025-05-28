@@ -4,6 +4,7 @@ from flask import Flask, redirect
 from flask_wtf import CSRFProtect
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -32,8 +33,9 @@ def create_logger(app):
     '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
     '%(levelname)s in %(module)s: %(message)s'
     )
-    logger = getLogger() # how to handle different levels and different configurations
+    logger = getLogger("gunicorn.debug") # how to handle different levels and different configurations
     default_handler.setFormatter(fm)
+    default_handler.setLevel(DEBUG)
     fileHandler = FileHandler(app.config["LOGGING_FILE_PATH"], mode="a")
     fileHandler.setFormatter(fm)
     fileHandler.setLevel(DEBUG)
@@ -77,8 +79,10 @@ def create_login_manager(app):
 
     return login_manager
 
+
 ## from https://flask.palletsprojects.com/en/stable/patterns/celery/
 def init_celery_app(app):
+
     class FlaskTask(Task):
 
         status_dict = {"status":"starting", "message":"starting..."}
@@ -108,6 +112,8 @@ def init_celery_app(app):
 
     celery_app = Celery(app.name, task_cls=FlaskTask)
     celery_app.config_from_object(app.config["CELERY"])
+
+    # celery_app.add_periodic_task(24*60*60, )
     celery_app.set_default()
     app.extensions["celery"] = celery_app
     return celery_app

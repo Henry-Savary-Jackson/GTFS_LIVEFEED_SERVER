@@ -65,13 +65,15 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
 }
 
 
-function StopTimeRow({ current_time, stoptime, dispatchStopTimesChange }) {
+function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
     let changeStopOnTime = (onTime, index) => { dispatchStopTimesChange({ "onTime": onTime, "stopSequence": index }) }
     let changeTimeStop = (time, index) => { dispatchStopTimesChange({ "newTime": time, "stopSequence": index }) }
     let changeDelayStop = (delay, index) => { dispatchStopTimesChange({ "delay": delay, "stopSequence": index }) }
 
-    return <tr className={convertDateToTimeString(current_time) >= stoptime.time ? "table-danger" : ""} key={stoptime.stopSequence}>
+
+    return <tr className={status_stop === "Passed" ? "table-danger" : ""} key={stoptime.stopSequence}>
         <td>{stoptime.stopId}</td>
+        <td className={status_stop && status_stop !== "Passed" ?"fs-3" : ""}>{status_stop}</td>
         <td className='d-flex flex-column align-items-center'>
             <input disabled={stoptime.skip || false} type='time' onInput={(e) => { changeTimeStop(e.currentTarget.value, stoptime.stopSequence) }} value={(stoptime.newTime && !stoptime.onTime) ? stoptime.newTime : stoptime.time} />
             <div>Arrives on Time:
@@ -80,24 +82,39 @@ function StopTimeRow({ current_time, stoptime, dispatchStopTimesChange }) {
         <td><input disabled={stoptime.skip || false} type='number' onChange={(e) => {
             if (!("onTime" in stoptime) || !stoptime.onTime)
                 changeDelayStop(Number(e.currentTarget.value), stoptime.stopSequence)
-        }} value={(!stoptime.onTime && stoptime.delay) || 0} /><span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span> </td>
+        }} value={(!stoptime.onTime && stoptime.delay) || 0} />
+            <span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span></td> 
+        <td> Total Delay:{stoptime.totalDelay || 0} minutes </td>
         <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": stoptime.stopSequence }) }} checked={stoptime.skip || false} /></td>
     </tr>
 }
 
 function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
-    let date = new Date()
-    return <table className='table table-responsive'>
+    let before = false;
+    let current_time_str = convertDateToTimeString(new Date())
+    return <table className='table table-responsive table-hover'>
         <thead>
             <tr>
                 <th>Stop</th>
+                <th></th>
                 <th>Time</th>
                 <th>{"Delay (min)"}</th>
+                <th></th>
                 <th>Skip stop?</th>
             </tr>
         </thead>
         <tbody>
-            {stoptimes.map((stoptime) => <StopTimeRow current_time={date} stoptime={stoptime} dispatchStopTimesChange={dispatchStopTimesChange} />)}
+            {stoptimes.map((stoptime) => {
+                let status_stop = "Passed"
+                if (stoptime.time >= current_time_str && !before) {
+                    before = true
+                    status_stop = "🚆"
+
+                } else if (before) {
+                    status_stop = ""
+                }
+                return <StopTimeRow status_stop={status_stop} stoptime={stoptime} dispatchStopTimesChange={dispatchStopTimesChange} />
+            })}
         </tbody>
     </table>
 
@@ -116,7 +133,6 @@ export function TripUpdate() {
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
 
-    let [date, setDate] = useState("")
 
 
     useEffect(() => {
@@ -137,16 +153,31 @@ export function TripUpdate() {
         setData()
     }, [])
 
+    let changeStopTimeRows = (rows, action) => {
+        let totalDelay = 0;
+        return rows.map((value, i) => {
+            let newValue = { ...value }
+            if ("stopSequence" in action && action.stopSequence === i) {
+                newValue = { ...newValue, ...action }
+            }
+            if ("newTime" in newValue && !newValue.onTime) {
+                const oldTime = convertTimeStrToUNIXEpoch(newValue.time)
+                const newTime = convertTimeStrToUNIXEpoch(newValue.newTime)
+                totalDelay += Math.floor((newTime - oldTime) / 60)
+            } else if ("delay" in newValue) {
+                totalDelay += newValue.delay
+            }
+            if (newValue.onTime)
+                totalDelay = 0
+            newValue.totalDelay = totalDelay
+            return newValue
+        })
+    }
+
     let [stoptimes, disatchChangeStopTimes] = useReducer((state, action) => {
         if (Array.isArray(action))
-            return action.map(val => val)
-
-        return state.map((value, i) => {
-            if ("stopSequence" in action && action.stopSequence === i) {
-                return { ...value, ...action }
-            }
-            return value
-        })
+            return changeStopTimeRows(action, {})
+        return changeStopTimeRows(state, action)
     }, [])
 
     async function onClickTripID(new_trip_id) {
@@ -157,14 +188,11 @@ export function TripUpdate() {
     return <div className='container flex-column d-flex align-items-center gap-5'>
         <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
         <div className='fs-2'>{trip_id}</div>
-        {trip_id !== "" && <><div className='form-check'>
+        {trip_id !== "" && <div className='form-check'>
             <label className='form-check-label' htmlFor='cancel-checkbox'>Cancel Trip?</label>
             <input className='form-check-input' id='cancel-checkbox' type='checkbox' checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} />
 
-        </div><div>
-                <label className='form-check-label' htmlFor='date-input'>Date(default today):</label>
-                <input className='form-check-input' id='date-input' type='date' value={date} onInput={(e) => setDate(e.target.value)} />
-            </div></>}
+        </div>}
         {stoptimes.length > 0 ? <StopTimeTable disabled={cancelled} stoptimes={stoptimes} dispatchStopTimesChange={disatchChangeStopTimes} /> : ''}
         <button className="btn btn-success" onClick={async (e) => {
             let object = {
@@ -172,17 +200,16 @@ export function TripUpdate() {
                 "trip_id": trip_id,
                 "stoptimes": stoptimes,
                 "cancelled": cancelled,
-                "date":new Date(date)
             }
             try {
                 let trip_update_gtfs = convertDictToGTFSTripUpdate(object)
                 await sendTripUpdate(trip_update_gtfs)
                 alert("Sucessfully saved")
             } catch (error) {
-                if (error.title){
+                if (error.title) {
                     alert(`${error.title}:\n${error.message}`)
-                }else{
-                alert(error)
+                } else {
+                    alert(error)
                 }
             }
 

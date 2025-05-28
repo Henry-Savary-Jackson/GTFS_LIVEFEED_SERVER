@@ -3,11 +3,12 @@ import { getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToke
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
-import { UserContext } from './Globals';
+import { UserContext , RolesContext} from './Globals';
 import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
 import { TripUpdateFilter } from './Search';
+import { AddUserForm } from './AddUser';
 
 function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
@@ -192,8 +193,9 @@ export function Feed() {
 export default function App() {
   let [cookies, setCookies, removeCookie] = useCookies()
   let [user, setUser] = useState(cookies.username || "")
+  let [roles, setRoles] = useState(cookies.roles ? cookies.roles.split(",") : [])
 
-  let logout_cookie = () => { removeCookie("username"); setUser("") }
+  let logout_cookie = () => { removeCookie("username"); removeCookie("roles"); setUser("") }
 
   useEffect(() => {
     // fetch the csrf token asynchronously
@@ -208,16 +210,23 @@ export default function App() {
     setUser(username)
     setCookies("username", username)
   }
+  function setRolesCallback(roles){
+    setRoles(roles)
+    setCookies("roles", roles.join(","))
+  }
   return <BrowserRouter>
     <UserContext.Provider value={[user, setUserCallback]}>
+      <RolesContext.Provider value={[roles, setRolesCallback]}>
       <Routes>
         <Route path='/'>
           <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
           <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
           <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
           <Route path='upload_gtfs' element={user ? <UploadsGTFS /> : <LoginForm />} />
+          <Route path='add_newuser' element={user ? <AddUserForm /> : <LoginForm />} />
         </Route>
       </Routes>
+      </RolesContext.Provider>
     </UserContext.Provider>
   </BrowserRouter>
 }
@@ -234,7 +243,7 @@ export function Main({ logout_cookie }) {
         e.preventDefault()
         logout_cookie()
         await logout()
-        window.location.reload()
+        window.location.pathname = "/"
       } catch (error) {
         if (error.title) {
           alert(`${error.title}:\n${error.message}`)

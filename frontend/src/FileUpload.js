@@ -25,9 +25,13 @@ export function UploadsGTFS() {
                     setUploading(false)
                 }
             } catch (error) {
-                alert(error.message)
                 setUploading(false)
                 clearInterval(interval)
+                if (error.title) {
+                    alert(`${error.title}:\n${error.message}`)
+                } else {
+                    alert(error.message)
+                }
             }
         }, 1000)
 
@@ -53,13 +57,12 @@ export function UploadsGTFS() {
                 setStatus({})
             }
             catch (error) {
-                console.log(error)
-                if (error.response )
-                {
-                    alert((error.response.status >= 500 ? "Error occurred on server" : "Error with request:" ) + "\n" + error.response.data)
+                console.error(error)
+                setUploading(false)
+                if (error.response) {
+                    alert((error.response.status >= 500 ? "Error occurred on server" : "Error with request:") + "\n" + (error.response.data.message || error.response.data))
                 }
 
-                setUploading(false)
             }
         }} >
             {status && status.status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-50 form-control' value={status.message || ""}></textarea>}
@@ -71,15 +74,13 @@ export function UploadsGTFS() {
                 </div>}
             {status && status.status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
 
-                <a href= '/static/shared/result/report.html'>Validation report</a>
+                <a href='/static/shared/result/report.html'>Validation report</a>
             </div>}
             <div className='form-group'>
                 <label htmlFor='file_input' >Excel File:</label>
                 <input onChange={(e) => setFiles([...e.target.files])} className='form-control-file' id='file_input' type='file' />
             </div>
             <input className='btn btn-primary' value="Submit" type='submit' />
-
-
         </form></div>
 
 }

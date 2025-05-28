@@ -5,6 +5,7 @@ import datetime
 from gtfs_rt_server.db_utils import (
     agency_exists,
     get_number_of_stoptimes,
+    get_stoptimes_of_trip,
     trip_exists,
     stop_on_route,
     stop_exists,
@@ -145,3 +146,14 @@ def verify_entity_selector(informed_entity: dict):
         verify_trip_descriptor(informed_entity["trip"])
     else:
         raise ValueError("Invalid entity selector.")
+
+
+def find_expired_tripUpdate(feed, time):
+
+    for i, f_entity in enumerate(feed.entity):
+        trip_update = f_entity.tripUpdate
+        trip_id = f_entity.tripUpdate.trip.trip_id
+        stoptimes = get_stoptimes_of_trip(trip_id)
+        # 
+        if datetime.datetime.now().time() < datetime.time.fromisoformat(stoptimes[-1][2]):
+           del feed.entity[i] 

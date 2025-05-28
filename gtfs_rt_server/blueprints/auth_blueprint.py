@@ -28,12 +28,12 @@ def add_user():
     user = get_user_by_username(username)
     if user:
         raise BadRequest( "User already exists") 
-    roles = adduser_form.get("roles", [])
-    insert_user(username, password, roles=roles)
+    roles = adduser_form.getlist("roles")
+    insert_user(username, password, roles)
     current_app.logger.debug(f"{current_user.username} added {username}.")
     return "Successful"
 
-@auth_bp.post("/delete_user")
+@auth_bp.delete("/delete_user")
 @login_required
 @roles_required("admin")
 def delete_user():
@@ -44,7 +44,7 @@ def delete_user():
         delete_user_with_username(username)
         return "Successful"
     except Exception as e:
-        raise BadRequest( "User doesn't exists") 
+        raise BadRequest( str(e)) 
 
 @auth_bp.get("/csrf")
 def csrf():
@@ -67,7 +67,7 @@ def login_endpoint():
         matches = password_hasher.verify(user.hash_pass, password)
         login_user(user, remember=remember_me)
         current_app.logger.debug(f"{current_user.username} logged in.")
-        return "Successful"
+        return [ role.role_name for role in user.roles ]
     except argon2.exceptions.VerifyMismatchError:
         raise BadRequest( "Wrong password") 
 ## store async protobuf as blob when edited and keep cache in memory

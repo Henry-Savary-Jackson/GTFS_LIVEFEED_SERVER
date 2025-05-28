@@ -1,11 +1,21 @@
 from gtfs_rt_server import db
 from sqlalchemy.dialects.sqlite import insert
 import pandas as pd
-from werkzeug.exceptions import BadRequest
 from pathlib import Path
 import datetime
 import openpyxl
-from gtfs_rt_server.schema import User, TripUpdate, Alert, EntityTypes, Causes, Effects, InformedEntityToAlerts, TripUpdateToStop, get_user_by_username
+from gtfs_rt_server.schema import (
+    Role,
+    User,
+    TripUpdate,
+    Alert,
+    EntityTypes,
+    Causes,
+    Effects,
+    InformedEntityToAlerts,
+    TripUpdateToStop,
+    get_user_by_username,
+)
 from sqlalchemy import text, func
 from typing import Optional
 from argon2 import PasswordHasher
@@ -18,54 +28,66 @@ def get_password_hasher():
 
 password_hasher = get_password_hasher()
 
+
 def get_route_id_of_trip(trip_id):
     with db.session.begin():
-        return db.session.execute(   text("SELECT route_id FROM trips WHERE trip_id = :trip_id"),
+        return db.session.execute(
+            text("SELECT route_id FROM trips WHERE trip_id = :trip_id"),
             {"trip_id": trip_id},
         ).fetchall()[0][0]
 
-        
+
+def add_role(role_name):
+    with db.session.begin():
+        db.session.merge(Role(role_name =role_name))
+
 
 def delete_user_with_username(username):
     user = get_user_by_username(username)
     if user is None:
-        raise BadRequest(f"User '{username}' not found.")
-    
-    try :
+        raise Exception(f"User '{username}' not found.")
+
+    try:
         with db.session.begin():
             db.session.delete(user)
             db.session.commit()
     except Exception as e:
         db.session.rollback()
         raise e
-    
 
-def insert_user(username, rawPassword, roles=[] ):
-    user = User(username=username, hash_pass=password_hasher.hash(rawPassword), roles=roles)
+
+def insert_user(username, rawPassword, roles=[]):
     try:
         with db.session.begin():
-            db.session.add(user)
-            db.session.commit()
+            user = User(username= username, hash_pass= password_hasher.hash(rawPassword), roles= [
+                    (
+                        Role.query.filter(Role.role_name == name).first()
+                        or Role(role_name=name)
+                    )
+                    for name in roles
+                ])
+            db.session.merge(user)
     except Exception as e:
         db.session.rollback()
         raise e
 
+
 # add a column for active trips and inactive trips
 def get_trips(service=None, route=None, number=None, time_after=None):
     with db.session.begin():
-        sql = "SELECT DISTINCT stop_times.trip_id  " 
+        sql = "SELECT DISTINCT stop_times.trip_id , trip_headsign AS endTerminus "
         if time_after:
             sql += " , CASE WHEN ( MAX(arrival_time) >= :time_after ) THEN ( CASE WHEN ( MIN(arrival_time) <= :time_after ) THEN 0 ELSE 1 END ) ELSE 2 END  AS inprogress "
-        sql += " FROM stop_times INNER JOIN trips ON stop_times.trip_id = trips.trip_id" 
-        if service or route or number :
+        sql += " FROM stop_times INNER JOIN trips ON stop_times.trip_id = trips.trip_id"
+        if service or route or number:
             sql += " WHERE "
         if service:
             sql += " service_id = :service "
-            if route or number :
+            if route or number:
                 sql += " AND "
         if route:
             sql += " route_id = :route "
-            if number :
+            if number:
                 sql += "AND "
         if number:
             sql += " trips.trip_id LIKE :tripid "
@@ -210,9 +232,9 @@ def add_alert_to_db(id, alert):
     }
     if "activePeriod" in alert and len(alert["activePeriod"]) > 0:
         if "start" in alert["activePeriod"][0]:
-            alert_data.update( {"start_time": alert["activePeriod"][0]["start"]})
+            alert_data.update({"start_time": alert["activePeriod"][0]["start"]})
         if "end" in alert["activePeriod"][0]:
-            alert_data.update( {"end_time": alert["activePeriod"][0]["end"]})
+            alert_data.update({"end_time": alert["activePeriod"][0]["end"]})
 
     stmt = (
         insert(Alert)
@@ -249,7 +271,7 @@ def add_alert_to_db(id, alert):
 
 
 # given a json object of a trip update, add or update into database
-def add_trip_update_to_db(id,trip_update):
+def add_trip_update_to_db(id, trip_update):
 
     update_data = {
         "trip_update_id": id,
@@ -267,21 +289,25 @@ def add_trip_update_to_db(id,trip_update):
 
     with db.session.begin():
         db.session.execute(stmt)
-        db.session.query(TripUpdateToStop).filter_by(
-            trip_update_id=id
-        ).delete()
+        db.session.query(TripUpdateToStop).filter_by(trip_update_id=id).delete()
 
         for stop_update in trip_update.get("stopTimeUpdate", []):
             db.session.add(
                 TripUpdateToStop(
                     trip_update_id=id,
                     stop_id=stoptimes[stop_update["stopSequence"]][1],
-                    delay=None if "arrival" not in stop_update else stop_update["arrival"].get("delay", None),
+                    delay=(
+                        None
+                        if "arrival" not in stop_update
+                        else stop_update["arrival"].get("delay", None)
+                    ),
                     skip=stop_update.get("skip", False),
                 )
             )
 
+
 ## TODO change capitals
+
 
 #  create a result as pandas dataframe, where you group the count of alerts by trips
 def get_alerts_by_trips():
@@ -329,7 +355,10 @@ def get_alerts_by_stop():
     )
     # return list(result)
     return pd.DataFrame(result, columns=["stop_id", "alert_count"])
-# 
+
+
+#
+
 
 #  create a result as pandas dataframe, where you group the count of trip updates by trips
 def get_trip_updates_by_trips():
@@ -407,39 +436,46 @@ def get_alerts_by_effects():
 
 def addAlertInfoToSheet(excel_sheet, sheet_name):
 
-    alerts_by_effects = get_alerts_by_effects() 
-    alerts_by_causes = get_alerts_by_causes() 
-    alerts_by_routes = get_alerts_by_route() 
-    alerts_by_trips = get_alerts_by_trips() 
-    alerts_by_stops = get_alerts_by_stop() 
-    list_tables = [ alerts_by_causes, alerts_by_effects, alerts_by_routes, alerts_by_stops, alerts_by_trips]
+    alerts_by_effects = get_alerts_by_effects()
+    alerts_by_causes = get_alerts_by_causes()
+    alerts_by_routes = get_alerts_by_route()
+    alerts_by_trips = get_alerts_by_trips()
+    alerts_by_stops = get_alerts_by_stop()
+    list_tables = [
+        alerts_by_causes,
+        alerts_by_effects,
+        alerts_by_routes,
+        alerts_by_stops,
+        alerts_by_trips,
+    ]
 
     current_row = 0
     for df in list_tables:
-        numRows = len(excel_sheet)+1
-        df.to_excel(excel_sheet,sheet_name,header=True, startrow=current_row)
+        numRows = len(excel_sheet) + 1
+        df.to_excel(excel_sheet, sheet_name, header=True, startrow=current_row)
         current_row += numRows
+
 
 def addTripUpdateInfoToSheet(excel_sheet, sheet_name):
 
-    trip_updates_routes = get_trip_updates_by_routes() 
-    trip_updates_trips = get_trip_updates_by_trips() 
-    trip_updates_stops = get_trip_updates_by_stops() 
-    list_tables = [ trip_updates_routes, trip_updates_trips, trip_updates_stops]
+    trip_updates_routes = get_trip_updates_by_routes()
+    trip_updates_trips = get_trip_updates_by_trips()
+    trip_updates_stops = get_trip_updates_by_stops()
+    list_tables = [trip_updates_routes, trip_updates_trips, trip_updates_stops]
 
     current_row = 0
     for df in list_tables:
-        numRows = len(excel_sheet)+2
-        df.to_excel(excel_sheet,sheet_name,header=True, startrow=current_row)
+        numRows = len(excel_sheet) + 2
+        df.to_excel(excel_sheet, sheet_name, header=True, startrow=current_row)
         current_row += numRows
-
 
 
 def create_service_excel():
     current_time = datetime.datetime.now()
 
-    
-    filename = Path(current_app.config["EXCEL_SUMMARIES"]  , f"{current_time.strftime()}.xlsx")
+    filename = Path(
+        current_app.config["EXCEL_SUMMARIES"], f"{current_time.strftime()}.xlsx"
+    )
     workbook = openpyxl.open(filename)
     workbook.create_sheet("Alerts")
     workbook.create_sheet("TripUpdates")

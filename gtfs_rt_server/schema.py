@@ -1,6 +1,7 @@
 import enum
 from flask_sqlalchemy import model
-from flask_security import UserMixin, RoleMixin
+from flask_login import UserMixin
+from flask_security import  RoleMixin
 from gtfs_rt_server import db
 from typing import Optional
 from uuid import uuid4

@@ -19,7 +19,13 @@ async function performRequest(callback) {
 
 export async function login(username, password, remember_me) {
     return await performRequest(async()=> {
-        return await axios.vpostForm("/auth/login", { "username": username, "password": password, "remember_me": remember_me }, { withCredentials: true })
+        return await axios.postForm("/auth/login", { "username": username, "password": password, "remember_me": remember_me }, { withCredentials: true })
+    }) 
+}
+
+export async function add_user(username, password, roles) {
+    return await performRequest(async()=> {
+        return await axios.postForm("/auth/add_user", { "username": username, "password": password, "roles": roles }, { withCredentials: true })
     }) 
 }
 
@@ -78,8 +84,8 @@ export async function getRoutes() {
 
     return await performRequest(async () => {
         let response = await axios.get("/db/get_routes")
-        console.log(response)
-        return response.data.map((val, i) => { return { route_id: val[0], route_long_name: val[1] } })
+        // console.log(response)
+        return response.data
     })
 }
 
