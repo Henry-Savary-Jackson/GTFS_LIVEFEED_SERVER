@@ -20,7 +20,7 @@ COPY frontend/src ./src
 RUN npm run build
 
 WORKDIR /flask-app
-COPY .env fullchain.pem privkey.pem config.py app.py ./
+COPY .env fullchain.pem privkey.pem config.py app.py create_db.py ./
 COPY server_files ./server_files
 COPY gtfs_rt_server ./gtfs_rt_server
 
