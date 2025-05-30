@@ -1,5 +1,5 @@
-from gtfs_rt_server import db
 from sqlalchemy.dialects.sqlite import insert
+from gtfs_rt_server import db
 import pandas as pd
 from pathlib import Path
 import datetime
@@ -147,7 +147,7 @@ def get_number_of_stoptimes(trip_id):
 
 
 def get_stoptimes_of_trip(trip_id, include_time=True):
-    # print(trip_id, "checking")
+    print(trip_id, "checking")
     with db.session.begin():
         stoptimes = db.session.execute(
             text(

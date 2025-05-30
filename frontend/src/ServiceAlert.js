@@ -42,9 +42,9 @@ function convertServiceAlertDictToGTFS(dict) {
     if ('period' in dict && dict.period && (dict.period.start || dict.period.end)) {
         let timerange = new transit_realtime.TimeRange.create()
         if (dict.period.start)
-            timerange.start = Math.round(new Date(dict.period.start).valueOf() / 1000)
+            timerange.start = Math.round(dict.period.start / 1000)
         if (dict.period.end)
-            timerange.end = Math.round(new Date(dict.period.end).valueOf() / 1000)
+            timerange.end = Math.round(dict.period.end / 1000)
         alert.activePeriod = [timerange]
     }
 
@@ -224,9 +224,9 @@ export function ServiceAlert() {
         <button className="btn btn-success " onClick={async (e) => {
             try {
 
-                let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")) : null;
-                let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")) : null;
-                let period = startDate || endDate ? { "start": Math.round(start.valueOf()), "end": Math.round(end.valueOf()) } : undefined;
+                let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")).valueOf() : undefined;
+                let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")).valueOf()  : undefined;
+                let period = startDate || endDate ? { "start": start, "end": end } : undefined;
                 // combine date and time strings into date and then into unix time
                 let object = {
                     "id": id,

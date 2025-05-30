@@ -1,4 +1,5 @@
 from flask_login import LoginManager
+import datetime
 from werkzeug.exceptions import HTTPException, BadRequest, InternalServerError
 from flask import Flask, redirect
 from flask_wtf import CSRFProtect
@@ -16,6 +17,7 @@ from logging import getLogger, FileHandler, DEBUG
 import logging
 db = SQLAlchemy()
 
+from gtfs_rt_server.protobuf_utils import save_feed_to_file,  delete_expired_trip_updates
 # from https://flask.palletsprojects.com/en/stable/logging/#injecting-request-information 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
@@ -113,7 +115,17 @@ def init_celery_app(app):
     celery_app = Celery(app.name, task_cls=FlaskTask)
     celery_app.config_from_object(app.config["CELERY"])
 
-    # celery_app.add_periodic_task(24*60*60, )
+
+    @celery_app.task(name="periodic_remove_expired")
+    def periodic_remove_expired():
+        app.logger.debug("removing expired trip updates")
+        print("removing expired trip updates")
+        delete_expired_trip_updates(app.config["feed_updates"]) # why not changing object
+        save_feed_to_file(app.config["feed_updates"], Path(app.config["FEEDS_LOCATION"]) / "updates.bin")
+    
+
+    # celery_app.add_periodic_task(20, periodic_remove_expired  )
+
     celery_app.set_default()
     app.extensions["celery"] = celery_app
     return celery_app
@@ -152,7 +164,7 @@ def init_app():
     app.config["feed_alerts"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "alerts.bin" )
     app.config["feed_updates"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "updates.bin")
     app.config["feed_positions"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "positions.bin")
-
+    print(id(app.config["feed_updates"]))
     login_manager = create_login_manager(app)
     register_blueprints(app)
 
