@@ -20,7 +20,7 @@ COPY frontend/src ./src
 RUN npm run build
 
 WORKDIR /flask-app
-COPY .env fullchain.pem privkey.pem config.py app.py create_db.py ./
+COPY .env fullchain.pem privkey.pem config.py app.py ./
 COPY server_files ./server_files
 COPY gtfs_rt_server ./gtfs_rt_server
 
@@ -41,6 +41,5 @@ RUN chmod -R u+rw ./server_files
 RUN chown -R  flaskuser:flaskuser *.pem
 USER flaskuser
 
-RUN python create_db.py
 
 CMD gunicorn -b 0.0.0.0:5000 --certfile fullchain.pem --keyfile privkey.pem --log-level=debug  --log-file server_files/shared_private/server.log app:app app:app  & celery -A app.celery_app  worker --logfile ~/server_files/shared_private/celery.log
