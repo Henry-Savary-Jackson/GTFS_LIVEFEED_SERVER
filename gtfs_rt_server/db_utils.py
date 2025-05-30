@@ -40,6 +40,7 @@ def get_route_id_of_trip(trip_id):
 def add_role(role_name):
     with db.session.begin():
         db.session.execute(insert(Role).values(role_name =role_name).on_conflict_do_nothing())
+        db.session.commit()
 
 
 def delete_user_with_username(username):
@@ -66,7 +67,8 @@ def insert_user(username, rawPassword, roles=[]):
                     )
                     for name in roles
                 ])
-            db.session.merge(user)
+            db.session.add(user)
+            db.session.commit()
     except Exception as e:
         db.session.rollback()
         raise e
