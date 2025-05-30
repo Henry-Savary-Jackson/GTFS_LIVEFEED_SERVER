@@ -48,6 +48,7 @@ def get_feed_object_from_file(feed_location):
 
 def save_feed_to_file(feed_message: gtfs_rt.FeedMessage, feed_location):
     with open(feed_location, "wb") as feed_bin:
+        # print(feed_message, feed_location)
         feed_bin.write(feed_message.SerializeToString())
 
 
@@ -148,12 +149,14 @@ def verify_entity_selector(informed_entity: dict):
         raise ValueError("Invalid entity selector.")
 
 
-def find_expired_tripUpdate(feed, time):
-
+def delete_expired_trip_updates(feed ):
+    print("starting deleting")
     for i, f_entity in enumerate(feed.entity):
-        trip_update = f_entity.tripUpdate
-        trip_id = f_entity.tripUpdate.trip.trip_id
+        trip_update = f_entity.trip_update
+        trip_id = trip_update.trip.trip_id
         stoptimes = get_stoptimes_of_trip(trip_id)
-        # 
-        if datetime.datetime.now().time() < datetime.time.fromisoformat(stoptimes[-1][2]):
-           del feed.entity[i] 
+        print(trip_id,datetime.datetime.now().time(), datetime.time.fromisoformat(stoptimes[-1][2]))
+        if datetime.datetime.now().time() > datetime.time.fromisoformat(stoptimes[-1][2]):
+            print("deleted")
+            del feed.entity[i] 
+    # i = 0

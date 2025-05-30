@@ -107,10 +107,10 @@ def delete_feed_entity(type_entity):
 
     feed_object = current_app.config["feed_alerts"]
     feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
-    if type=="updates":
+    if type_entity=="updates":
         feed_object = current_app.config["feed_updates"]
         feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
-    elif type == "positions":
+    elif type_entity == "positions":
         feed_object = current_app.config["feed_positions"]
         feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
 
