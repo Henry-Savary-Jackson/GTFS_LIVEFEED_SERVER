@@ -39,7 +39,7 @@ def get_route_id_of_trip(trip_id):
 
 def add_role(role_name):
     with db.session.begin():
-        db.session.merge(Role(role_name =role_name))
+        db.session.execute(insert(Role).values(role_name =role_name).on_conflict_do_nothing())
 
 
 def delete_user_with_username(username):

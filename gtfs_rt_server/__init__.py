@@ -164,7 +164,6 @@ def init_app():
     app.config["feed_alerts"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "alerts.bin" )
     app.config["feed_updates"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "updates.bin")
     app.config["feed_positions"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "positions.bin")
-    print(id(app.config["feed_updates"]))
     login_manager = create_login_manager(app)
     register_blueprints(app)
 
