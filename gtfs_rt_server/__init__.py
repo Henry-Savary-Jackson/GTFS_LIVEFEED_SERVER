@@ -74,7 +74,7 @@ def create_login_manager(app):
     @login_manager.unauthorized_handler
     def unauthorized():
     # do stuff
-        return redirect("/auth/login") 
+        raise BadRequest("User is not logged in or is unauthorized.")  
 
 
     login_manager.user_loader(get_user_by_username)
@@ -99,9 +99,9 @@ def init_celery_app(app):
             super().on_failure(exc, task_id, args, kwargs, einfo)
             self.update_task_status(task_id, "error", str(exc))
 
-        def update_task_status(self, task_id, status, message):
+        def update_task_status(self, task_id, status, message, **kwargs):
             result = self.AsyncResult(task_id)
-            self.status_dict.update({"status": status, "message": f"{ result.info["message"] if result.info and "message" in result.info else ''}\n{message}"})
+            self.status_dict.update({"status": status, "message": f"{ result.info["message"] if result.info and "message" in result.info else ''}\n{message}", **kwargs})
             result.backend.store_result(task_id, self.status_dict , status)
         
         def __call__(self, *args: object, **kwargs: object) -> object:

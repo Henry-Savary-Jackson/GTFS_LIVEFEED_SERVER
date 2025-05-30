@@ -44,7 +44,7 @@ export function UploadsGTFS() {
 
     return <div >
 
-        <form className='container d-flex flex-column align-items-center gaps-5 justify-content-center' onSubmit={async (e) => {
+        <form className='container d-flex flex-column align-items-center gap-5 fs-3 justify-content-center' onSubmit={async (e) => {
             e.preventDefault()
             if (files.length === 0) {
                 alert("Upload file!")
@@ -59,13 +59,14 @@ export function UploadsGTFS() {
             catch (error) {
                 console.error(error)
                 setUploading(false)
-                if (error.response) {
-                    alert((error.response.status >= 500 ? "Error occurred on server" : "Error with request:") + "\n" + (error.response.data.message || error.response.data))
+                if (error.title) {
+                    alert(`${error.title}:\n${error.message}`)
+                } else {
+                    alert(error)
                 }
-
             }
         }} >
-            {status && status.status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-50 form-control' value={status.message || ""}></textarea>}
+            {status && status.status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={status.message || ""}></textarea>}
             {
                 status && status.status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!
@@ -73,14 +74,14 @@ export function UploadsGTFS() {
                     <a href='/static/shared/result/report.html'>Validation report</a>
                 </div>}
             {status && status.status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
-
-                <a href='/static/shared/result/report.html'>Validation report</a>
-            </div>}
+                {'validation_report' in status && status.validation_report && <a href='/static/shared/result/report.html'>Validation report</a>
+                }</div>
+            }
             <div className='form-group'>
                 <label htmlFor='file_input' >Excel File:</label>
                 <input onChange={(e) => setFiles([...e.target.files])} className='form-control-file' id='file_input' type='file' />
             </div>
-            <input className='btn btn-primary' value="Submit" type='submit' />
+            <input className='btn btn-primary fs-3' value="Submit" type='submit' />
         </form></div>
 
 }

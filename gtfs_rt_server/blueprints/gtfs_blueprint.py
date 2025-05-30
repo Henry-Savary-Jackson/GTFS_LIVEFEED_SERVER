@@ -30,11 +30,10 @@ def generate_gtfs_from_xlsx(excel_file_path):
     # use this method as a helper to update the tasks metainfo to contain status and messages
     def send_status_to_task(status=None, message=None, **kwargs):
         print(f"{status} {message}")
-        current_task.update_task_status(current_task.request.id, status=status, message=message)
-
+        current_task.update_task_status(current_task.request.id, status=status, message=message, **kwargs)
     ## create temp file to store zip
     named_temp_zip = NamedTemporaryFile(mode="w+b")
-
+    validation_report = False
     try:
         send_status_to_task(status="starting", message="Starting ...")
         result_path = current_app.config["GTFS_VALIDATOR_RESULT_PATH"]
@@ -58,10 +57,12 @@ def generate_gtfs_from_xlsx(excel_file_path):
             add_gtfs_tables_to_db(db.engine, df_dict)
             send_status_to_task(status="done", message=" Finished adding tabled to db")
         else:
+            validation_report = True
             raise Exception("Error validating the gtfs zip, check the validation report!")
     except Exception as e:
         print(e)
-        send_status_to_task(status="error", message=str(e))
+        print("validation_report", validation_report)
+        send_status_to_task(status="error", message=str(e), validation_report=validation_report)
         raise e
     finally:
         named_temp_zip.close()

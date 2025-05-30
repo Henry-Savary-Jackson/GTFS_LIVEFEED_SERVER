@@ -143,6 +143,7 @@ def read_schedule_as_df(excel_file, sheet_name):
 def add_schedule(
     excel_file,
     sheet_name,
+    sheet_title_directory,
     stoptime_df: pd.DataFrame,
     stop_df,
     trip_df,
@@ -155,25 +156,31 @@ def add_schedule(
         service_id, shape_id = get_metadata(excel_file, sheet_name, services, shapes)
         df_schedule = read_schedule_as_df(excel_file, sheet_name)
         if ("TRAIN NO."not in df_schedule.columns):
-            raise ValueError(f"TRAIN NO. not in the sheet {sheet_name}")
+            raise ValueError(f"TRAIN NO. not in the sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
         df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
-        for train_number in df_schedule:
+        for index_col,train_number in enumerate(df_schedule.columns):
+
+            train_number = str(train_number)
+            dot_index = train_number.rfind(".")
+            if dot_index != -1:
+                train_number = train_number[:dot_index]
 
             stop_times_trip_df = pd.DataFrame(columns=stoptime_df.columns)
             trip_id = f"{service_id}-{train_number}"
-            if trip_id in trip_df["trip_id"]:
-                raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_name}.")
+            # must make list so that string comparison works
+            if trip_id in list(trip_df["trip_id"]):
+                raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
 
             stop = ""
             skip = 0;
             for i in range(len(df_schedule.index)):
-                time = df_schedule[train_number].iloc[i]
+                time = df_schedule.iloc[i,index_col]
                 if not time or pd.isna(time) or time == "..":
                     skip += 1;
                     continue
                 stop = df_schedule.index[i]
                 if stop not in stops:
-                    raise ValueError(f"Stop {stop} in sheet {sheet_name} doesnt exist.")
+                    raise ValueError(f"Stop {stop} in sheet {sheet_title_directory} ( name in excel file is {sheet_name}) doesnt exist.")
                 stop_times_trip_df = stop_times_trip_df._append(
                     {
                         "trip_id": trip_id,
@@ -217,7 +224,7 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
     )
     if update_method:
         update_method(status="working", message="Reading Spreadsheets")
-    print("getting dfs")
+    print("getting dataframes")
     routes_df = getRoutesDataFrame(excel_file)
     services_df = getServicesDataFrame(excel_file)
     shapes_df = getShapesDataFrame(excel_file)
@@ -247,12 +254,14 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
             try:
                 if not sheet_cell.hyperlink:
                     continue
+                sheet_title_directory = sheet_cell.value
                 sheet_name = get_sheet_name_from_hyperlink(
                     sheet_cell.hyperlink.location
                 )
                 stop_time_df, trip_df = add_schedule(
                     excel_file,
                     sheet_name,
+                    sheet_title_directory,
                     stop_time_df,
                     stops_df,
                     trip_df,
@@ -263,11 +272,9 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
                 )
                 print(sheet_name)
                 if update_method:
-                    update_method( message=f"Added {sheet_name}")
+                    update_method( message=f"Added {sheet_title_directory}")
             except Exception as e:
                 print(sheet_name, e)
-                if update_method:
-                    update_method(status="error", message=f"{sheet_name}:{e}")
                 raise e
 
     df_dict = {
@@ -350,5 +357,5 @@ def write_df_to_zipfile(zip_file, filename, df):
         zip_file.writestr(zipfile.ZipInfo(filename), data_stream.getvalue())
 
 
-# if __name__ == "__main__":
-    # generate_gtfs_zip(open("Schedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.java", "server_files/static/shared/result")
+if __name__ == "__main__":
+    generate_gtfs_zip(open("Schedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.java", "server_files/static/shared/result")
