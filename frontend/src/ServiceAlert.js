@@ -1,9 +1,10 @@
-import { useState, useEffect, useReducer } from 'react';
+import { useContext,useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
 import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
 import { useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
+import { alertsContext } from './Alerts';
 
 function convertServiceAlertDictToGTFS(dict) {
     let feedEntity = transit_realtime.FeedEntity.create()
@@ -87,11 +88,12 @@ function EntitySelectorTabs({ setInformedEntities }) {
         })
     }
 
-    return <div>
-        <div className='container'>
-            <button className='btn' onClick={(e) => { setTab("trip") }} >Trip</button>
-            <button className='btn' onClick={(e) => { setTab("route") }} >Route</button>
-            <button className='btn' onClick={(e) => { setTab("stop") }} >Stop</button>
+    return <div className='container rounded border p-4'>
+        <div className='container d-flex flex-row justify-content-center gap-2'>
+            <span>Select an alert affecting a:</span>
+            <button className='btn btn-primary' onClick={(e) => { setTab("trip") }} >Trip</button>
+            <button className='btn btn-primary' onClick={(e) => { setTab("route") }} >Route</button>
+            <button className='btn btn-primary' onClick={(e) => { setTab("stop") }} >Stop</button>
         </div>
         {tab === "trip" && <TripSearch setTripID={setTripIDInformedEntity} routes={routes} services={services} />}
         {tab === "route" && <RouteSelect setRoute={setRouteInformedEntity} routes={routes} route={routeSelect} />}
@@ -101,17 +103,18 @@ function EntitySelectorTabs({ setInformedEntities }) {
 }
 
 function InformedEntities({ entities, changeInformedEntities }) {
-
     return <ul className='list-group'>{entities.map((entity, index) => <li key={index}>{getHtmlForEntity(entity)}<button className='btn btn-danger' onClick={(e) => { changeInformedEntities({ "action": "delete", "index": index }) }}>X</button></li>)}</ul>
 }
 
 
 
 export function ServiceAlert() {
-    const service_alert_inp = useLocation().state
+    const location = useLocation()
+    const service_alert_inp = location.state
     let id = service_alert_inp ? service_alert_inp.id : v4()
     let causes = getCauses()
     let effects = getEffects()
+
 
     let list_reducer = (state, action) => {
         if (action.action === "delete") {
@@ -143,7 +146,7 @@ export function ServiceAlert() {
             default:
                 return state;
         }
-    }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [])
+    }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [{ "language": system_languages ? system_languages[0] : "en-ZA" }])
 
 
     let start_date_obj = service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : null;
@@ -160,12 +163,13 @@ export function ServiceAlert() {
         changeInformedEntities({ "action": "save", "entity": entity })
     }
 
+    let [alerts, popUpAlert] = useContext(alertsContext)
 
     return <div className="d-flex flex-column align-items-center gap-5">
         <EntitySelectorTabs setInformedEntities={addInformedEntity} />
         {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
-        <div className='d-flex flex-column align-items-center gap-3' >
-            <div className="form-group" >
+        <div className='d-flex flex-column align-items-center w-100 gap-3' >
+            <div className="form-group w-100 d-flex flex-row gap-2" >
                 <label htmlFor='input-start'> Start Time</label>
                 <input id="input-start" className='form-control' type='date' onInput={(e) => {
                     setStartDate(e.target.value)
@@ -173,7 +177,7 @@ export function ServiceAlert() {
                     value={startDate} />
                 <input id="input-end-time" className='form-control' type='time' value={startTime} onInput={(e) => { setStartTime(e.target.value) }} />
             </div>
-            <div className="form-group">
+            <div className="form-group w-100 d-flex flex-row gap-2">
                 <label htmlFor='input-end-date'>End Time</label>
                 <input id="input-end-date" className='form-control' type='date' onInput={(e) => {
                     setEndDate(e.target.value)
@@ -181,31 +185,28 @@ export function ServiceAlert() {
                 <input id="input-end-time" className='form-control' type='time' value={endTime} onInput={(e) => { setEndTime(e.target.value) }} />
 
             </div>
-            <div className="form-group" >
+            <div className="form-group w-100" >
                 <label htmlFor='cause-select' >Cause</label>
-                <select id="cause-select" className="form-control" value={cause} onChange={(e) => { setCause(e.target.value) }}>
+                <select id="cause-select" className="form-control w-100" value={cause} onChange={(e) => { setCause(e.target.value) }}>
                     {causes.map((val, i) => <option key={i} value={val}>{val}</option>)}
                 </select>
             </div>
-            <div className="form-group">
+            <div className="form-group w-100 ">
                 <label htmlFor='effect-select'>Effect</label>
-                <select id="effect-select" className='form-control' value={effect} onChange={(e) => { setEffect(e.target.value) }}>
+                <select id="effect-select" className='form-control w-100' value={effect} onChange={(e) => { setEffect(e.target.value) }}>
                     {effects.map((val, i) => <option key={i} value={val}>{val}</option>)}
                 </select>
             </div>
-            <div className="form-group">
-                <label htmlFor='url-input'>URL</label>
-                <input className='form-control' id='url-input' value={url} onChange={(e) => { setURL(e.target.value) }} />
-            </div>
-            <div className="form-group" >
-                <div className='form-group'>
+
+            <div className="form-group w-100" >
+                <div className='form-group w-100 d-flex flex-row gap-3 align-items-center justify-content-center'>
                     <label htmlFor='addDescButton'>Description/s</label>
                     <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
                         changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
                     }} id='addDescButton'>Add Description</button>
                 </div>
-                <div className=' d-flex flex-column align-items-center gap-3'>
-                    {descriptions.map((desc, i) => <div key={i} className='form-group'>
+                <div className='container w-100 d-flex flex-column align-items-center gap-3'>
+                    {descriptions.map((desc, i) => <div key={i} className='d-flex flex-column align-items-left gap-1 form-group'>
                         <textarea className="form-control" value={desc.text} onChange={(e) => {
                             changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
                         }}></textarea>
@@ -220,15 +221,19 @@ export function ServiceAlert() {
 
                 </div>
             </div>
+            <div className="form-group w-100">
+                <label htmlFor='url-input'>URL</label>
+                <input className='form-control w-100' id='url-input' value={url} onChange={(e) => { setURL(e.target.value) }} />
+            </div>
         </div>
         <button className="btn btn-success " onClick={async (e) => {
             try {
 
                 let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")).valueOf() : undefined;
-                let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")).valueOf()  : undefined;
+                let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")).valueOf() : undefined;
                 let period = startDate || endDate ? { "start": start, "end": end } : undefined;
                 // combine date and time strings into date and then into unix time
-                let object = {
+                const object = {
                     "id": id,
                     "period": period,
                     "cause": cause,
@@ -237,14 +242,16 @@ export function ServiceAlert() {
                     "informed_entities": informed_entities,
                     "url": url
                 }
-                let service_alert_gtfs = convertServiceAlertDictToGTFS(object)
+                const service_alert_gtfs = convertServiceAlertDictToGTFS(object)
                 await sendServiceAlert(service_alert_gtfs)
-                alert("Successfully saved Alert!")
+                location.state = service_alert_gtfs
+                popUpAlert({ "message": " ✅ Successfully saved Alert!", "type": "success" })
+
             } catch (error) {
                 if (error.title) {
-                    alert(`${error.title}:\n${error.message}`)
+                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
                 } else {
-                    alert(error)
+                    popUpAlert({ "message": `${error}`, "type": "error" })
                 }
             }
             // save object

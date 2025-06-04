@@ -1,9 +1,10 @@
-import { useState, useEffect, useReducer } from 'react';
+import { useState, useEffect, useReducer, useContext } from 'react';
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { useLocation } from 'react-router-dom'
 import { TripSearch } from './Search';
 import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate, convertTimeStrToUNIXEpoch } from './Utils';
 import { v4 } from 'uuid'
+import { alertsContext } from './Alerts';
 
 
 export function convertDictToGTFSTripUpdate(dict) {
@@ -73,7 +74,7 @@ function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
 
     return <tr className={status_stop === "Passed" ? "table-danger" : ""} key={stoptime.stopSequence}>
         <td>{stoptime.stopId}</td>
-        <td className={status_stop && status_stop !== "Passed" ?"fs-3" : ""}>{status_stop}</td>
+        <td className={status_stop && status_stop !== "Passed" ? "fs-3" : ""}>{status_stop}</td>
         <td className='d-flex flex-column align-items-center'>
             <input disabled={stoptime.skip || false} type='time' onInput={(e) => { changeTimeStop(e.currentTarget.value, stoptime.stopSequence) }} value={(stoptime.newTime && !stoptime.onTime) ? stoptime.newTime : stoptime.time} />
             <div>Arrives on Time:
@@ -83,7 +84,7 @@ function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
             if (!("onTime" in stoptime) || !stoptime.onTime)
                 changeDelayStop(Number(e.currentTarget.value), stoptime.stopSequence)
         }} value={(!stoptime.onTime && stoptime.delay) || 0} />
-            <span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span></td> 
+            <span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span></td>
         <td> Total Delay:{stoptime.totalDelay || 0} minutes </td>
         <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": stoptime.stopSequence }) }} checked={stoptime.skip || false} /></td>
     </tr>
@@ -92,7 +93,7 @@ function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
 function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
     let before = false;
     let current_time_str = convertDateToTimeString(new Date())
-    return <table className='table table-responsive table-hover'>
+    return <table className='table border rounded table-responsive table-hover'>
         <thead>
             <tr>
                 <th>Stop</th>
@@ -122,7 +123,10 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 
 
 export function TripUpdate() {
-    const trip_update_feedentity = useLocation().state
+    const location = useLocation()
+    const trip_update_feedentity = location.state
+
+    let [alerts, popUpAlert] = useContext(alertsContext)
     // check if any state passed
     let [id, setEntityId] = useState("")// create a new uuid if a new trip update is being made
     const trip_update_inp = trip_update_feedentity ? trip_update_feedentity.tripUpdate : undefined
@@ -188,13 +192,13 @@ export function TripUpdate() {
     return <div className='container flex-column d-flex align-items-center gap-5'>
         <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
         <div className='fs-2'>{trip_id}</div>
-        {trip_id !== "" && <div className='form-check'>
-            <label className='form-check-label' htmlFor='cancel-checkbox'>Cancel Trip?</label>
+        {trip_id !== "" && <div className='form-check border rounded bg-danger'>
+            <label className='form-check-label fs-3 ' htmlFor='cancel-checkbox'>Cancel Trip?</label>
             <input className='form-check-input' id='cancel-checkbox' type='checkbox' checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} />
 
         </div>}
         {stoptimes.length > 0 ? <StopTimeTable disabled={cancelled} stoptimes={stoptimes} dispatchStopTimesChange={disatchChangeStopTimes} /> : ''}
-        <button className="btn btn-success" onClick={async (e) => {
+        {trip_id && <button className="btn btn-success" onClick={async (e) => {
             let object = {
                 "id": id,
                 "trip_id": trip_id,
@@ -202,19 +206,20 @@ export function TripUpdate() {
                 "cancelled": cancelled,
             }
             try {
-                let trip_update_gtfs = convertDictToGTFSTripUpdate(object)
+                const trip_update_gtfs = convertDictToGTFSTripUpdate(object)
                 await sendTripUpdate(trip_update_gtfs)
-                alert("Sucessfully saved")
+                popUpAlert({ "message": "✅ Sucessfully saved", "type": "success" })
+                location.state = trip_update_gtfs
             } catch (error) {
                 if (error.title) {
-                    alert(`${error.title}:\n${error.message}`)
+                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
                 } else {
-                    alert(error)
+                    popUpAlert({ "message": `${error}`, "type": "error" })
                 }
             }
 
             // save object
-        }} >Save</button>
+        }} >Save</button>}
         <button className='btn btn-danger' onClick={(e) => {
             if (window.confirm("Are you sure you want to cancel? You might lose unsaved changes"))
                 window.location = "/"

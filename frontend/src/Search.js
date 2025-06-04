@@ -3,7 +3,7 @@ import { getTrips, getStops, convertDateToTimeString } from './Utils'
 
 export function RouteSelect({ route, setRoute, routes }) {
 
-    return <div className='container'>
+    return <div className='container d-flex flex-column gap-3'>
         <label htmlFor='route_list' >Routes:</label>
         <select className='form-control' id='route_list' value={route} onChange={(event) => {
             setRoute(event.target.value)
@@ -26,7 +26,7 @@ export function TripIdSeacher({ number, setSearchNumber }) {
 
 export function ServiceSelect({ setService, service, services }) {
 
-    return <div className='container'>
+    return <div className='container d-flex flex-column gap-3 '>
         <label htmlFor='service_list'>Service:</label>
         <select className='form-control' id='service_list' value={service} onChange={(event) => {
             setService(event.target.value)
@@ -68,7 +68,7 @@ export function TripSearch({ setTripID, routes, services }) {
     }
     // need to pass this stuff with route, because otherwise it initially gives emoty value
     // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
-    return <div className='d-flex  fs-4 flex-column justify-content-center'>
+    return <div className='d-flex gap-3 fs-4 flex-column justify-content-center'>
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
         <ServiceSelect service={service} setService={setService} services={services} />
         <TripIdSeacher number={number} setSearchNumber={setNumberCallback} />

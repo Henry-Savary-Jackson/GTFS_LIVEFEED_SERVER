@@ -3,37 +3,41 @@ import { getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToke
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
-import { UserContext , RolesContext} from './Globals';
+import { UserContext, RolesContext } from './Globals';
 import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
 import { TripUpdateFilter } from './Search';
 import { AddUserForm } from './AddUser';
+import { AlertsProvider } from './Alerts';
 
 function FeedEntityRow({ entity, delete_feed_entity_callback }) {
 
+  let activePeriod = entity.alert && entity.alert.activePeriod && entity.alert.activePeriod.length > 0 ? entity.alert.activePeriod[0] : null;
+  let start_date = entity.alert && activePeriod && activePeriod.start ? new Date(activePeriod.start * 1000) : null
+  let end_date = entity.alert && activePeriod && activePeriod.end ? new Date(activePeriod.end * 1000) : null
 
   function renderServiceAlert() {
     let informed_entities = entity.alert.informedEntity
+
     function returnTime() {
-      let activePeriod = entity.alert.activePeriod
-      if (!activePeriod || activePeriod.length == 0)
+      if (!activePeriod)
         return <td>No active period</td>
 
-      let start_date = new Date(activePeriod[0].start * 1000)
-      let end_date = new Date(activePeriod[0].end * 1000)
-      let start = activePeriod[0].start ? `${start_date.toDateString()} ${start_date.toLocaleTimeString()}` : "Unspecified"
-      let end = activePeriod[0].end ? `${end_date.toDateString()} ${end_date.toLocaleTimeString()}` : "Unspecified"
+      let start = start_date ? `${start_date.toDateString()} ${start_date.toLocaleTimeString()}` : "Unspecified"
+      let end = end_date ? `${end_date.toDateString()} ${end_date.toLocaleTimeString()}` : "Unspecified"
       return <td><ul>
         <li>Start:{start}</li>
         <li>End:{end}</li>
       </ul>
       </td>
     }
+
+
     return <>
       {returnTime()}
-      <td><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
-      <td><Link to="/service_alert" state={entity} >Edit</Link> </td>
+      <td ><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
+      <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
     </>
   }
   function renderTripUpdate() {
@@ -45,8 +49,20 @@ function FeedEntityRow({ entity, delete_feed_entity_callback }) {
       <td><Link to="/trip_update" state={entity} >Edit</Link> </td>
     </>
   }
-
-  return <tr key={entity.id} >
+  let now = new Date()
+  let css_class = ""
+  if (entity.alert) {
+    if (start_date && start_date < now && (!end_date || (end_date && end_date > now))) {
+      css_class = "table-success"
+    }
+    if (end_date && end_date <= now) {
+      css_class = "table-danger"
+    }
+    else if (start_date && start_date >= now) {
+      css_class = "table-warning"
+    }
+  }
+  return <tr className={css_class} key={entity.id} >
     <td>{entity.id}</td>
     {entity.tripUpdate ? renderTripUpdate() : renderServiceAlert()}
     <td ><button className='btn btn-danger' onClick={(e) => {
@@ -159,10 +175,10 @@ export function Feed() {
 
   return (
     <div className="container d-flex flex-column align-items-center">
-      <div className='container'>
-        <button className='btn' onClick={(e) => { setFeedType("alerts") }}>Alerts</button>
-        <button className='btn' onClick={(e) => { setFeedType("updates") }}>Trip Updates</button>
-        <button className='btn' onClick={(e) => { refreshFeeds() }}>Refresh</button>
+      <div className='container d-flex flex-row gap-3 justify-content-center'>
+        <button className='btn btn-primary' onClick={(e) => { setFeedType("alerts") }}>⚠️Alerts</button>
+        <button className='btn btn-primary' onClick={(e) => { setFeedType("updates") }}>🕛Trip Updates</button>
+        <button className='btn btn-primary' onClick={(e) => { refreshFeeds() }}>🔄Refresh</button>
       </div >
       {feed_type == "updates" ? <TripUpdateFilter setNumber={setNumber} number={number} route={route} setRoute={setRoute} routes={routes} /> : <></>}
       <table className='table table-hover' id="feed-table">
@@ -210,28 +226,34 @@ export default function App() {
     setUser(username)
     setCookies("username", username)
   }
-  function setRolesCallback(roles){
+  function setRolesCallback(roles) {
     setRoles(roles)
     setCookies("roles", roles.join(","))
   }
   return <BrowserRouter>
     <UserContext.Provider value={[user, setUserCallback]}>
       <RolesContext.Provider value={[roles, setRolesCallback]}>
-      <Routes>
-        <Route path='/'>
-          <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
-          <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
-          <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
-          <Route path='upload_gtfs' element={user ? <UploadsGTFS /> : <LoginForm />} />
-          <Route path='add_newuser' element={user ? <AddUserForm /> : <LoginForm />} />
-        </Route>
-      </Routes>
+        <div className='container d-flex flex-column align-items-center'>
+          <AlertsProvider>
+            <Routes>
+              <Route path='/'>
+                <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
+                <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
+                <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
+                <Route path='upload_gtfs' element={user ? <UploadsGTFS /> : <LoginForm />} />
+                <Route path='add_newuser' element={user ? <AddUserForm /> : <LoginForm />} />
+              </Route>
+            </Routes>
+          </AlertsProvider>
+        </div>
       </RolesContext.Provider>
     </UserContext.Provider>
   </BrowserRouter>
 }
 
 export function Main({ logout_cookie }) {
+
+
   return <div className='d-flex flex-column align-items-center gap-3'  >
     <img src='/static/prasa-main.png' width={250} height={100} />
     <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS file form</Link>

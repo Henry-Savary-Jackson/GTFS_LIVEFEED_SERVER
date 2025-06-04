@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useContext,useEffect, useState } from 'react';
 import { getGTFSStatus, submitGTFS } from './Utils';
+import { alertsContext } from './Alerts';
 
 export function UploadsGTFS() {
     let [files, setFiles] = useState([])
     let [uploading, setUploading] = useState(false)
     let [status, setStatus] = useState({})
 
+    let [alerts, popUpAlert] = useContext(alertsContext)
     useEffect(() => {
         // check status periodically
         if (!uploading)
@@ -28,9 +30,9 @@ export function UploadsGTFS() {
                 setUploading(false)
                 clearInterval(interval)
                 if (error.title) {
-                    alert(`${error.title}:\n${error.message}`)
+                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
                 } else {
-                    alert(error.message)
+                    popUpAlert({ "message": `${error}`, "type": "error" })
                 }
             }
         }, 1000)
@@ -47,7 +49,7 @@ export function UploadsGTFS() {
         <form className='container d-flex flex-column align-items-center gap-5 fs-3 justify-content-center' onSubmit={async (e) => {
             e.preventDefault()
             if (files.length === 0) {
-                alert("Upload file!")
+                popUpAlert({ "message": "Upload file!", "type": "error" })
                 return
             }
             let file = files[0]
@@ -60,9 +62,9 @@ export function UploadsGTFS() {
                 console.error(error)
                 setUploading(false)
                 if (error.title) {
-                    alert(`${error.title}:\n${error.message}`)
+                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
                 } else {
-                    alert(error)
+                    popUpAlert({ "message": `${error}`, "type": "error" })
                 }
             }
         }} >

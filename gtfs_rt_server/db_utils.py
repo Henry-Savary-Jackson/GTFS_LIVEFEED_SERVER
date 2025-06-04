@@ -270,13 +270,11 @@ def add_alert_to_db(id, alert):
                 entity_type = EntityTypes.routes
                 entity_id = entity["routeId"]
 
-            db.session.add(
-                InformedEntityToAlerts(
+            db.session.execute(insert(InformedEntityToAlerts).values(
                     alert_id=alert_data["alert_id"],
                     entity_id=entity_id,
                     entity_type=entity_type,
-                )
-            )
+            ).on_conflict_do_nothing())
 
 
 # given a json object of a trip update, add or update into database
