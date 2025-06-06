@@ -166,7 +166,7 @@ export function ServiceAlert() {
     let [alerts, popUpAlert] = useContext(alertsContext)
 
     return <div className="d-flex flex-column align-items-center gap-5">
-        <div className=' d-flex flex-column gap-3 position-fixed top-0 start-0'>
+        <div className=' d-flex flex-column gap-3 position-fixed top-50 start-0'>
             <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
             <button onClick={(e)=> { window.location.reload()}} className='btn btn-primary' to="/">Create a new service alert</button>
         </div>
