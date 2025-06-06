@@ -85,6 +85,7 @@ export function TripSearch({ setTripID, routes, services }) {
 
 export function TripUpdateFilter({ setNumber, route, number, setRoute, routes }) {
     return <div className='container d-flex flex-column align-items-center gap-3'>
+        <span className='fs-4 text-center'>Filter trips:</span>
         <TripIdSeacher number={number} setSearchNumber={setNumber} />
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
     </div>
@@ -119,13 +120,14 @@ export function StopSearch({ finish_search_callback }) {
         finish_search_callback(stop_id)
     }
 
-    return <div className='form-group'>
-        <label htmlFor='stop-search-input' >Search for stop:</label>
+    return <div className='form-group d-flex flex-column align-items-center gap-2'>
+        <label htmlFor='stop-search-input' >Search for stop by name:</label>
         <input id="stop-search-input" className='form-control' type='search' value={stop_name} onChange={async (e) => {
             setStopName(e.target.value)
             await populateStops(e.target.value)
         }} />
-        <select className='form-control'>
+        <label htmlFor='stop-search-results'>Stops found:</label>
+        <select id="stop-search-results" className='form-control'>
             {stops.map((val, i) => <option onClick={(e) => { addStop(val.stop_id) }} key={i}>{val.stop_name}</option>)}
         </select>
     </div>

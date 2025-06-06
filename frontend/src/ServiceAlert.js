@@ -1,7 +1,7 @@
 import { useContext,useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
 import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
 import { alertsContext } from './Alerts';
@@ -166,6 +166,10 @@ export function ServiceAlert() {
     let [alerts, popUpAlert] = useContext(alertsContext)
 
     return <div className="d-flex flex-column align-items-center gap-5">
+        <div className=' d-flex flex-column gap-3 position-fixed top-0 start-0'>
+            <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
+            <button onClick={(e)=> { window.location.reload()}} className='btn btn-primary' to="/">Create a new service alert</button>
+        </div>
         <EntitySelectorTabs setInformedEntities={addInformedEntity} />
         {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
         <div className='d-flex flex-column align-items-center w-100 gap-3' >
@@ -207,7 +211,7 @@ export function ServiceAlert() {
                 </div>
                 <div className='container w-100 d-flex flex-column align-items-center gap-3'>
                     {descriptions.map((desc, i) => <div key={i} className='d-flex flex-column align-items-left gap-1 form-group'>
-                        <textarea className="form-control" value={desc.text} onChange={(e) => {
+                        <textarea className="w-100 form-control" value={desc.text} onChange={(e) => {
                             changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
                         }}></textarea>
                         <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>

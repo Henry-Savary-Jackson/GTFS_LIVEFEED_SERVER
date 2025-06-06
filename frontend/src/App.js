@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer, useRef } from 'react';
-import { getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes } from './Utils'
+import { getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch } from './Utils'
 import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -11,68 +11,88 @@ import { TripUpdateFilter } from './Search';
 import { AddUserForm } from './AddUser';
 import { AlertsProvider } from './Alerts';
 
-function FeedEntityRow({ entity, delete_feed_entity_callback }) {
+
+
+function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_feed_entity_callback }) {
+
+  const stop_times_at_index = stoptimes && stoptimes.length > 0 ? stoptimes[index].stoptimes : null
+  let first = stop_times_at_index ? convertTimeStrToDate(stop_times_at_index[0].time) : null
+  let last = stop_times_at_index ? convertTimeStrToDate(stop_times_at_index[stop_times_at_index.length - 1].time) : null
+  console.log(first, last)
+  let modified_datetime = entity.tripUpdate.timestamp ? new Date(entity.tripUpdate.timestamp * 1000) : undefined
+  let modified = modified_datetime ? `${modified_datetime.toDateString()} ${modified_datetime.toLocaleTimeString()}` : ``
+  let now = new Date()
+  let css_class = ""
+
+  if (first && last) {
+    if (first >= now) {
+      css_class = "table-warning"
+    } else if (last > now && first > now) {
+      css_class = "table-success"
+    } else if (last <= now) {
+      css_class = "table-danger"
+    }
+  }
+
+  return <tr className={css_class} key={entity.id} >
+    <td >{entity.tripUpdate.trip.tripId}</td>
+    <td>{modified}</td>
+    <td><Link className='btn btn-primary' to="/trip_update" state={entity} >Edit</Link> </td>
+    <td ><DeleteFeedEntityButton  entity={entity} delete_feed_entity_callback={delete_feed_entity_callback}/></td>
+  </tr>
+}
+function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
 
   let activePeriod = entity.alert && entity.alert.activePeriod && entity.alert.activePeriod.length > 0 ? entity.alert.activePeriod[0] : null;
   let start_date = entity.alert && activePeriod && activePeriod.start ? new Date(activePeriod.start * 1000) : null
   let end_date = entity.alert && activePeriod && activePeriod.end ? new Date(activePeriod.end * 1000) : null
-
-  function renderServiceAlert() {
-    let informed_entities = entity.alert.informedEntity
-
-    function returnTime() {
-      if (!activePeriod)
-        return <td>No active period</td>
-
-      let start = start_date ? `${start_date.toDateString()} ${start_date.toLocaleTimeString()}` : "Unspecified"
-      let end = end_date ? `${end_date.toDateString()} ${end_date.toLocaleTimeString()}` : "Unspecified"
-      return <td><ul>
-        <li>Start:{start}</li>
-        <li>End:{end}</li>
-      </ul>
-      </td>
-    }
-
-
-    return <>
-      {returnTime()}
-      <td ><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
-      <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
-    </>
-  }
-  function renderTripUpdate() {
-    let modified_datetime = entity.tripUpdate.timestamp ? new Date(entity.tripUpdate.timestamp * 1000) : undefined
-    let modified = modified_datetime ? `${modified_datetime.toDateString()} ${modified_datetime.toLocaleTimeString()}` : ``
-    return <>
-      <td >{entity.tripUpdate.trip ? entity.tripUpdate.trip.tripId : ""}</td>
-      <td>{modified}</td>
-      <td><Link to="/trip_update" state={entity} >Edit</Link> </td>
-    </>
-  }
+  let informed_entities = entity.alert.informedEntity
   let now = new Date()
+
+  function returnTime() {
+    if (!activePeriod)
+      return <td>No active period</td>
+
+    let start = start_date ? `${start_date.toDateString()} ${start_date.toLocaleTimeString()}` : "Unspecified"
+    let end = end_date ? `${end_date.toDateString()} ${end_date.toLocaleTimeString()}` : "Unspecified"
+    return <td><ul>
+      <li>Start:{start}</li>
+      <li>End:{end}</li>
+    </ul>
+    </td>
+  }
   let css_class = ""
-  if (entity.alert) {
-    if (start_date && start_date < now && (!end_date || (end_date && end_date > now))) {
-      css_class = "table-success"
-    }
-    if (end_date && end_date <= now) {
-      css_class = "table-danger"
-    }
-    else if (start_date && start_date >= now) {
-      css_class = "table-warning"
+  if (start_date && start_date < now && (!end_date || (end_date && end_date > now))) {
+    css_class = "table-success"
+  }
+  if (end_date && end_date <= now) {
+    css_class = "table-danger"
+  }
+  else if (start_date && start_date >= now) {
+    css_class = "table-warning"
+  }
+
+  return <tr className={css_class} key={entity.id} >
+    {returnTime()}
+    <td ><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
+    <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
+    <td ><DeleteFeedEntityButton  entity={entity} delete_feed_entity_callback={delete_feed_entity_callback}/></td>
+  </tr>
+}
+
+
+function FeedEntityRow({ index, stoptimes = undefined, entity, delete_feed_entity_callback }) {
+  return entity.tripUpdate ? <TripUpdateFeedEntityRow index={index} stoptimes={stoptimes} entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /> : <ServiceAlertFeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />
+}
+
+function DeleteFeedEntityButton({ entity, delete_feed_entity_callback }) {
+  return (<button className='btn btn-danger' onClick={(e) => {
+    if (window.confirm("Are you sure you want to delete")) {
+      let deleteFromLog = window.confirm("Do you want to delete this entity from the log?")
+      delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts", deleteFromLog)
     }
   }
-  return <tr className={css_class} key={entity.id} >
-    <td>{entity.id}</td>
-    {entity.tripUpdate ? renderTripUpdate() : renderServiceAlert()}
-    <td ><button className='btn btn-danger' onClick={(e) => {
-      if (window.confirm("Are you sure you want to delete")) {
-        let deleteFromLog = window.confirm("Do you want to delete this entity from the log?")
-        delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts", deleteFromLog)
-      }
-    }
-    }>X</button></td>
-  </tr>
+  }>X</button>)
 }
 
 export function Feed() {
@@ -109,6 +129,8 @@ export function Feed() {
   let [number, setNumber] = useState("")
   let [routes, setRoutes] = useState([])
 
+  let [stoptimes, setStopTimes] = useState([])
+
   useEffect(() => {
     // needs to be like  this with an async function being called else react gives errors
     async function action() {
@@ -134,7 +156,7 @@ export function Feed() {
     }
     if (numberFilter) {
       // filter by train number
-      const pattern = new RegExp(`^\\w*-${numberFilter}(\\d*)$`) // TODO: FIX THIS
+      const pattern = new RegExp(`^\\w*-${numberFilter}(\\d*)$`)
       output = output.filter((v) => {
         const trip_id = v.tripUpdate.trip.tripId
         return pattern.test(trip_id)
@@ -160,7 +182,24 @@ export function Feed() {
   async function refreshFeeds() {
     set_feed("alerts")
     updateMirroredUpdates(await set_feed("updates"))
+    resetStoptimes()
   }
+
+  async function resetStoptimes(){
+      const new_stoptimes = []
+      for (let feed_entity of feed_updates_filtered) {
+        let trip_id = feed_entity.tripUpdate.trip.tripId
+        new_stoptimes.push({ "trip_id": trip_id, "stoptimes": await getStopTimesofTrip(trip_id) })
+      }
+      setStopTimes(new_stoptimes)
+  }
+
+  useEffect(() => {
+    if (stoptimes && stoptimes.length == 0) {
+      resetStoptimes()
+   }
+  }, [feed_type, stoptimes])
+
 
   async function delete_feed_entity_callback(id, type) {
     try {
@@ -176,15 +215,15 @@ export function Feed() {
   return (
     <div className="container d-flex flex-column align-items-center">
       <div className='container d-flex flex-row gap-3 justify-content-center'>
-        <button className='btn btn-primary' onClick={(e) => { setFeedType("alerts") }}>⚠️Alerts</button>
-        <button className='btn btn-primary' onClick={(e) => { setFeedType("updates") }}>🕛Trip Updates</button>
-        <button className='btn btn-primary' onClick={(e) => { refreshFeeds() }}>🔄Refresh</button>
+        <button className='btn btn-secondary' onClick={(e) => { setFeedType("alerts") }}>⚠️Service Alerts</button>
+        <button className='btn btn-secondary' onClick={(e) => { setFeedType("updates") }}>🕛Trip Updates</button>
+        <button className='btn btn-secondary' onClick={(e) => { refreshFeeds() }}>🔄Refresh Service Alerts and Trip Updates</button>
       </div >
       {feed_type == "updates" ? <TripUpdateFilter setNumber={setNumber} number={number} route={route} setRoute={setRoute} routes={routes} /> : <></>}
-      <table className='table table-hover' id="feed-table">
+      <span className='text-center fs-4'>{feed_type == "updates" ? "List of all currently active Trip Updates: " : "List of all currently stored Service Alerts:"}</span>
+      <table className=' border table table-hover' id="feed-table">
         <thead>
           <tr>
-            <th>Id</th>
             {feed_type === "alerts" ?
               <><th>Active Times</th>
                 <th>Entities</th></> :
@@ -198,7 +237,7 @@ export function Feed() {
             <th>Delete</th>
           </tr></thead>
         <tbody>
-          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
+          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity, index) => <FeedEntityRow index={index} stoptimes={stoptimes} entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
         </tbody>
       </table>
     </div>
@@ -221,6 +260,8 @@ export default function App() {
     }
     funcSetCSRF()
   }, [])
+
+  getRoutesIDToNames()
 
   function setUserCallback(username) {
     setUser(username)

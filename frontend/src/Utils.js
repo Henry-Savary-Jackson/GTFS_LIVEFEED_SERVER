@@ -1,12 +1,13 @@
 import axios from 'axios';
 import { transit_realtime } from "gtfs-realtime-bindings"
 
+export var routeIDstoNames  = new Map()
 async function performRequest(callback) {
     try {
         return await callback()
     } catch (error) {
         console.error(error)
-        if (error.response){
+        if (error.response) {
             let message = error.response.data
             let newError = new Error(message.description || message)
             if (message.error)
@@ -18,15 +19,15 @@ async function performRequest(callback) {
 }
 
 export async function login(username, password, remember_me) {
-    return await performRequest(async()=> {
+    return await performRequest(async () => {
         return await axios.postForm("/auth/login", { "username": username, "password": password, "remember_me": remember_me }, { withCredentials: true })
-    }) 
+    })
 }
 
 export async function add_user(username, password, roles) {
-    return await performRequest(async()=> {
+    return await performRequest(async () => {
         return await axios.postForm("/auth/add_user", { "username": username, "password": password, "roles": roles }, { withCredentials: true })
-    }) 
+    })
 }
 
 export async function logout() {
@@ -45,7 +46,7 @@ export function getHtmlForEntity(entity) {
     if (entity.trip || entity.tripId) {
         return <span>Trip:{entity.trip ? entity.trip.tripId : entity.tripId}</span>
     } else if (entity.routeId) {
-        return <span>Route:{entity.routeId}</span>
+        return <span>Route:{routeIDstoNames[entity.routeId] || entity.routeId}</span>
     } else {
         return <span>Stop:{entity.stopId}</span>
     }
@@ -89,6 +90,10 @@ export async function getRoutes() {
     })
 }
 
+export async function getRoutesIDToNames() {
+        (await getRoutes()).forEach((route)=> { routeIDstoNames[route.route_id] = route.route_long_name})
+}
+
 export async function getFeedMessage(type) {
     let response = await performRequest(async () => {
         return await axios.get(`/feed/${type}`, { responseType: "arraybuffer" })
@@ -103,7 +108,7 @@ export async function getFeedMessage(type) {
     }
 }
 
-export async function sendTripUpdate(trip_update, log=true) {
+export async function sendTripUpdate(trip_update, log = true) {
     let result = transit_realtime.FeedEntity.verify(trip_update)
     if (result)
         throw new Error(result)
@@ -121,8 +126,8 @@ export async function sendTripUpdate(trip_update, log=true) {
         })
     })
 }
-export async function sendServiceAlert(service_alert, log=true) {
-    
+export async function sendServiceAlert(service_alert, log = true) {
+
     let result = transit_realtime.FeedEntity.verify(service_alert)
     if (result)
         throw new Error(result)
@@ -138,10 +143,10 @@ export async function sendServiceAlert(service_alert, log=true) {
         })
     })
 }
-export async function deleteFeedEntity(feed_entity_id, type, log=false) {
+export async function deleteFeedEntity(feed_entity_id, type, log = false) {
     await performRequest(async () => {
-        await axios.delete(`/feed/${type}/delete_feed_entity`, { withCredentials: true, data: {"entity_id":feed_entity_id, "deleteFromLog":log } })
-// add some data to indicate if it should be deleted from logging or not 
+        await axios.delete(`/feed/${type}/delete_feed_entity`, { withCredentials: true, data: { "entity_id": feed_entity_id, "deleteFromLog": log } })
+        // add some data to indicate if it should be deleted from logging or not 
     })
 }
 

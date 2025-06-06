@@ -1,6 +1,7 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
+
 import { transit_realtime } from "gtfs-realtime-bindings";
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { TripSearch } from './Search';
 import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate, convertTimeStrToUNIXEpoch } from './Utils';
 import { v4 } from 'uuid'
@@ -190,6 +191,10 @@ export function TripUpdate() {
     }
 
     return <div className='container flex-column d-flex align-items-center gap-5'>
+        <div className=' d-flex flex-column gap-3 position-fixed top-0 start-0'>
+            <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
+            <button onClick={(e)=> { window.location.reload()}} className='btn btn-primary' to="/">Create a new trip update</button>
+        </div>
         <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
         <div className='fs-2'>{trip_id}</div>
         {trip_id !== "" && <div className='form-check border rounded bg-danger'>
