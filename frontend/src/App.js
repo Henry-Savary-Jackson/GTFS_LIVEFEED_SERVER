@@ -4,6 +4,7 @@ import { TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserContext, RolesContext } from './Globals';
+import { transit_realtime } from "gtfs-realtime-bindings"
 import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
@@ -23,19 +24,25 @@ function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_
   let modified = modified_datetime ? `${modified_datetime.toDateString()} ${modified_datetime.toLocaleTimeString()}` : ``
   let now = new Date()
   let css_class = ""
+  let state = ""
 
   if (first && last) {
     if (first >= now) {
       css_class = "table-warning"
-    } else if (last > now && first > now) {
+      state = "Trip yet to start"
+    } else if (last > now && first < now) {
       css_class = "table-success"
+      state = "Trip in progress"
+    } else if (last > now && first < now) {
     } else if (last <= now) {
       css_class = "table-danger"
+      state = "Trip finished"
     }
   }
 
   return <tr className={css_class} key={entity.id} >
     <td >{entity.tripUpdate.trip.tripId}</td>
+    <td >{state}</td>
     <td>{modified}</td>
     <td><Link className='btn btn-primary' to="/trip_update" state={entity} >Edit</Link> </td>
     <td ><DeleteFeedEntityButton  entity={entity} delete_feed_entity_callback={delete_feed_entity_callback}/></td>
@@ -75,6 +82,8 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
   return <tr className={css_class} key={entity.id} >
     {returnTime()}
     <td ><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
+    <td>{transit_realtime.Alert.Cause[entity.alert.cause]}</td>
+    <td>{transit_realtime.Alert.Effect[entity.alert.cause]}</td>
     <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
     <td ><DeleteFeedEntityButton  entity={entity} delete_feed_entity_callback={delete_feed_entity_callback}/></td>
   </tr>
@@ -226,9 +235,13 @@ export function Feed() {
           <tr>
             {feed_type === "alerts" ?
               <><th>Active Times</th>
-                <th>Entities</th></> :
+                <th>Entities affected</th>
+                <th>Cause</th>
+                <th>Effect</th>
+                </> :
               <>
                 <th>Trip ID</th>
+                <th>Trip state</th>
                 <th>Last modified</th>
               </>
             }

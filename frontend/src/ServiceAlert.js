@@ -146,7 +146,7 @@ export function ServiceAlert() {
             default:
                 return state;
         }
-    }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [{ "language": system_languages ? system_languages[0] : "en-ZA" }])
+    }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [{ "language": system_languages[0].tag  , "text":"" }])
 
 
     let start_date_obj = service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : null;
@@ -202,7 +202,7 @@ export function ServiceAlert() {
                 </select>
             </div>
 
-            <div className="form-group w-100" >
+            <div className="form-group d-flex flex-column gap-3 m-3 w-100" >
                 <div className='form-group w-100 d-flex flex-row gap-3 align-items-center justify-content-center'>
                     <label htmlFor='addDescButton'>Description/s</label>
                     <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
@@ -210,7 +210,7 @@ export function ServiceAlert() {
                     }} id='addDescButton'>Add Description</button>
                 </div>
                 <div className='container w-100 d-flex flex-column align-items-center gap-3'>
-                    {descriptions.map((desc, i) => <div key={i} className='d-flex flex-column align-items-left gap-1 form-group'>
+                    {descriptions.map((desc, i) => <div key={i} className='d-flex w-100 flex-column align-items-left gap-1 form-group'>
                         <textarea className="w-100 form-control" value={desc.text} onChange={(e) => {
                             changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
                         }}></textarea>
