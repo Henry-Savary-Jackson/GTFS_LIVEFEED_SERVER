@@ -224,9 +224,9 @@ export function Feed() {
   return (
     <div className="container d-flex flex-column align-items-center">
       <div className='container d-flex flex-row gap-3 justify-content-center'>
-        <button className='btn btn-secondary' onClick={(e) => { setFeedType("alerts") }}>⚠️Service Alerts</button>
-        <button className='btn btn-secondary' onClick={(e) => { setFeedType("updates") }}>🕛Trip Updates</button>
-        <button className='btn btn-secondary' onClick={(e) => { refreshFeeds() }}>🔄Refresh Service Alerts and Trip Updates</button>
+        <button className='btn btn-secondary' onClick={(e) => { setFeedType("alerts") }}>⚠️ List of service alerts</button>
+        <button className='btn btn-secondary' onClick={(e) => { setFeedType("updates") }}>🕛 List of trip updates</button>
+        <button className='btn btn-secondary' onClick={(e) => { refreshFeeds() }}>🔄Refresh service alerts and trip updates</button>
       </div >
       {feed_type == "updates" ? <TripUpdateFilter setNumber={setNumber} number={number} route={route} setRoute={setRoute} routes={routes} /> : <></>}
       <span className='text-center fs-4'>{feed_type == "updates" ? "List of all currently active Trip Updates: " : "List of all currently stored Service Alerts:"}</span>
