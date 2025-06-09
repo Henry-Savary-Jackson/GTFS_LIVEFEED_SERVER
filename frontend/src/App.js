@@ -97,8 +97,8 @@ function FeedEntityRow({ index, stoptimes = undefined, entity, delete_feed_entit
 function DeleteFeedEntityButton({ entity, delete_feed_entity_callback }) {
   return (<button className='btn btn-danger' onClick={(e) => {
     if (window.confirm("Are you sure you want to delete")) {
-      let deleteFromLog = window.confirm("Do you want to delete this entity from the log?")
-      delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts", deleteFromLog)
+      // let deleteFromLog = window.confirm("Do you want to delete this entity from the log?")
+      delete_feed_entity_callback(entity.id, entity.tripUpdate ? "updates" : "alerts", false)
     }
   }
   }>X</button>)
@@ -207,7 +207,7 @@ export function Feed() {
     if (stoptimes && stoptimes.length == 0) {
       resetStoptimes()
    }
-  }, [feed_type, stoptimes])
+  }, [feed_type ])
 
 
   async function delete_feed_entity_callback(id, type) {

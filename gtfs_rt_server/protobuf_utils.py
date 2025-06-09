@@ -72,7 +72,7 @@ def save_feed_entity_to_feed(
             feed.entity.insert(i, save_entity)
             return
 
-    feed.entity.append(save_entity)
+    feed.entity.insert(0,save_entity)
 
 
 def delete_feed_entity_from_feed(entity_id: str, feed: gtfs_rt.FeedMessage):
