@@ -1,6 +1,6 @@
-import { useContext,useEffect, useState } from 'react';
-import { getGTFSStatus, submitGTFS } from './Utils';
-import { alertsContext } from './Alerts';
+import { useContext, useEffect, useState } from 'react';
+import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
+import { alertsContext } from './Globals';
 
 export function UploadsGTFS() {
     let [files, setFiles] = useState([])
@@ -15,7 +15,7 @@ export function UploadsGTFS() {
 
         const abort = new AbortController()
         var interval = setInterval(async () => {
-            try {
+            await doActionWithAlert(async () => {
                 const status_result = await getGTFSStatus(abort.signal)
                 // careful
                 setStatus(status_result)
@@ -26,17 +26,12 @@ export function UploadsGTFS() {
                     clearInterval(interval)
                     setUploading(false)
                 }
-            } catch (error) {
+            }, null, () => {
                 setUploading(false)
                 clearInterval(interval)
-                if (error.title) {
-                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
-                } else {
-                    popUpAlert({ "message": `${error}`, "type": "error" })
-                }
-            }
-        }, 1000)
+            })
 
+        }, 1000)
         return () => {
             abort.abort()
             clearInterval(interval)
@@ -53,20 +48,14 @@ export function UploadsGTFS() {
                 return
             }
             let file = files[0]
-            try {
+            await doActionWithAlert(async () => {
                 await submitGTFS(file)
                 setUploading(true)
                 setStatus({})
-            }
-            catch (error) {
+            }, " ✅ Successfully uploaded the gtfs excel file.", (error) => {
                 console.error(error)
                 setUploading(false)
-                if (error.title) {
-                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
-                } else {
-                    popUpAlert({ "message": `${error}`, "type": "error" })
-                }
-            }
+            })
         }} >
             {status && status.status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={status.message || ""}></textarea>}
             {
