@@ -248,7 +248,8 @@ export async function doActionWithAlert(action, success_message,  popUpAlert, on
         if (success_message)
             popUpAlert({ "message": success_message, "type": "success" })
     } catch (error) {
-        onException(error)
+        if (onException)
+            onException(error)
         if (error.title) {
             popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
         } else {

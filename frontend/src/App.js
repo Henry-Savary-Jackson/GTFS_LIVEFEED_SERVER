@@ -226,7 +226,7 @@ export function Feed() {
   async function refreshFeeds() {
     set_feed("alerts")
     updateMirroredUpdates(await set_feed("updates"))
-    resetStoptimes()
+    await resetStoptimes()
   }
 
   async function resetStoptimes() {
