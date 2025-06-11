@@ -1,11 +1,10 @@
-import { useContext,useState, useEffect, useReducer } from 'react';
+import { useContext, useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
-import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages } from './Utils';
+import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages, doActionWithAlert } from './Utils';
 import { Link, useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
-import { alertsContext } from './Alerts';
-
+import { alertsContext } from './Globals';
 function convertServiceAlertDictToGTFS(dict) {
     let feedEntity = transit_realtime.FeedEntity.create()
     let alert = transit_realtime.Alert.create()
@@ -146,7 +145,7 @@ export function ServiceAlert() {
             default:
                 return state;
         }
-    }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [{ "language": system_languages[0].tag  , "text":"" }])
+    }, service_alert_inp && service_alert_inp.alert.descriptionText ? service_alert_inp.alert.descriptionText.translation : [{ "language": system_languages[0].tag, "text": "" }])
 
 
     let start_date_obj = service_alert_inp && service_alert_inp.alert.activePeriod.length > 0 && service_alert_inp.alert.activePeriod[0].start ? convertDateToDateTimeString(new Date(service_alert_inp.alert.activePeriod[0].start * 1000)) : null;
@@ -163,12 +162,12 @@ export function ServiceAlert() {
         changeInformedEntities({ "action": "save", "entity": entity })
     }
 
-    let [alerts, popUpAlert] = useContext(alertsContext)
+    let [alerts, popUpAlert] = useContext(alertsContext) 
 
     return <div className="d-flex flex-column align-items-center gap-5">
         <div className=' d-flex flex-column gap-3 position-fixed top-50 start-0'>
             <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
-            <button onClick={(e)=> { window.location.reload()}} className='btn btn-primary' to="/">Create a new service alert</button>
+            <button onClick={(e) => { window.location.reload() }} className='btn btn-primary' to="/">Create a new service alert</button>
         </div>
         <EntitySelectorTabs setInformedEntities={addInformedEntity} />
         {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
@@ -211,7 +210,7 @@ export function ServiceAlert() {
                 </div>
                 <div className='container w-100 d-flex flex-column align-items-center gap-3'>
                     {descriptions.map((desc, i) => <div key={i} className='d-flex w-100 flex-column align-items-left gap-1 form-group'>
-                        <textarea className="w-100 form-control" value={desc.text} onChange={(e) => {
+                        <textarea style={{ "minHeight": "18rem" }} className="w-100 form-control" value={desc.text} onChange={(e) => {
                             changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
                         }}></textarea>
                         <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
@@ -231,8 +230,7 @@ export function ServiceAlert() {
             </div>
         </div>
         <button className="btn btn-success " onClick={async (e) => {
-            try {
-
+            await doActionWithAlert(async () => {
                 let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")).valueOf() : undefined;
                 let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")).valueOf() : undefined;
                 let period = startDate || endDate ? { "start": start, "end": end } : undefined;
@@ -249,15 +247,8 @@ export function ServiceAlert() {
                 const service_alert_gtfs = convertServiceAlertDictToGTFS(object)
                 await sendServiceAlert(service_alert_gtfs)
                 location.state = service_alert_gtfs
-                popUpAlert({ "message": " ✅ Successfully saved Alert!", "type": "success" })
 
-            } catch (error) {
-                if (error.title) {
-                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
-                } else {
-                    popUpAlert({ "message": `${error}`, "type": "error" })
-                }
-            }
+            }, " ✅ Successfully saved Alert!", popUpAlert)
             // save object
         }} >Save</button>
         <button className='btn btn-danger' onClick={(e) => {

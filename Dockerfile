@@ -12,7 +12,6 @@ RUN pip3 install --upgrade pip && pip install -r requirements.txt
 RUN mkdir frontend 
 WORKDIR /flask-app/frontend
 COPY frontend/package.json .
-COPY frontend/package-lock.json . 
 RUN npm install  --only=production
 COPY frontend/public ./public
 COPY frontend/src ./src

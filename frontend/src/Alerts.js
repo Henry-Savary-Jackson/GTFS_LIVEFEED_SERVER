@@ -1,6 +1,6 @@
-import { createContext, useReducer } from "react";
+import {  useReducer } from "react";
 import {v4} from "uuid"
-export var alertsContext = createContext([])
+import { alertsContext } from "./Globals";
 
 export function Alert({ id, deleteAlertCallback, messageInfo, timeout, type = "default" }) {
 

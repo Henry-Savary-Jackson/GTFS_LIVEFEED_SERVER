@@ -38,3 +38,4 @@ instance
 **.pem
 **.log
 **/**.log 
+**/**.bin

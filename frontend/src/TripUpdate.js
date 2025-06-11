@@ -1,11 +1,10 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
-
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { useLocation, Link } from 'react-router-dom'
 import { TripSearch } from './Search';
-import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate, convertTimeStrToUNIXEpoch } from './Utils';
+import { getServices, convertDateToTimeString, getRoutes, getStopTimesofTrip, sendTripUpdate, convertTimeStrToUNIXEpoch, doActionWithAlert } from './Utils';
 import { v4 } from 'uuid'
-import { alertsContext } from './Alerts';
+import { alertsContext } from './Globals';
 
 
 export function convertDictToGTFSTripUpdate(dict) {
@@ -53,10 +52,10 @@ export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
 
     for (const stoptimeUpdate of stopTimeUpdates) {
         const sequence = stoptimeUpdate.stopSequence
-        if ('arrival' in stoptimeUpdate && 'delay' in stoptimeUpdate.arrival) {
+        if ( stoptimeUpdate.arrival   &&   stoptimeUpdate.arrival.delay) {
             stoptimes_output[sequence].delay = Math.floor(stoptimeUpdate.arrival.delay / 60)
         }
-        if ('arrival' in stoptimeUpdate && 'time' in stoptimeUpdate.arrival) {
+        if (stoptimeUpdate.arrival   &&  stoptimeUpdate.arrival.time) {
             stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000))
         }
         if ('scheduleRelationship' in stoptimeUpdate && stoptimeUpdate.scheduleRelationship === transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]) {
@@ -86,7 +85,7 @@ function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
                 changeDelayStop(Number(e.currentTarget.value), stoptime.stopSequence)
         }} value={(!stoptime.onTime && stoptime.delay) || 0} />
             <span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span></td>
-        <td> Total Delay:{stoptime.totalDelay || 0} minutes </td>
+        <td> Total Delay:{ stoptime.totalDelay|| 0} minutes </td>
         <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": stoptime.stopSequence }) }} checked={stoptime.skip || false} /></td>
     </tr>
 }
@@ -122,6 +121,29 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 
 }
 
+
+export function getTotalTime(stoptimes) {
+    let totalDelay = 0
+    if (!stoptimes || stoptimes.length <= 0)
+        return 0
+    stoptimes.forEach(stoptime => {
+        totalDelay += addTotalTime(stoptime)
+
+    });
+    return totalDelay
+}
+
+export function addTotalTime(stoptime) {
+    let totalDelay = 0
+    if ("newTime" in stoptime && !stoptime.onTime) {
+        const oldTime = convertTimeStrToUNIXEpoch(stoptime.time)
+        const newTime = convertTimeStrToUNIXEpoch(stoptime.newTime)
+        totalDelay += Math.floor(( newTime - oldTime)/60)
+    } else if ("delay" in stoptime) {
+        totalDelay += stoptime.delay
+    }
+    return totalDelay
+}
 
 export function TripUpdate() {
     const location = useLocation()
@@ -165,13 +187,7 @@ export function TripUpdate() {
             if ("stopSequence" in action && action.stopSequence === i) {
                 newValue = { ...newValue, ...action }
             }
-            if ("newTime" in newValue && !newValue.onTime) {
-                const oldTime = convertTimeStrToUNIXEpoch(newValue.time)
-                const newTime = convertTimeStrToUNIXEpoch(newValue.newTime)
-                totalDelay += Math.floor((newTime - oldTime) / 60)
-            } else if ("delay" in newValue) {
-                totalDelay += newValue.delay
-            }
+            totalDelay += addTotalTime(newValue)
             if (newValue.onTime)
                 totalDelay = 0
             newValue.totalDelay = totalDelay
@@ -193,7 +209,7 @@ export function TripUpdate() {
     return <div className='container flex-column d-flex align-items-center gap-5'>
         <div className=' d-flex flex-column gap-3 position-fixed top-50 start-0'>
             <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
-            <button onClick={(e)=> { window.location.reload()}} className='btn btn-primary' to="/">Create a new trip update</button>
+            <button onClick={(e) => { window.location.reload() }} className='btn btn-primary' to="/">Create a new trip update</button>
         </div>
         <TripSearch routes={routes} services={services} setTripID={onClickTripID} />
         <div className='fs-2'>{trip_id}</div>
@@ -204,27 +220,20 @@ export function TripUpdate() {
         </div>}
         {stoptimes.length > 0 ? <StopTimeTable disabled={cancelled} stoptimes={stoptimes} dispatchStopTimesChange={disatchChangeStopTimes} /> : ''}
         {trip_id && <button className="btn btn-success" onClick={async (e) => {
-            let object = {
-                "id": id,
-                "trip_id": trip_id,
-                "stoptimes": stoptimes,
-                "cancelled": cancelled,
-            }
-            try {
+            await doActionWithAlert(async () => {
+                let object = {
+                    "id": id,
+                    "trip_id": trip_id,
+                    "stoptimes": stoptimes,
+                    "cancelled": cancelled,
+                }
                 const trip_update_gtfs = convertDictToGTFSTripUpdate(object)
                 await sendTripUpdate(trip_update_gtfs)
-                popUpAlert({ "message": "✅ Sucessfully saved", "type": "success" })
                 location.state = trip_update_gtfs
-            } catch (error) {
-                if (error.title) {
-                    popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
-                } else {
-                    popUpAlert({ "message": `${error}`, "type": "error" })
-                }
             }
-
-            // save object
-        }} >Save</button>}
+            ,"✅ Sucessfully saved Trip Update", popUpAlert)
+        }
+        } >Save</button>}
         <button className='btn btn-danger' onClick={(e) => {
             if (window.confirm("Are you sure you want to cancel? You might lose unsaved changes"))
                 window.location = "/"

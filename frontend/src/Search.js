@@ -85,7 +85,7 @@ export function TripSearch({ setTripID, routes, services }) {
 
 export function TripUpdateFilter({ setNumber, route, number, setRoute, routes }) {
     return <div className='container d-flex flex-column align-items-center gap-3'>
-        <span className='fs-4 text-center'>Filter trips:</span>
+        <span className='fs-4 text-center'>Filter trips :</span>
         <TripIdSeacher number={number} setSearchNumber={setNumber} />
         <RouteSelect route={route} setRoute={setRoute} routes={routes} />
     </div>
@@ -96,6 +96,7 @@ export function StopSearch({ finish_search_callback }) {
 
     let [stop_name, setStopName] = useState("")
     let [stops, setStops] = useState([])
+    let [stop_id, setStopId] = useState("")
     const searchState = useRef(false)
 
     async function populateStops(stop_name_new) {
@@ -104,15 +105,15 @@ export function StopSearch({ finish_search_callback }) {
                 clearTimeout(timeout)
             searchState.current = true
             try {
-                setStops(await getStops(stop_name_new))
-
+                let stops  = await getStops(stop_name_new)
+                setStops(stops)
+                setStopId(stops.length>0? stops[0].stop_id : "")
             } finally {
                 searchState.current = false
             }
         }, 250)
 
     }
-
 
     async function addStop(stop_id) {
         setStopName("")
@@ -128,8 +129,13 @@ export function StopSearch({ finish_search_callback }) {
         }} />
         <label htmlFor='stop-search-results'>Stops found:</label>
         <select id="stop-search-results" className='form-control'>
-            {stops.map((val, i) => <option onClick={(e) => { addStop(val.stop_id) }} key={i}>{val.stop_name}</option>)}
+            {stops.map((val, i) => <option enClick={(e) => { setStopId(val.stop_id) }} key={i}>{val.stop_name}</option>)}
         </select>
+        <button className='btn btn-primary' disabled={!Boolean(stop_id)} onClick={(e)=>{
+            if (stop_id){
+                addStop(stop_id)
+            }
+        }}>Add Stop</button>
     </div>
 }
 

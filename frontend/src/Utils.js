@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { transit_realtime } from "gtfs-realtime-bindings"
+import { useContext } from 'react';
 
-export var routeIDstoNames  = new Map()
+export var routeIDstoNames = new Map()
 async function performRequest(callback) {
     try {
         return await callback()
@@ -91,7 +92,7 @@ export async function getRoutes() {
 }
 
 export async function getRoutesIDToNames() {
-        (await getRoutes()).forEach((route)=> { routeIDstoNames[route.route_id] = route.route_long_name})
+    (await getRoutes()).forEach((route) => { routeIDstoNames[route.route_id] = route.route_long_name })
 }
 
 export async function getFeedMessage(type) {
@@ -239,6 +240,21 @@ export async function getGTFSStatus(signal) {
         let response = await axios.get("/gtfs/status", { signal: signal, withCredentials: true })
         return response.data
     })
+}
+
+export async function doActionWithAlert(action, success_message,  popUpAlert, onException) {
+    try {
+        await action()
+        if (success_message)
+            popUpAlert({ "message": success_message, "type": "success" })
+    } catch (error) {
+        onException(error)
+        if (error.title) {
+            popUpAlert({ "message": `${error.title}:\n${error.message}`, "type": "error" })
+        } else {
+            popUpAlert({ "message": `${error}`, "type": "error" })
+        }
+    }
 }
 
 
