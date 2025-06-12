@@ -1,6 +1,6 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
 import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert } from './Utils'
-import { getTotalTime, getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
+import { addTotalTime, getTotalTime, getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserContext, RolesContext, alertsContext } from './Globals';
@@ -34,19 +34,33 @@ function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_
   let totalDelay = getTotalTime(stop_times_at_index)
   let cancelledStops = stop_times_at_index ? stop_times_at_index.filter((stoptime) => stoptime.skip).map((stoptime) => stoptime.stopId) : []
 
+  let current_delay = 0
+  if (stop_times_at_index){
+    for (const stoptime of stop_times_at_index){
+      current_delay += addTotalTime(stoptime) 
+      if (convertTimeStrToDate(stoptime.time).valueOf()/1000 + current_delay* 60 >= now.valueOf()/1000 )
+        break;
+    }
+  }
+
   let [cancelled, setCancelled] = useState((entity && entity.tripUpdate.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"]) || false)
   let [showDetail, setShowDetail] = useState(false)
 
 
-  if (first && last) {
-    if (first >= now) {
+  let first_minutes = first && first.valueOf()/(1000*60)
+  let last_minutes = last && last.valueOf()/(1000*60) 
+  let now_minutes = now.valueOf()/(1000*60)
+
+  // add delay 
+  if (first_minutes && last_minutes) {
+    if ( current_delay + first_minutes >= now_minutes ) {
       css_class = "table-warning"
       trip_state = "Trip yet to start"
-    } else if (last > now && first < now) {
+    } else if (last_minutes+ current_delay > now_minutes && first_minutes+ current_delay < now_minutes) {
       css_class = "table-success"
       trip_state = "Trip in progress"
-    } else if (last > now && first < now) {
-    } else if (last <= now) {
+    } else if (last_minutes +current_delay > now_minutes && first_minutes + current_delay < now_minutes) {
+    } else if (last_minutes +current_delay <= now_minutes) {
       css_class = "table-danger"
       trip_state = "Trip finished"
     }

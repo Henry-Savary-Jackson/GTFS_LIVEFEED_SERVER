@@ -107,7 +107,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
         <tbody>
             {stoptimes.map((stoptime) => {
                 let status_stop = "Passed"
-                if (stoptime.time >= current_time_str && !before) {
+                if (convertTimeStrToUNIXEpoch(stoptime.time) + stoptime.totalDelay*60 >= convertTimeStrToUNIXEpoch(current_time_str) && !before) {
                     before = true
                     status_stop = "🚆"
 
