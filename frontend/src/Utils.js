@@ -39,8 +39,13 @@ export async function logout() {
 
 export async function getStopTimesofTrip(trip_id) {
     return await performRequest(async () => {
+        if (isStopTimesInCache(trip_id)){
+            return await getStopTimesFromCache(trip_id)
+        }
         let response = await axios.get("/db/get_stop_times_trip", { params: { "tripid": trip_id } })
-        return response.data.map((val, i) => { return { stopSequence: Number(val[0]), stopId: val[1], time: val[2] }; });
+        const stoptimes=  response.data.map((val, i) => { return { stopSequence: Number(val[0]), stopId: val[1], time: val[2] }; });
+        saveStopTimeIntoCache(stoptimes)
+        return stoptimes
     })
 }
 export function getHtmlForEntity(entity) {
@@ -242,7 +247,7 @@ export async function getGTFSStatus(signal) {
     })
 }
 
-export async function doActionWithAlert(action, success_message,  popUpAlert, onException) {
+export async function doActionWithAlert(action, success_message, popUpAlert, onException) {
     try {
         await action()
         if (success_message)
@@ -258,7 +263,36 @@ export async function doActionWithAlert(action, success_message,  popUpAlert, on
     }
 }
 
+export function isStopTimesInCache(trip_id) {
+    return trip_id in tripIdToStopTimesCache
+}
 
+
+export function saveStopTimeIntoCache(trip_id, stoptimes) {
+    tripIdToStopTimesCache[trip_id] = { "stoptime": stoptimes, "timestamp": Date.now().valueOf() }
+}
+
+export async function getStopTimesFromCache(trip_id) {
+    let mapResult = tripIdToStopTimesCache[trip_id]
+    const now = Date.now().valueOf()
+    if (mapResult.timestamp + 5 * 60 * 1000 < now) {
+        if (await getTimeSinceLastGTFS() > now) {
+            mapResult.stoptime = await getStopTimesofTrip(trip_id)
+        }else{
+            mapResult.timestamp = now
+        }
+    }
+    return mapResult.stoptime
+}
+
+export async function getTimeSinceLastGTFS() {
+    return await performRequest(async () => {
+        let response = await axios.get("/gtfs/time_since_last_schedule")
+        return parseFloat(response.data)
+    })
+}
+
+export var tripIdToStopTimesCache = new Map()
 
 export var createLangObject = (long_name, tag) => { return { "long_name": long_name, "tag": tag } }
 export var system_languages = [

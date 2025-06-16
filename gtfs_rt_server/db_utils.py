@@ -164,7 +164,7 @@ def get_stoptimes_of_trip(trip_id, include_time=True):
             ),
             {"trip_id": trip_id},
         ).fetchall()
-        return [list(stoptime) for stoptime in stoptimes]
+        return [stoptime._asdict() for stoptime in stoptimes]
 
 
 def route_exists(route_id):

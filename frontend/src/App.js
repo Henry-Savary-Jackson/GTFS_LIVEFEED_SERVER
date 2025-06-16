@@ -368,8 +368,8 @@ export function Main({ logout_cookie }) {
     <a className=' btn btn-danger' onClick={async (e) => {
       try {
         e.preventDefault()
-        logout_cookie()
         await logout()
+        logout_cookie()
         window.location.pathname = "/"
       } catch (error) {
         if (error.title) {

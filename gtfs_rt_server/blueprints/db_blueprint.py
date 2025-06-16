@@ -90,4 +90,3 @@ def trip_updates_by_routes_endp():
 @db_bp.get("/trip_updates_by_stops")
 def trip_updates_by_stops_endp():
     return jsonify(get_trip_updates_by_stops().to_dict(orient="records"))
-

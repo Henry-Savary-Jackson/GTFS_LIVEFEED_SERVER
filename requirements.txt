@@ -13,3 +13,4 @@ argon2-cffi
 redis
 gunicorn
 Flask-Security
+Flask-APScheduler

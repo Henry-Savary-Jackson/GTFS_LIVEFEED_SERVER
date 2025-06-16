@@ -2,6 +2,7 @@ import os
 
 FILE_DIR = os.path.dirname(__file__)
 
+from apscheduler.jobstores.redis import RedisJobStore
 
 class Config(object):
     FLASK_ENV = "production"
@@ -19,15 +20,11 @@ class Config(object):
     )
     GTFS_VALIDATOR_PATH = os.path.join(SERVER_FILES, "gtfs-validator-6.0.0-cli.jar")
     FEEDS_LOCATION = SHARED_FOLDER 
-    CELERY = dict(
-        track_started=True,
-        broker_url=f"redis://{os.getenv("REDIS_HOST") or "localhost"}:{os.getenv("REDIS_PORT") or 6379}/0",
-        cache_backend=f"redis://{os.getenv("REDIS_HOST") or "localhost"}:{os.getenv("REDIS_PORT") or 6379}/0",
-        result_backend=f"redis://{os.getenv("REDIS_HOST") or "localhost"}:{os.getenv("REDIS_PORT") or 6379}/0",
-        accept_content=["json"],
-        task_serializer="json",
-        result_serializer="json",
-    )
+    REDIS_HOST=os.getenv("REDIS_HOST") or "localhost"
+    REDIS_PORT = os.getenv("REDIS_PORT") or 6379 
+    SCHEDULER_JOBSTORES={ 
+        "default":RedisJobStore(jobs_key='jobs', run_times_key='jobs_runs', host=REDIS_HOST, port=REDIS_PORT)
+    } 
     WTF_CSRF_ENABLED = True
     LOGGING_FILE_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "server.log")
     GTFS_VALIDATOR_RESULT_PATH = os.path.join(SHARED_FOLDER, "result")

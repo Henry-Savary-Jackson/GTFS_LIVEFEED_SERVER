@@ -9,22 +9,19 @@ from wtforms import (
     SubmitField,
     FileField,
 )
-from gtfs_rt_server import db
+import datetime
+from gtfs_rt_server import db, scheduler
 from flask_login import login_required
 from flask_wtf import FlaskForm
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
 import celery
-from celery.states import *
-from celery import current_task
 from flask import current_app
-from celery.result import AsyncResult
 from tempfile import NamedTemporaryFile, SpooledTemporaryFile
 import os
 
 gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 
 
-@celery.shared_task()
 def generate_gtfs_from_xlsx(excel_file_path):
     print("stating generate gtfs xlsx task")
     # use this method as a helper to update the tasks metainfo to contain status and messages
@@ -55,6 +52,7 @@ def generate_gtfs_from_xlsx(excel_file_path):
                 ##  wrtie data from temporary file to file on server permanently
                 gtfs_file.write(named_temp_zip.read())
             add_gtfs_tables_to_db(db.engine, df_dict)
+            current_app.config["time_since_last_gtfs"] =  datetime.datetime.now().timestamp() 
             send_status_to_task(status="done", message=" Finished adding tabled to db")
         else:
             validation_report = True
@@ -109,3 +107,7 @@ def upload_gtfs():
 
     return "No file given", 400
     ## give error if errors in report.json
+
+@gtfs_blueprint.get("/time_since_last_schedule")
+def time_since_last_upload():
+    return current_app.config["time_since_last_gtfs"]

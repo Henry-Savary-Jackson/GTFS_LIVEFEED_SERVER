@@ -6,6 +6,8 @@ from flask_wtf import CSRFProtect
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import json
+from flask_apscheduler import APScheduler 
+from apscheduler.jobstores.redis import  RedisJobStore 
 import os
 from pathlib import Path
 from typing import Optional
@@ -15,7 +17,10 @@ from flask.logging import default_handler
 from flask import has_request_context, request
 from logging import getLogger, FileHandler, DEBUG
 import logging
+from threading import Lock
+lock = Lock()
 db = SQLAlchemy()
+scheduler = APScheduler()
 
 from gtfs_rt_server.protobuf_utils import save_feed_to_file,  delete_expired_trip_updates
 # from https://flask.palletsprojects.com/en/stable/logging/#injecting-request-information 
@@ -74,7 +79,7 @@ def create_login_manager(app):
     @login_manager.unauthorized_handler
     def unauthorized():
     # do stuff
-        raise BadRequest("User is not logged in or is unauthorized.")  
+        raise BadRequest("User is not logged in or is unauthorized. Please login again with the correct credentials")  
 
 
     login_manager.user_loader(get_user_by_username)
@@ -118,13 +123,14 @@ def init_celery_app(app):
 
     @celery_app.task(name="periodic_remove_expired")
     def periodic_remove_expired():
-        app.logger.debug("removing expired trip updates")
-        print("removing expired trip updates")
-        delete_expired_trip_updates(app.config["feed_updates"]) # why not changing object
-        save_feed_to_file(app.config["feed_updates"], Path(app.config["FEEDS_LOCATION"]) / "updates.bin")
+        with lock:
+            app.logger.debug("removing expired trip updates")
+            print("removing expired trip updates")
+            delete_expired_trip_updates(app.config["feed_updates"]) # why not changing object
+            save_feed_to_file(app.config["feed_updates"], app.config["feed_updates_location"])
     
 
-    # celery_app.add_periodic_task(20, periodic_remove_expired  )
+    # celery_app.add_periodic_task(30*60*60, periodic_remove_expired  )
 
     celery_app.set_default()
     app.extensions["celery"] = celery_app
@@ -149,7 +155,8 @@ def init_csrf(app):
 def init_CORS(app):
     return CORS(app,supports_credentials=True) 
 
-
+def init_scheduler(app):
+    scheduler.init_app(app)
 
 def init_app():
     global db
@@ -161,18 +168,25 @@ def init_app():
     app.static_folder = app.config["STATIC_FOLDER"]
     # get different feeds from files for alerts and stoptimes and vehicle positions
 
-    app.config["feed_alerts"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "alerts.bin" )
-    app.config["feed_updates"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "updates.bin")
-    app.config["feed_positions"] = get_feed_object_from_file(Path(app.config["FEEDS_LOCATION"]) / "positions.bin")
+    app.config["feed_alerts_location"] = Path(app.config["FEEDS_LOCATION"]) / "alerts.bin" 
+    app.config["feed_updates_location"] = Path(app.config["FEEDS_LOCATION"]) / "updates.bin"
+    app.config["feed_positions_location"] = Path(app.config["FEEDS_LOCATION"]) / "positions.bin"
+
+    app.config["feed_alerts"] = get_feed_object_from_file(app.config["feed_alerts_location"])
+    app.config["feed_updates"] = get_feed_object_from_file(app.config["feed_updates_location"])
+    app.config["feed_positions"] = get_feed_object_from_file(app.config["feed_positions_location"])
     login_manager = create_login_manager(app)
     register_blueprints(app)
+
 
     init_db(app, db)
     init_CORS(app)
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
     create_logger(app)
+    init_scheduler(app)
     create_error_handlers(app)
-    celery_app = init_celery_app(app)
+    current_app.config["time_since_last_gtfs"] = datetime.datetime.now().timestamp() 
+    scheduler.start() # start scheduler 
     return app
 

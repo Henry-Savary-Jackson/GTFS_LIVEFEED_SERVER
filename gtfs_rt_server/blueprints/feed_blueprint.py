@@ -1,5 +1,6 @@
 import json
-from gtfs_rt_server.protobuf_utils import verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
+from gtfs_rt_server.protobuf_utils import delete_expired_trip_updates, get_feed_object_from_file, verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
+from gtfs_rt_server import lock, scheduler
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from google.protobuf.message import DecodeError, EncodeError
 from gtfs_rt_server.db_utils import delete_alert_from_log, delete_trip_update_from_log ,add_alert_to_db, add_trip_update_to_db
@@ -14,12 +15,14 @@ import datetime
 
 @feed_bp.get("/<type>")
 def get_feed(type):
-
-    feed_object = current_app.config["feed_alerts"]
-    if type=="updates":
-        feed_object = current_app.config["feed_updates"]
-    elif type == "positions":
-        feed_object = current_app.config["feed_positions"]
+    feed_object = None 
+    with lock:
+        if type=="updates":
+            current_app.config["feed_updates"] = get_feed_object_from_file( current_app.config["feed_updates_location"])
+        elif type == "alerts":
+            current_app.config["feed_alerts"] = get_feed_object_from_file(current_app.config["feed_alerts_location"])
+        else:
+            current_app.config["feed_positions"] = get_feed_object_from_file(current_app.config["feed_positions_location"])
 
     feed_object.header.timestamp =int(datetime.datetime.now().timestamp())
 
@@ -31,20 +34,21 @@ def get_feed(type):
 @login_required
 def trip_update():
     try:
-        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
-        feed_object = current_app.config["feed_updates"]
-        entity = gtfs_rt.FeedEntity()
-        entity.ParseFromString(request.data)
-        entity_dict = MessageToDict(entity) 
-        # print("on server:",entity_dict)
-        if not is_feed_entity_trip_update(entity_dict):
-            return "Entity is not of type TripUpdate", 400
-        verify_trip_update(entity_dict["tripUpdate"])
-        save_feed_entity_to_feed(entity, feed_object)
-        save_feed_to_file(feed_object,feed_location ) 
-        if "LogEntity"  in request.headers and request.headers["LogEntity"]:
-            add_trip_update_to_db(entity_dict["id"], entity_dict["tripUpdate"])
-        return "Successful"
+        with lock:
+            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
+            feed_object = current_app.config["feed_updates"]
+            entity = gtfs_rt.FeedEntity()
+            entity.ParseFromString(request.data)
+            entity_dict = MessageToDict(entity) 
+            # print("on server:",entity_dict)
+            if not is_feed_entity_trip_update(entity_dict):
+                return "Entity is not of type TripUpdate", 400
+            verify_trip_update(entity_dict["tripUpdate"])
+            save_feed_entity_to_feed(entity, feed_object)
+            save_feed_to_file(feed_object,feed_location ) 
+            if "LogEntity"  in request.headers and request.headers["LogEntity"]:
+                add_trip_update_to_db(entity_dict["id"], entity_dict["tripUpdate"])
+            return "Successful"
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
     except ValueError as verify_error:
@@ -56,21 +60,22 @@ def trip_update():
 def service_alert():
     
     try:
-        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
-        feed_object = current_app.config["feed_alerts"]
-        entity = gtfs_rt.FeedEntity()
-        entity.ParseFromString(request.data)
-        entity_dict = MessageToDict(entity) 
-        # print("on server:",entity_dict)
-        if not is_feed_entity_alert(entity_dict):
-            return "Entity is not of type Alert", 400
-        verify_service_alert(entity_dict["alert"])
-        save_feed_entity_to_feed(entity, feed_object)
-        save_feed_to_file(feed_object, feed_location) 
-        # add to log
-        if "LogEntity"  in request.headers and request.headers["LogEntity"]:
-            add_alert_to_db(entity_dict["id"], entity_dict["alert"])
-        return "Successful"
+        with lock:
+            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
+            feed_object = current_app.config["feed_alerts"]
+            entity = gtfs_rt.FeedEntity()
+            entity.ParseFromString(request.data)
+            entity_dict = MessageToDict(entity) 
+            # print("on server:",entity_dict)
+            if not is_feed_entity_alert(entity_dict):
+                return "Entity is not of type Alert", 400
+            verify_service_alert(entity_dict["alert"])
+            save_feed_entity_to_feed(entity, feed_object)
+            save_feed_to_file(feed_object, feed_location) 
+            # add to log
+            if "LogEntity"  in request.headers and request.headers["LogEntity"]:
+                add_alert_to_db(entity_dict["id"], entity_dict["alert"])
+            return "Successful"
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
     except ValueError as verify_error:
@@ -82,17 +87,18 @@ def service_alert():
 @login_required
 def vehicle_postion():
     try:
-        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
-        feed_object = current_app.config["feed_positions"]
-        entity = gtfs_rt.FeedEntity()
-        entity.ParseFromString(request.data)
-        entity_dict = MessageToDict(entity) 
-        if not is_feed_entity_position(entity_dict):
-            return "Entity is not of type VehiclePosition", 400
-        verify_vehicle_position(entity_dict["vehicle"])  ## TODO: check this
-        save_feed_entity_to_feed(entity, feed_object)
-        save_feed_to_file(feed_object, feed_location) 
-        return "Successful"
+        with lock:
+            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
+            feed_object = current_app.config["feed_positions"]
+            entity = gtfs_rt.FeedEntity()
+            entity.ParseFromString(request.data)
+            entity_dict = MessageToDict(entity) 
+            if not is_feed_entity_position(entity_dict):
+                return "Entity is not of type VehiclePosition", 400
+            verify_vehicle_position(entity_dict["vehicle"])  ## TODO: check this
+            save_feed_entity_to_feed(entity, feed_object)
+            save_feed_to_file(feed_object, feed_location) 
+            return "Successful"
     except DecodeError as d_err :
         return f"Invalid Protobuf Message format:\n{d_err}",400
     except ValueError as verify_error:
@@ -104,28 +110,37 @@ def vehicle_postion():
 @feed_bp.delete("/<type_entity>/delete_feed_entity")
 @login_required
 def delete_feed_entity(type_entity):
+    with lock:
+        feed_object = current_app.config["feed_alerts"]
+        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
+        if type_entity=="updates":
+            feed_object = current_app.config["feed_updates"]
+            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
+        elif type_entity == "positions":
+            feed_object = current_app.config["feed_positions"]
+            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
 
-    feed_object = current_app.config["feed_alerts"]
-    feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
-    if type_entity=="updates":
-        feed_object = current_app.config["feed_updates"]
-        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
-    elif type_entity == "positions":
-        feed_object = current_app.config["feed_positions"]
-        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
 
-
-    request_data = json.loads(request.data.decode())
-    if "entity_id" not in request_data:
-        return "No entity ID given " , 400
-    entity_id = request_data["entity_id"] 
-    delete_from_log = request_data["deleteFromLog"] 
-    delete_feed_entity_from_feed(entity_id, feed_object)
-    save_feed_to_file(feed_object, feed_location)
-    if delete_from_log:
-        if type_entity == "alerts":
-            delete_alert_from_log(entity_id)
-        else:
-            delete_trip_update_from_log(entity_id)
+        request_data = json.loads(request.data.decode())
+        if "entity_id" not in request_data:
+            return "No entity ID given " , 400
+        entity_id = request_data["entity_id"] 
+        delete_from_log = request_data["deleteFromLog"] 
+        delete_feed_entity_from_feed(entity_id, feed_object)
+        save_feed_to_file(feed_object, feed_location)
+        if delete_from_log:
+            if type_entity == "alerts":
+                delete_alert_from_log(entity_id)
+            else:
+                delete_trip_update_from_log(entity_id)
 
     return "Successful"
+
+@scheduler.task("interval", id="remove_old_trip_updates", hour="*")
+def periodic_remove_expired():
+    with lock:
+        app.logger.debug("removing expired trip updates")
+        print("removing expired trip updates")
+        delete_expired_trip_updates(app.config["feed_updates"]) # why not changing object
+        save_feed_to_file(app.config["feed_updates"], app.config["feed_updates_location"])
+    
