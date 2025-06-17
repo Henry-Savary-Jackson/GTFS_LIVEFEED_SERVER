@@ -1,11 +1,10 @@
 
 
-from gtfs_rt_server import  init_app
+from gtfs_rt_server import  init_app, socketio
 from gtfs_rt_server.db_utils import insert_user, add_role, get_user_by_username
 from dotenv import load_dotenv
 load_dotenv()
 app = init_app()
-celery_app = app.extensions["celery"]
 
 with app.app_context():
     add_role("admin")

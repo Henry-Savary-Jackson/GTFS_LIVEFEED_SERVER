@@ -1,8 +1,9 @@
 from flask_login import LoginManager
+from flask_socketio import SocketIO
 import datetime
+from flask_wtf import CSRFProtect
 from werkzeug.exceptions import HTTPException, BadRequest, InternalServerError
 from flask import Flask, redirect
-from flask_wtf import CSRFProtect
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import json
@@ -18,9 +19,12 @@ from flask import has_request_context, request
 from logging import getLogger, FileHandler, DEBUG
 import logging
 from threading import Lock
+from flask_redis import FlaskRedis 
 lock = Lock()
 db = SQLAlchemy()
 scheduler = APScheduler()
+redis_client = FlaskRedis()
+socketio = SocketIO()
 
 from gtfs_rt_server.protobuf_utils import save_feed_to_file,  delete_expired_trip_updates
 # from https://flask.palletsprojects.com/en/stable/logging/#injecting-request-information 
@@ -88,48 +92,40 @@ def create_login_manager(app):
 
 
 ## from https://flask.palletsprojects.com/en/stable/patterns/celery/
-def init_celery_app(app):
+# def init_celery_app(app):
 
-    class FlaskTask(Task):
+#     class FlaskTask(Task):
 
-        status_dict = {"status":"starting", "message":"starting..."}
+#         status_dict = {"status":"starting", "message":"starting..."}
 
-        def on_success(self, retval, task_id, args, kwargs):
-        # Update result with custom structure
-            super().on_success(retval, task_id, args, kwargs)
-            self.update_task_status(task_id, "success", f"{retval}\nDone")
+#         def on_success(self, retval, task_id, args, kwargs):
+#         # Update result with custom structure
+#             super().on_success(retval, task_id, args, kwargs)
+#             self.update_task_status(task_id, "success", f"{retval}\nDone")
 
-        def on_failure(self, exc, task_id, args, kwargs, einfo):
-            # Handle failure and update status and message
-            super().on_failure(exc, task_id, args, kwargs, einfo)
-            self.update_task_status(task_id, "error", str(exc))
+#         def on_failure(self, exc, task_id, args, kwargs, einfo):
+#             # Handle failure and update status and message
+#             super().on_failure(exc, task_id, args, kwargs, einfo)
+#             self.update_task_status(task_id, "error", str(exc))
 
-        def update_task_status(self, task_id, status, message, **kwargs):
-            result = self.AsyncResult(task_id)
-            self.status_dict.update({"status": status, "message": f"{ result.info["message"] if result.info and "message" in result.info else ''}\n{message}", **kwargs})
-            result.backend.store_result(task_id, self.status_dict , status)
+#         def update_task_status(self, task_id, status, message, **kwargs):
+#             result = self.AsyncResult(task_id)
+#             self.status_dict.update({"status": status, "message": f"{ result.info["message"] if result.info and "message" in result.info else ''}\n{message}", **kwargs})
+#             result.backend.store_result(task_id, self.status_dict , status)
         
-        def __call__(self, *args: object, **kwargs: object) -> object:
-            try :
-                with app.app_context():
-                    return self.run(*args, **kwargs)
-            except Exception as e:
-                # Handle any errors
-                raise Ignore(f"Task failed due to exception:{e}")
+#         def __call__(self, *args: object, **kwargs: object) -> object:
+#             try :
+#                 with app.app_context():
+#                     return self.run(*args, **kwargs)
+#             except Exception as e:
+#                 # Handle any errors
+#                 raise Ignore(f"Task failed due to exception:{e}")
 
-    celery_app = Celery(app.name, task_cls=FlaskTask)
-    celery_app.config_from_object(app.config["CELERY"])
+#     celery_app = Celery(app.name, task_cls=FlaskTask)
+#     celery_app.config_from_object(app.config["CELERY"])
 
 
-    @celery_app.task(name="periodic_remove_expired")
-    def periodic_remove_expired():
-        with lock:
-            app.logger.debug("removing expired trip updates")
-            print("removing expired trip updates")
-            delete_expired_trip_updates(app.config["feed_updates"]) # why not changing object
-            save_feed_to_file(app.config["feed_updates"], app.config["feed_updates_location"])
     
-
     # celery_app.add_periodic_task(30*60*60, periodic_remove_expired  )
 
     celery_app.set_default()
@@ -158,6 +154,12 @@ def init_CORS(app):
 def init_scheduler(app):
     scheduler.init_app(app)
 
+def init_redis_client(app):
+    redis_client.init_app(app)
+
+def init_sockiet_io(app):
+    socketio.init_app(app, path="/ws", message_queue=app.config["REDIS_URL"])
+
 def init_app():
     global db
 
@@ -184,9 +186,12 @@ def init_app():
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
     create_logger(app)
+    # init_redis_client(app)
     init_scheduler(app)
     create_error_handlers(app)
-    current_app.config["time_since_last_gtfs"] = datetime.datetime.now().timestamp() 
+    init_sockiet_io(app)
+    app.config["time_since_last_gtfs"] = datetime.datetime.now().timestamp() 
     scheduler.start() # start scheduler 
     return app
+    # must run socket io with app
 

@@ -2,11 +2,9 @@
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from flask_login import login_required, login_user, current_user, logout_user
 from wtforms import BooleanField, StringField,PasswordField, validators, SubmitField
-from flask_wtf import FlaskForm
 from gtfs_rt_server.db_utils import insert_user, password_hasher,delete_user_with_username 
 from gtfs_rt_server.schema import get_user_by_username
 import argon2
-from flask_wtf.csrf import generate_csrf
 from flask_security import roles_required
 from werkzeug.exceptions import BadRequest
 

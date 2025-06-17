@@ -10,28 +10,28 @@ from wtforms import (
     FileField,
 )
 import datetime
-from gtfs_rt_server import db, scheduler
+from gtfs_rt_server import db, scheduler, redis_client, socketio
 from flask_login import login_required
-from flask_wtf import FlaskForm
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
-import celery
 from flask import current_app
 from tempfile import NamedTemporaryFile, SpooledTemporaryFile
 import os
+from apscheduler.events import EVENT_JOB_REMOVED
+
 
 gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 
-
-def generate_gtfs_from_xlsx(excel_file_path):
+def generate_gtfs_from_xlsx(channel,excel_file_path):
     print("stating generate gtfs xlsx task")
     # use this method as a helper to update the tasks metainfo to contain status and messages
     def send_status_to_task(status=None, message=None, **kwargs):
+        socketio.emit("event", {"status":status, "message":message, **kwargs}, namespace=f"/{channel}")
         print(f"{status} {message}")
-        current_task.update_task_status(current_task.request.id, status=status, message=message, **kwargs)
     ## create temp file to store zip
     named_temp_zip = NamedTemporaryFile(mode="w+b")
     validation_report = False
     try:
+
         send_status_to_task(status="starting", message="Starting ...")
         result_path = current_app.config["GTFS_VALIDATOR_RESULT_PATH"]
         df_dict = generate_gtfs_zip(
@@ -66,20 +66,6 @@ def generate_gtfs_from_xlsx(excel_file_path):
         named_temp_zip.close()
 
 
-@gtfs_blueprint.get("/status")
-@login_required
-def get_status():
-    if (
-        "upload_gtfs_task_id" in current_app.config
-        and current_app.config["upload_gtfs_task_id"]
-    ):
-        result = AsyncResult(current_app.config["upload_gtfs_task_id"])
-        if (result.ready() and not result.failed()):
-            return {"status":"done", "message":"done"}
-        return result.info or dict(status="starting", message="starting...") 
-    return {"status":"not started", "message":"No such task exists"} 
-
-
 @gtfs_blueprint.post("/upload_gtfs")
 @login_required
 def upload_gtfs():
@@ -88,23 +74,20 @@ def upload_gtfs():
 
         ## stop current thread running if any
         ## start
-        if (
-            "upload_gtfs_task_id" in current_app.config
-            and current_app.config["upload_gtfs_task_id"]
-        ):
-            # cancel result
-            result = AsyncResult(current_app.config["upload_gtfs_task_id"])
-            result.revoke()
+        scheduler.remove_job("gtfs_upload")
+        def job_remove_event(event):
+            redis_client.publish("gtfs_upload", {"status":"error", "message": "The job was terminated abruptly."})
+        scheduler.add_listener(job_remove_event, mask=EVENT_JOB_REMOVED)
+
         excel_file_perm_path = os.path.join(
             current_app.config["SHARED_FOLDER"], "gtfs.xlsx"
         )
         with open(excel_file_perm_path, "wb") as excel_file_perm:
             excel_file_perm.write(excel_file.read())
         
-        result = generate_gtfs_from_xlsx.delay(excel_file_perm_path)
-        current_app.config["upload_gtfs_task_id"] = result.id
-        return result.id
+        scheduler.add_job("gtfs_upload", generate_gtfs_from_xlsx,channel="gtfs_upload",  excel_file_path=excel_file_perm_path)
 
+        return "gtfs_upload"
     return "No file given", 400
     ## give error if errors in report.json
 

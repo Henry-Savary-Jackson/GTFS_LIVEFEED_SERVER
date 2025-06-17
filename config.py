@@ -22,8 +22,9 @@ class Config(object):
     FEEDS_LOCATION = SHARED_FOLDER 
     REDIS_HOST=os.getenv("REDIS_HOST") or "localhost"
     REDIS_PORT = os.getenv("REDIS_PORT") or 6379 
+    REDIS_URL=f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
     SCHEDULER_JOBSTORES={ 
-        "default":RedisJobStore(jobs_key='jobs', run_times_key='jobs_runs', host=REDIS_HOST, port=REDIS_PORT)
+        "default":RedisJobStore(jobs_key='jobs', run_times_key='jobs_runs',db=0, host=REDIS_HOST, port=REDIS_PORT)
     } 
     WTF_CSRF_ENABLED = True
     LOGGING_FILE_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "server.log")

@@ -136,7 +136,7 @@ def delete_feed_entity(type_entity):
 
     return "Successful"
 
-@scheduler.task("interval", id="remove_old_trip_updates", hour="*")
+@scheduler.task("interval", id="remove_old_trip_updates", seconds=1800)
 def periodic_remove_expired():
     with lock:
         app.logger.debug("removing expired trip updates")

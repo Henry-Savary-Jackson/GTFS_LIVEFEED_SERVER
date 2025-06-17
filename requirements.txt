@@ -3,8 +3,6 @@ openpyxl
 flask
 gtfs-realtime-bindings
 flask-login
-flask-wtf
-celery
 Flask-CORS
 flask-sqlalchemy
 python-dotenv
@@ -14,3 +12,6 @@ redis
 gunicorn
 Flask-Security
 Flask-APScheduler
+flask-redis
+flask-socketio
+flask-wtf
