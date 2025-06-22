@@ -2,7 +2,8 @@ import os
 
 FILE_DIR = os.path.dirname(__file__)
 
-from apscheduler.jobstores.redis import RedisJobStore
+# from apscheduler.jobstores.redis import RedisJobStore
+from apscheduler.jobstores.memory import MemoryJobStore 
 
 class Config(object):
     FLASK_ENV = "production"
@@ -24,7 +25,7 @@ class Config(object):
     REDIS_PORT = os.getenv("REDIS_PORT") or 6379 
     REDIS_URL=f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
     SCHEDULER_JOBSTORES={ 
-        "default":RedisJobStore(jobs_key='jobs', run_times_key='jobs_runs',db=0, host=REDIS_HOST, port=REDIS_PORT)
+        "default":MemoryJobStore(),
     } 
     WTF_CSRF_ENABLED = True
     LOGGING_FILE_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "server.log")

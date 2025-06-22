@@ -145,7 +145,7 @@ def periodic_remove_expired():
     with lock:
         with scheduler.app.app_context():
             scheduler.app.logger.debug("removing expired trip updates")
-            # print("removing expired trip updates")
+            print("removing expired trip updates")
             delete_expired_trip_updates(scheduler.app.config["feed_updates"]) # why not changing object
             save_feed_to_file(scheduler.app.config["feed_updates"], scheduler.app.config["feed_updates_location"])
     

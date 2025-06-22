@@ -8,11 +8,8 @@ flask-sqlalchemy
 python-dotenv
 pytest
 argon2-cffi
-redis
 gunicorn
-flask-rbac
 Flask-APScheduler
-flask-redis
 flask-socketio
 flask-wtf
 eventlet

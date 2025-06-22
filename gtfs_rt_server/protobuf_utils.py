@@ -101,6 +101,10 @@ def verify_trip_descriptor(trip_desc: dict):
         raise ValueError(f'Trip with trip_id "{trip_desc["tripId"]}" doesn\'t exist.')
     return trip_desc["tripId"]
 
+def timeStrToTime(time_str):
+    hour, minute, second = list( map(int, time_str.split(":")))
+    newTime = datetime.time(hour, minute, second)
+    return newTime
 
 def verify_trip_update(trip_update: dict):
     trip_id = verify_trip_descriptor(trip_update["trip"])
@@ -124,18 +128,21 @@ def verify_trip_update(trip_update: dict):
             prev_stoptime = stoptimes[stop_sequence -1 ] if stop_sequence  > 0 else None
             if prev_stoptime:
                 arrival = stop_time_update["arrival"]
-                time_prev_scheduled = datetime.time.fromisoformat(prev_stoptime["arrival"])
+                time_prev_scheduled = timeStrToTime(prev_stoptime["arrival"])
+
                 if "time" in arrival:
-                    time_arrival = datetime.time.fromisoformat(arrival["time"])
+
+                    time_arrival = datetime.datetime.fromtimestamp(int(arrival["time"])).time()
                     if (time_arrival < time_prev_scheduled):
-                        raise ValueError(f"The new time for arrival {time_arrival.isoformat()} of stop {stoptimes[stop_sequence]["stop_id"]} is less than the arrival of the previous stop {prev_stoptime["stop_id"]} {time_prev_scheduled.isoformat()} ")
-                else:
+                        raise ValueError(f"The new time for arrival {time_arrival.isoformat()} of stop {stoptimes[stop_sequence]["stopId"]} is less than the arrival of the previous stop {prev_stoptime["stopId"]} {time_prev_scheduled.isoformat()} ")
+                elif "delay" in arrival:
                     delay = arrival["delay"]
                     scheduled_time = datetime.time.fromisoformat(current_stoptime["arrival"])
-                    if scheduled_time + delay < time_prev_scheduled:
-                        raise ValueError(f"The new time for arrival {(scheduled_time+delay).isoformat()} of stop {stoptimes[stop_sequence]["stop_id"]} is less than the arrival of the previous stop {prev_stoptime["stop_id"]} {time_prev_scheduled.isoformat()} ")
-        else:
-            raise ValueError(f" No trip update information in stoptime update for stop {current_stoptime["stop_id"]}")
+                    new_time = (datetime.datetime.combine(datetime.date.today(), scheduled_time) + datetime.timedelta(seconds= delay)).time()
+                    if new_time < time_prev_scheduled:
+                        raise ValueError(f"The new time for arrival {(new_time).isoformat()} of stop {stoptimes[stop_sequence]["stopId"]} is less than the arrival of the previous stop {prev_stoptime["stopId"]} {time_prev_scheduled.isoformat()} ")
+        elif stop_time_update["scheduleRelationship"] != "SKIPPED":
+            raise ValueError(f" No trip update information in stoptime update for stop {stoptimes[stop_sequence]["stopId"]}")
 
 
 def verify_entity_selector(informed_entity: dict):
@@ -178,11 +185,9 @@ def get_total_delay(stoptimes, stoptimeUpdates):
             datetime_stoptime = datetime.datetime.fromtimestamp(arrival.time)
             datetime_scheduled = datetime.datetime.combine(datetime_stoptime.date(), time)
             diff = datetime_stoptime - datetime_scheduled
-            totalDelay += diff.total_seconds() // 60
-        if hasattr(stoptime_update, "skip") and stoptime_update.skip:
-            totalDelay = 0
+            totalDelay += diff.total_seconds() 
         if hasattr(arrival, "delay") and arrival.delay:
-            totalDelay = arrival.delay ## TODO: FIX THIS
+            totalDelay = arrival.delay
     return totalDelay
 
 def delete_expired_trip_updates(feed ):
@@ -192,9 +197,8 @@ def delete_expired_trip_updates(feed ):
         trip_id = trip_update.trip.trip_id
         stoptimes = get_stoptimes_of_trip(trip_id)
         total_delay = get_total_delay(stoptimes, trip_update.stop_time_update)
-        print(trip_id, total_delay, stoptimes)
-        # print(trip_id,datetime.datetime.now().time() , datetime.time.fromisoformat(stoptimes[-1][2]))
-        if (datetime.datetime.now()+ datetime.timedelta(seconds=total_delay) + datetime.timedelta(hours=-1)).time() > datetime.time.fromisoformat(stoptimes[-1]["arrival"]):
+        # print(trip_id, total_delay, datetime.datetime.combine( datetime.date.today(),datetime.time.fromisoformat(stoptimes[-1]["arrival"])) + datetime.timedelta(seconds=total_delay) + datetime.timedelta(hours=1) )
+        if datetime.datetime.now() > datetime.datetime.combine( datetime.date.today(),datetime.time.fromisoformat(stoptimes[-1]["arrival"])) + datetime.timedelta(seconds=total_delay) + datetime.timedelta(hours=1):
             print("deleted:", trip_id, total_delay)
             del feed.entity[i] 
     # i = 0

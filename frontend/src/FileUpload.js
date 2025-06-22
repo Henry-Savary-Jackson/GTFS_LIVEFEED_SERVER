@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
 import { alertsContext } from './Globals';
-import { io } from "socket.io-client"
+import { io, Socket } from "socket.io-client"
 
 
 export function UploadsGTFS() {
@@ -10,7 +10,6 @@ export function UploadsGTFS() {
     let [status, setStatus] = useState({})
     let [text, setText] = useState("")
     let [uploading, setUploading] = useState(false)
-
     let socketRef = useRef(null)
 
     let [alerts, popUpAlert] = useContext(alertsContext)
@@ -21,10 +20,11 @@ export function UploadsGTFS() {
         if ("validationReport" in event)
             setHasValidationReport(true)
         let textarea = document.getElementById("status-text-area")
-            if (textarea)
-                textarea.scrollTop = textarea.scrollHeight
+        if (textarea)
+            textarea.scrollTop = textarea.scrollHeight
     }
     const onConnect = (event) => {
+        socketRef.current.emit("join-room", {"room":"gtfs_upload"})
         popUpAlert({ "message": "Connected to status of upload", "type": "success" })
 
     }
@@ -37,10 +37,9 @@ export function UploadsGTFS() {
 
     }
 
-
     useEffect(() => {
 
-        let socket = io(`wss://${window.location.host}`, { path: "/ws", transports: ["websocket"], reconnection:true,reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
+        let socket = io(`wss://${window.location.host}`, { withCredentials: true, path: "/ws", transports: ["websocket"], reconnection: true, reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
         socketRef.current = socket
         socket.on("event", onMessage)
         socket.on('connect_failed', onConnectFailed);
@@ -83,7 +82,7 @@ export function UploadsGTFS() {
                 await submitGTFS(file)
                 setHasValidationReport(false)
                 setUploading(true)
-            }, " ✅ Successfully uploaded the gtfs excel file.",popUpAlert, (error) => {
+            }, " ✅ Successfully uploaded the gtfs excel file.", popUpAlert, (error) => {
                 console.error(error)
             })
 

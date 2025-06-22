@@ -30,6 +30,7 @@ scheduler = APScheduler()
 socketio = SocketIO()
 
 def has_roles(*roles):
+    
     def decorator(f):
         @wraps(f)
         def dec_func(*args, **kwargs):
@@ -112,13 +113,8 @@ def init_CORS(app):
 def init_scheduler(app):
     scheduler.init_app(app)
 
-def init_redis_client(app):
-    redis_client.init_app(app)
-
 def init_sockiet_io(app):
-    socketio.init_app(app, path="/ws", message_queue=app.config["REDIS_URL"], cors_allowed_origins="*")
-
-
+    socketio.init_app(app, path="/ws", cors_allowed_origins="*")
 
 def init_app():
     global db
@@ -138,9 +134,9 @@ def init_app():
     app.config["feed_updates"] = get_feed_object_from_file(app.config["feed_updates_location"])
     app.config["feed_positions"] = get_feed_object_from_file(app.config["feed_positions_location"])
     login_manager = create_login_manager(app)
-
     init_db(app, db)
     init_CORS(app)
+
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
     create_logger(app)

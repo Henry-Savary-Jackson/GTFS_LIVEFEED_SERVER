@@ -14,6 +14,7 @@ import datetime
 from gtfs_rt_server import db, scheduler , socketio, has_roles
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
 from flask import current_app
+from flask_socketio import join_room
 from tempfile import NamedTemporaryFile, SpooledTemporaryFile
 import os
 from apscheduler.events import EVENT_JOB_REMOVED
@@ -26,8 +27,8 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
     # use this method as a helper to update the tasks metainfo to contain status and messages
     # socketio.emit("event", {"status":"working", "message":"starting..." },)
     def send_status_to_task(status="working", message=None, **kwargs):
-        socketio.emit("event", {"status":status, "message":message, **kwargs})
-        print(f"{status} {message}")
+        socketio.emit("event", {"status":status, "message":message, **kwargs},room=channel)
+        # print(f"{status} {message}")
     ## create temp file to store zip
     named_temp_zip = NamedTemporaryFile(mode="w+b")
     validation_report = False
@@ -77,7 +78,7 @@ def upload_gtfs():
         ## stop current thread running if any
         ## see if you can deal with multiple uploads at the same time (maybe not necessary or adviable)
         def job_remove_event(event):
-            socketio.emit("event", {"status":"error", "message": "The job was terminated abruptly."}, namespace="/gtfs_upload")
+            socketio.emit("event", {"status":"error", "message": "The job was terminated abruptly."}, room="gtfs_upload")
 
         if scheduler.get_job("gtfs_upload"):
             scheduler.remove_job("gtfs_upload")
@@ -98,6 +99,19 @@ def upload_gtfs():
         return "gtfs_upload"
     return "No file given", 400
     ## give error if errors in report.json
+
+@socketio.on('connect')
+@login_required
+@has_roles("excel")
+def test_connect():
+    pass 
+
+@socketio.on("join-room")
+@login_required
+@has_roles("excel")
+def join_room_ev(event):
+    join_room(event["room"])
+
 
 @gtfs_blueprint.get("/time_since_last_schedule")
 def time_since_last_upload():

@@ -28,9 +28,9 @@ export function convertDictToGTFSTripUpdate(dict) {
             } else {
                 newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
                 if ('delay' in element && element.delay !== 0) {
-                    newStopTimeUpdate.arrival.delay = (element.totalDelay+element.delay) * 60
+                    newStopTimeUpdate.arrival.delay = element.totalDelay * 60
                 } else if ('onTime' in element) {
-                    newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.time);
+                    newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.arrival);
                 } else if ('newTime' in element) {
                     newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.newTime);
                 }
@@ -40,28 +40,50 @@ export function convertDictToGTFSTripUpdate(dict) {
         }
     }
 
+    if (!trip_update.trip.scheduleRelationship && (!trip_update.stopTimeUpdate || trip_update.stopTimeUpdate.length <= 0))
+        throw new Error("Your trip update can't be empty.")
+
     return feed_entity
 
 }
 
 export function getUpdatesWithStopTimes(stopTimeUpdates, trip_stoptimes) {
     trip_stoptimes.sort((a, b) => a.stopSequence - b.stopSequence) // just a safeguard to sort by stop sequence
+    stopTimeUpdates.sort((a, b) => a.stopSequence - b.stopSequence) // just a safeguard to sort by stop sequence
 
     // make sure the stop sequence is of type integer
     const stoptimes_output = [...trip_stoptimes]
-
+    let totalDelay = 0
     for (const stoptimeUpdate of stopTimeUpdates) {
         const sequence = stoptimeUpdate.stopSequence
-        if ( stoptimeUpdate.arrival   &&   stoptimeUpdate.arrival.delay) {
-            stoptimes_output[sequence].delay = Math.floor(stoptimeUpdate.arrival.delay / 60)
+        const stoptime = stoptimes_output[sequence]
+        if (stoptimeUpdate.arrival && stoptimeUpdate.arrival.delay) {
+            let delay = Math.floor(stoptimeUpdate.arrival.delay / 60)
+            stoptime.delay = -1 * (totalDelay - delay)
+            totalDelay = delay
         }
-        if (stoptimeUpdate.arrival   &&  stoptimeUpdate.arrival.time) {
-            stoptimes_output[sequence].time = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000))
+        if (stoptimeUpdate.arrival && stoptimeUpdate.arrival.time) {
+
+            const oldTime = convertTimeStrToUNIXEpoch(stoptime.arrival)
+            const newTimeStr = convertDateToTimeString(new Date(stoptimeUpdate.arrival.time * 1000))
+            const newTime = convertTimeStrToUNIXEpoch(newTimeStr)
+            stoptime.newTime = newTimeStr
+            totalDelay = Math.floor((newTime - oldTime) / 60)
         }
         if ('scheduleRelationship' in stoptimeUpdate && stoptimeUpdate.scheduleRelationship === transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship["SKIPPED"]) {
-            stoptimes_output[sequence].skip = true;
+            stoptime.skip = true;
         }
+        stoptime.totalDelay = totalDelay
     }
+    totalDelay = 0
+    stoptimes_output.forEach((value, index) => {
+        if ("totalDelay" in value) {
+            totalDelay = value.totalDelay
+        }
+        else {
+            value.totalDelay = totalDelay
+        }
+    })
     return stoptimes_output
 }
 
@@ -85,7 +107,7 @@ function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
                 changeDelayStop(Number(e.currentTarget.value), stoptime.stopSequence)
         }} value={(!stoptime.onTime && stoptime.delay) || 0} />
             <span>{stoptime.delay && stoptime.delay !== 0 ? (stoptime.delay > 0 ? "Late" : "Early") : ""}</span></td>
-        <td> Total Delay:{ stoptime.totalDelay|| 0} minutes </td>
+        <td> Total Delay:{stoptime.totalDelay || 0} minutes </td>
         <td><input type='checkbox' onChange={(e) => { dispatchStopTimesChange({ "skip": e.target.checked, "stopSequence": stoptime.stopSequence }) }} checked={stoptime.skip || false} /></td>
     </tr>
 }
@@ -107,7 +129,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
         <tbody>
             {stoptimes.map((stoptime) => {
                 let status_stop = "Passed"
-                if (convertTimeStrToUNIXEpoch(stoptime.arrival) + stoptime.totalDelay*60 >= convertTimeStrToUNIXEpoch(current_time_str) && !before) {
+                if (convertTimeStrToUNIXEpoch(stoptime.arrival) + stoptime.totalDelay * 60 >= convertTimeStrToUNIXEpoch(current_time_str) && !before) {
                     before = true
                     status_stop = "🚆"
 
@@ -122,26 +144,9 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
 }
 
 
-export function getTotalTime(stoptimes) {
-    let totalDelay = 0
-    if (!stoptimes || stoptimes.length <= 0)
-        return 0
-    stoptimes.forEach(stoptime => {
-        totalDelay += addTotalTime(stoptime)
-
-    });
-    return totalDelay
-}
-
 export function addTotalTime(stoptime) {
     let totalDelay = 0
-    if ("newTime" in stoptime && !stoptime.onTime) {
-        const oldTime = convertTimeStrToUNIXEpoch(stoptime.time)
-        const newTime = convertTimeStrToUNIXEpoch(stoptime.newTime)
-        totalDelay += Math.floor(( newTime - oldTime)/60)
-    } else if ("delay" in stoptime) {
-        totalDelay += stoptime.delay
-    }
+
     return totalDelay
 }
 
@@ -187,7 +192,13 @@ export function TripUpdate() {
             if ("stopSequence" in action && action.stopSequence == i) {
                 newValue = { ...newValue, ...action }
             }
-            totalDelay += addTotalTime(newValue)
+            if ("newTime" in newValue && !newValue.onTime) {
+                const oldTime = convertTimeStrToUNIXEpoch(newValue.arrival)
+                const newTime = convertTimeStrToUNIXEpoch(newValue.newTime)
+                totalDelay = Math.floor((newTime - oldTime) / 60)
+            } else if ("delay" in newValue) {
+                totalDelay += newValue.delay
+            }
             if (newValue.onTime)
                 totalDelay = 0
             newValue.totalDelay = totalDelay
@@ -231,7 +242,7 @@ export function TripUpdate() {
                 await sendTripUpdate(trip_update_gtfs)
                 location.state = trip_update_gtfs
             }
-            ,"✅ Sucessfully saved Trip Update", popUpAlert)
+                , "✅ Sucessfully saved Trip Update", popUpAlert)
         }
         } >Save</button>}
         <button className='btn btn-danger' onClick={(e) => {

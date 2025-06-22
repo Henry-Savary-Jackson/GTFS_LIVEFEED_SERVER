@@ -40,7 +40,9 @@ export async function logout() {
 export async function getStopTimesofTrip(trip_id) {
     return await performRequest(async () => {
         if (isStopTimesInCache(trip_id)){
-            return await getStopTimesFromCache(trip_id)
+            let result = await getStopTimesFromCache(trip_id)
+            if (result)
+                return result.map((val)=> { return {...val}})
         }
         let response = await axios.get("/db/get_stop_times_trip", { params: { "tripid": trip_id } })
         saveStopTimeIntoCache(trip_id,response.data)
@@ -90,7 +92,6 @@ export async function getRoutes() {
 
     return await performRequest(async () => {
         let response = await axios.get("/db/get_routes")
-        // console.log(response)
         return response.data
     })
 }
@@ -275,11 +276,9 @@ export async function getStopTimesFromCache(trip_id) {
     let mapResult = tripIdToStopTimesCache[trip_id]
     const now = Date.now().valueOf()
     if (mapResult.timestamp + 5 * 60 * 1000 < now) {
-        if (await getTimeSinceLastGTFS() > now) {
-            mapResult.stoptime = await getStopTimesofTrip(trip_id)
-        }else{
-            mapResult.timestamp = now
-        }
+        if (await getTimeSinceLastGTFS() > now) 
+            return null
+        mapResult.timestamp = now
     }
     return mapResult.stoptime
 }

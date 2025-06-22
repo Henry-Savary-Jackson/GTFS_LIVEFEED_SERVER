@@ -1,6 +1,6 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
 import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert } from './Utils'
-import { addTotalTime, getTotalTime, getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
+import {  getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserContext, RolesContext, alertsContext } from './Globals';
@@ -14,53 +14,55 @@ import { AlertsProvider } from './Alerts';
 
 
 
-function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_feed_entity_callback }) {
+function TripUpdateFeedEntityRow({  entity, delete_feed_entity_callback }) {
 
+  let [stoptimes, setStoptime] = useState([])
+  
+  useEffect(()=>{
+    (async () =>{
+      if (entity)
+        setStoptime(getUpdatesWithStopTimes(entity.tripUpdate.stopTimeUpdate,await getStopTimesofTrip(entity.tripUpdate.trip.tripId)))
+    })()
+    
+  }, [])
   let [alerts, popUpAlert] = useContext(alertsContext)
 
-  const stop_times_at_index = stoptimes && stoptimes.length > 0 ? stoptimes[index].stoptimes : null
-  let first = stop_times_at_index ? convertTimeStrToDate(stop_times_at_index[0].time) : null
+  let first_stoptime = stoptimes && stoptimes.length> 0 ? stoptimes[0] : null
+  let last_stoptime = stoptimes && stoptimes.length> 0? stoptimes[stoptimes.length-1] : null
+  let first = first_stoptime ? convertTimeStrToDate(first_stoptime.newTime || first_stoptime.arrival   )  : null
+  let last = last_stoptime ? convertTimeStrToDate(last_stoptime.newTime || last_stoptime.arrival ) : null
 
-  let last = stop_times_at_index ? convertTimeStrToDate(stop_times_at_index[stop_times_at_index.length - 1].time) : null
+  let first_minutes = first && first.valueOf() / (1000 * 60)
+  if ( first_stoptime && !first_stoptime.newTime)
+     first_minutes += first_stoptime.totalDelay 
+  let last_minutes = last && last.valueOf() / (1000 * 60)
+  if ( last_minutes && ! last_stoptime.newTime)
+    last_minutes += last_stoptime.totalDelay 
+  let now = new Date()
+  let now_minutes = now.valueOf() / (1000 * 60)
 
   let modified_datetime = entity.tripUpdate.timestamp ? new Date(entity.tripUpdate.timestamp * 1000) : undefined
   let modified = modified_datetime ? `${modified_datetime.toDateString()} ${modified_datetime.toLocaleTimeString()}` : ``
 
-  let now = new Date()
 
   let css_class = ""
   let trip_state = ""
 
-  let totalDelay = getTotalTime(stop_times_at_index)
-  let cancelledStops = stop_times_at_index ? stop_times_at_index.filter((stoptime) => stoptime.skip).map((stoptime) => stoptime.stopId) : []
-
-  let current_delay = 0
-  if (stop_times_at_index) {
-    for (const stoptime of stop_times_at_index) {
-      current_delay += addTotalTime(stoptime)
-      if (convertTimeStrToDate(stoptime.time).valueOf() / 1000 + current_delay * 60 >= now.valueOf() / 1000)
-        break;
-    }
-  }
+  let cancelledStops = stoptimes && stoptimes.length > 0 ? stoptimes.filter((stoptime) => stoptime.skip).map((stoptime) => stoptime.stopId) : []
 
   let [cancelled, setCancelled] = useState((entity && entity.tripUpdate.trip.scheduleRelationship === transit_realtime.TripDescriptor.ScheduleRelationship["CANCELED"]) || false)
   let [showDetail, setShowDetail] = useState(false)
 
 
-  let first_minutes = first && first.valueOf() / (1000 * 60)
-  let last_minutes = last && last.valueOf() / (1000 * 60)
-  let now_minutes = now.valueOf() / (1000 * 60)
-
   // add delay 
   if (first_minutes && last_minutes) {
-    if (current_delay + first_minutes >= now_minutes) {
+    if ( first_minutes >= now_minutes) {
       css_class = "table-warning"
       trip_state = "Trip yet to start"
-    } else if (last_minutes + current_delay > now_minutes && first_minutes + current_delay < now_minutes) {
+    } else if (last_minutes >= now_minutes) {
       css_class = "table-success"
       trip_state = "Trip in progress"
-    } else if (last_minutes + current_delay > now_minutes && first_minutes + current_delay < now_minutes) {
-    } else if (last_minutes + current_delay <= now_minutes) {
+    } else {
       css_class = "table-danger"
       trip_state = "Trip finished"
     }
@@ -80,7 +82,7 @@ function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_
         <label className='form-check-label fs-5 ' htmlFor='cancel-checkbox'>Cancel Trip?</label>
         <input className='form-check-input' id='cancel-checkbox' type='checkbox' checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} />
       </div>
-      <span>Total Delay:{totalDelay} minutes</span>
+      <span>Total Delay:{(last_stoptime && last_stoptime.totalDelay) || 0} minutes</span>
       <ul>Cancelled stops:
         {cancelledStops.map((stop_id) => <li>{stop_id}</li>)}
       </ul>
@@ -136,8 +138,8 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
 }
 
 
-function FeedEntityRow({ index, stoptimes = undefined, entity, delete_feed_entity_callback }) {
-  return entity.tripUpdate ? <TripUpdateFeedEntityRow index={index} stoptimes={stoptimes} entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /> : <ServiceAlertFeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />
+function FeedEntityRow({  entity, delete_feed_entity_callback }) {
+  return entity.tripUpdate ? <TripUpdateFeedEntityRow   entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /> : <ServiceAlertFeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />
 }
 
 function DeleteFeedEntityButton({ entity, delete_feed_entity_callback }) {
@@ -161,7 +163,7 @@ export function Feed() {
     let feed_message = await getFeedMessage(type)
     switch (type) {
       case "alerts":
-        setFeedAlerts([...feed_message.entity].reverse())
+        setFeedAlerts([...feed_message.entity])
         break;
       case "updates":
         setFeedUpdates(feed_message.entity)
@@ -187,7 +189,6 @@ export function Feed() {
   let [number, setNumber] = useState("")
   let [routes, setRoutes] = useState([])
 
-  let [stoptimes, setStopTimes] = useState([])
 
   useEffect(() => {
     // needs to be like  this with an async function being called else react gives errors
@@ -240,26 +241,7 @@ export function Feed() {
   async function refreshFeeds() {
     set_feed("alerts")
     updateMirroredUpdates(await set_feed("updates"))
-    await resetStoptimes()
   }
-
-  async function resetStoptimes() {
-    const new_stoptimes = []
-    for (let feed_entity of feed_updates_filtered) {
-      let trip_id = feed_entity.tripUpdate.trip.tripId
-      let stoptimes = getUpdatesWithStopTimes(feed_entity.tripUpdate.stopTimeUpdate, await getStopTimesofTrip(trip_id))
-      new_stoptimes.push({ "trip_id": trip_id, "stoptimes": stoptimes })
-
-    }
-    setStopTimes(new_stoptimes)
-  }
-
-  useEffect(() => {
-    if (stoptimes && stoptimes.length == 0) {
-      resetStoptimes()
-    }
-  }, [feed_type])
-
 
   async function delete_feed_entity_callback(id, type) {
     try {
@@ -301,7 +283,7 @@ export function Feed() {
             <th>Delete</th>
           </tr></thead>
         <tbody>
-          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity, index) => <FeedEntityRow index={index} stoptimes={stoptimes} entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
+          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity, index) => <FeedEntityRow  entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
         </tbody>
       </table>
     </div>

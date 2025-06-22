@@ -1,19 +1,42 @@
-import { useContext, useState } from 'react';
+import { useContext, useReducer, useState } from 'react';
 import { add_user } from './Utils.js';
 import { UserContext } from './Globals.js';
+
+class RoleUI {
+
+    static  short_to_long = new Map([["view", "View Trip updates and Alerts"],
+    ["edit", "Edit Trip updates and Alerts"],
+    ["gtfs", "Upload permanent schedules"],
+    ["excel", "View the history of Alerts and Trip Updates and get excel summaries "],
+    ["admin", "Add, delete or modify users and their permissions"],
+    ])
+
+
+    constructor(short_name, active = false) {
+        this.short_name = short_name
+        this.long_name = RoleUI.short_to_long[short_name]
+        this.active = active
+    }
+
+}
 
 export function AddUserForm() {
     let [user, setUser] = useContext(UserContext)
 
+    const fixed_roles = [new RoleUI("view", true), new RoleUI("edit"), new RoleUI("gtfs"), new RoleUI("excel"), new RoleUI("admin")]
+
     let [error, setError] = useState("")
     let [username, setUsername] = useState("")
     let [password, setPassword] = useState("")
-    let [role, setRole] = useState("")
+    let [roles, setRole] = useReducer((prevState, action) => {
+        prevState[action.index].active = action.action === "check"
+        return [...prevState]
+    }, fixed_roles)
 
-    return <form className='container gap-3 d-flex flex-column align-items-center justify-content-center' onSubmit={async (e) => {
+    return <form className='container gap-3 w-100 d-flex flex-column align-items-center justify-content-center' onSubmit={async (e) => {
         e.preventDefault()
         try {
-            await add_user(username, password, [role])
+            await add_user(username, password, roles.filter((val)=>val.active).map((val)=>val.short_name))
         } catch (error) {
             setError(error.message)
             console.error(error)
@@ -28,14 +51,9 @@ export function AddUserForm() {
             <label htmlFor="pass-input"> Password</label>
             <input id="pass-input" className='form-control' type='password' value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
-        <div className='form-group'>
+        <div className='form-group d-flex flex-column align-items-center justify-content-center'>
             <label htmlFor="roles-input">Roles</label>
-            <div id ='roles-input' onChange={(e) => { setRole(e.target.value) }} className='form-group' >
-                <input className='form-control' checked={role==='admin'} value="admin" type='radio'  name='role'/> Admin
-                <input className='form-control' checked={role==="user"}  value="user" type='radio' name='role'/> User
-            </div>
-    </div>
-
-
+            {roles.map((value, index) => <input className='form-check-input' type='checkbox' checked={value.active} onChecked={(e) => { setRole({ "action": e.target.checked ? "check" : "uncheck", "index": index }) }} />)}
+        </div>
     </form >
 }

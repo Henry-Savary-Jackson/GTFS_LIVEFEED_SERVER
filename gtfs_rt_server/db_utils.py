@@ -17,7 +17,7 @@ from gtfs_rt_server.schema import (
     User,
     Role,
     roles_users,
-    get_user_by_username
+    get_user_by_username,
 )
 from sqlalchemy import text, func
 from typing import Optional
@@ -42,9 +42,7 @@ def get_route_id_of_trip(trip_id):
 
 def add_role(role_name):
     with db.session.begin():
-        db.session.execute(
-            insert(Role).values(name=role_name).on_conflict_do_nothing()
-        )
+        db.session.execute(insert(Role).values(name=role_name).on_conflict_do_nothing())
 
 
 def delete_user_with_username(username):
@@ -59,6 +57,35 @@ def delete_user_with_username(username):
     except Exception as e:
         db.session.rollback()
         raise e
+
+
+def list_users():
+    with db.session.begin():
+        return db.session.query(User.username, User.user_id).all()
+
+def modify_user(id, username=None, password=None, roles=None):
+    with db.session.begin():
+        try:
+            user = db.session.query(User).where(User.user_id == id).first()
+            if not user:
+                raise Exception(f"User with id '{id}' not found.")
+            if username:
+                user.username = username
+            if password:
+                user.password = password_hasher.hash(password)
+            if roles is not None:
+                user.roles = [
+                    (
+                        db.session.query(Role).filter(Role.name == name).first()
+                        or Role(name=name)
+                    )
+                    for name in roles
+                ]
+            db.session.merge(user)
+
+        except Exception as e:
+            db.session.rollback()
+            raise e
 
 
 def insert_user(username, rawPassword, roles=[]):
@@ -316,7 +343,7 @@ def add_trip_update_to_db(id, trip_update):
             db.session.add(
                 TripUpdateToStop(
                     trip_update_id=id,
-                    stop_id=stoptimes[stop_update["stopSequence"]][1],
+                    stop_id=stoptimes[stop_update["stopSequence"]]["stopId"],
                     delay=(
                         None
                         if "arrival" not in stop_update
@@ -491,12 +518,7 @@ def addTripUpdateInfoToSheet(excel_sheet, sheet_name):
         current_row += numRows
 
 
-def create_service_excel():
-    current_time = datetime.datetime.now()
-
-    filename = Path(
-        current_app.config["EXCEL_SUMMARIES"], f"{current_time.strftime()}.xlsx"
-    )
+def create_service_excel(filename):
     workbook = openpyxl.open(filename)
     workbook.create_sheet("Alerts")
     workbook.create_sheet("TripUpdates")
