@@ -35,10 +35,10 @@ function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_
   let cancelledStops = stop_times_at_index ? stop_times_at_index.filter((stoptime) => stoptime.skip).map((stoptime) => stoptime.stopId) : []
 
   let current_delay = 0
-  if (stop_times_at_index){
-    for (const stoptime of stop_times_at_index){
-      current_delay += addTotalTime(stoptime) 
-      if (convertTimeStrToDate(stoptime.time).valueOf()/1000 + current_delay* 60 >= now.valueOf()/1000 )
+  if (stop_times_at_index) {
+    for (const stoptime of stop_times_at_index) {
+      current_delay += addTotalTime(stoptime)
+      if (convertTimeStrToDate(stoptime.time).valueOf() / 1000 + current_delay * 60 >= now.valueOf() / 1000)
         break;
     }
   }
@@ -47,20 +47,20 @@ function TripUpdateFeedEntityRow({ index, stoptimes = undefined, entity, delete_
   let [showDetail, setShowDetail] = useState(false)
 
 
-  let first_minutes = first && first.valueOf()/(1000*60)
-  let last_minutes = last && last.valueOf()/(1000*60) 
-  let now_minutes = now.valueOf()/(1000*60)
+  let first_minutes = first && first.valueOf() / (1000 * 60)
+  let last_minutes = last && last.valueOf() / (1000 * 60)
+  let now_minutes = now.valueOf() / (1000 * 60)
 
   // add delay 
   if (first_minutes && last_minutes) {
-    if ( current_delay + first_minutes >= now_minutes ) {
+    if (current_delay + first_minutes >= now_minutes) {
       css_class = "table-warning"
       trip_state = "Trip yet to start"
-    } else if (last_minutes+ current_delay > now_minutes && first_minutes+ current_delay < now_minutes) {
+    } else if (last_minutes + current_delay > now_minutes && first_minutes + current_delay < now_minutes) {
       css_class = "table-success"
       trip_state = "Trip in progress"
-    } else if (last_minutes +current_delay > now_minutes && first_minutes + current_delay < now_minutes) {
-    } else if (last_minutes +current_delay <= now_minutes) {
+    } else if (last_minutes + current_delay > now_minutes && first_minutes + current_delay < now_minutes) {
+    } else if (last_minutes + current_delay <= now_minutes) {
       css_class = "table-danger"
       trip_state = "Trip finished"
     }
@@ -358,10 +358,12 @@ export default function App() {
 
 export function Main({ logout_cookie }) {
 
+  let [roles, setRoles] = useContext(RolesContext)
+
 
   return <div className='d-flex flex-column align-items-center gap-3'  >
     <img src='/static/prasa-main.png' width={250} height={100} />
-    <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link>
+    <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link> 
     <Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>
     <Link className=' btn btn-primary' to="/trip_update">Create new trip update</Link>
     <a className=' btn btn-primary' href='/static/shared/gtfs.zip'>GTFS zip for permanent schedules</a>
@@ -369,14 +371,15 @@ export function Main({ logout_cookie }) {
       try {
         e.preventDefault()
         await logout()
-        logout_cookie()
-        window.location.pathname = "/"
       } catch (error) {
         if (error.title) {
           alert(`${error.title}:\n${error.message}`)
         } else {
           alert(error)
         }
+      } finally {
+        logout_cookie()
+        window.location.pathname = "/"
       }
     }} href='/auth/logout'>Logout</a>
     <Feed />

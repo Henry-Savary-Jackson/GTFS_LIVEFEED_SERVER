@@ -10,8 +10,9 @@ pytest
 argon2-cffi
 redis
 gunicorn
-Flask-Security
+flask-rbac
 Flask-APScheduler
 flask-redis
 flask-socketio
 flask-wtf
+eventlet

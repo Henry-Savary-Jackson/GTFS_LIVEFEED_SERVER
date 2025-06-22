@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
 import { alertsContext } from './Globals';
 import { io } from "socket.io-client"
@@ -9,25 +9,64 @@ export function UploadsGTFS() {
     let [validationReport, setHasValidationReport] = useState(false)
     let [status, setStatus] = useState({})
     let [text, setText] = useState("")
+    let [uploading, setUploading] = useState(false)
+
+    let socketRef = useRef(null)
 
     let [alerts, popUpAlert] = useContext(alertsContext)
 
-    const socket = io("ws://"+window.location.host+"/ws/gtfs_upload", { autoConnect: false })
-
-    socket.on("message", (event) => {
-        setText(text + "\n" + event.message)
+    const onMessage = (event) => {
+        setText((prevText) => prevText + "\n" + event.message)
         setStatus(event.status)
         if ("validationReport" in event)
             setHasValidationReport(true)
         let textarea = document.getElementById("status-text-area")
-        if (textarea)
-            textarea.scrollTop = textarea.scrollHeight
-    })
+            if (textarea)
+                textarea.scrollTop = textarea.scrollHeight
+    }
+    const onConnect = (event) => {
+        popUpAlert({ "message": "Connected to status of upload", "type": "success" })
+
+    }
+    const onConnectFailed = (event) => {
+        popUpAlert({ "message": "Failed to connect Connection to status of upload", "type": "error" })
+
+    }
+    const onDisconnect = (event) => {
+        popUpAlert({ "message": "Lost Connection to status of upload", "type": "error" })
+
+    }
+
 
     useEffect(() => {
-        if (status === "error"){
-            popUpAlert(text)
+
+        let socket = io(`wss://${window.location.host}`, { path: "/ws", transports: ["websocket"], reconnection:true,reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
+        socketRef.current = socket
+        socket.on("event", onMessage)
+        socket.on('connect_failed', onConnectFailed);
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        return () => {
+            socket.off("event", onMessage)
+            socket.off('connect_failed', onConnectFailed);
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
             socket.disconnect()
+        }
+    }, [])
+
+    useEffect(() => {
+        if (uploading) {
+            setText("")
+            socketRef.current.connect()
+        } else {
+            socketRef.current.disconnect()
+        }
+    }, [uploading])
+
+    useEffect(() => {
+        if (status === "error") {
+            setUploading(false)
         }
     }, [status])
 
@@ -41,12 +80,13 @@ export function UploadsGTFS() {
             }
             let file = files[0]
             await doActionWithAlert(async () => {
-                setHasValidationReport(false)
                 await submitGTFS(file)
-            }, " ✅ Successfully uploaded the gtfs excel file.", (error) => {
+                setHasValidationReport(false)
+                setUploading(true)
+            }, " ✅ Successfully uploaded the gtfs excel file.",popUpAlert, (error) => {
                 console.error(error)
             })
-            socket.connect()
+
         }} >
             {status && status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={text || ""}></textarea>}
             {

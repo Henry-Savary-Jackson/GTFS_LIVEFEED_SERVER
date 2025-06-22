@@ -2,7 +2,6 @@ import pandas as pd
 import openpyxl
 import re
 import zipfile
-from celery.states import *
 import sqlalchemy
 import subprocess
 import os

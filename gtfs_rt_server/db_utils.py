@@ -1,12 +1,11 @@
 from sqlalchemy.dialects.sqlite import insert
-from gtfs_rt_server import db
+from sqlalchemy import select
 import pandas as pd
+from flask import current_app
 from pathlib import Path
 import datetime
 import openpyxl
 from gtfs_rt_server.schema import (
-    Role,
-    User,
     TripUpdate,
     Alert,
     EntityTypes,
@@ -14,7 +13,11 @@ from gtfs_rt_server.schema import (
     Effects,
     InformedEntityToAlerts,
     TripUpdateToStop,
-    get_user_by_username,
+    db,
+    User,
+    Role,
+    roles_users,
+    get_user_by_username
 )
 from sqlalchemy import text, func
 from typing import Optional
@@ -40,7 +43,7 @@ def get_route_id_of_trip(trip_id):
 def add_role(role_name):
     with db.session.begin():
         db.session.execute(
-            insert(Role).values(role_name=role_name).on_conflict_do_nothing()
+            insert(Role).values(name=role_name).on_conflict_do_nothing()
         )
 
 
@@ -59,26 +62,31 @@ def delete_user_with_username(username):
 
 
 def insert_user(username, rawPassword, roles=[]):
-    try:
-        with db.session.begin():
-            db.session.add(
-                User(
+    with db.session.begin():
+        try:
+            user = db.session.query(User).where(User.username == username).first()
+            hash_pass = password_hasher.hash(rawPassword)
+            roles = [
+                (
+                    db.session.query(Role).filter(Role.name == name).first()
+                    or Role(name=name)
+                )
+                for name in roles
+            ]
+            if user:
+                user.hash_pass = hash_pass
+                user.roles = roles
+                db.session.merge(user)
+            else:
+                user = User(
                     username=username,
-                    hash_pass=password_hasher.hash(rawPassword),
-                    roles=[
-                        (
-                            db.session.query(Role)
-                            .filter(Role.role_name == name)
-                            .first()
-                            or Role(role_name=name)
-                        )
-                        for name in roles
-                    ],
-               )
-            )
-    except Exception as e:
-        db.session.rollback()
-        raise e
+                    hash_pass=hash_pass,
+                    roles=roles,
+                )
+                db.session.add(user)
+        except Exception as e:
+            db.session.rollback()
+            raise e
 
 
 # add a column for active trips and inactive trips
@@ -156,11 +164,11 @@ def get_number_of_stoptimes(trip_id):
 
 
 def get_stoptimes_of_trip(trip_id, include_time=True):
-    print(trip_id, "checking")
+    # print(trip_id, "checking")
     with db.session.begin():
         stoptimes = db.session.execute(
             text(
-                f"SELECT stop_sequence, stop_id {', strftime("%H:%M:%S", arrival_time) as arrival' if include_time else ''} FROM stop_times WHERE trip_id = :trip_id"
+                f"SELECT stop_sequence AS stopSequence, stop_id AS stopId {', strftime("%H:%M:%S", arrival_time) as arrival' if include_time else ''} FROM stop_times WHERE trip_id = :trip_id"
             ),
             {"trip_id": trip_id},
         ).fetchall()
@@ -179,6 +187,7 @@ def route_exists(route_id):
 
 def stop_exists(stop_id):
     # print(stop_id, "checking")
+    current_app.logger.debug(f"checking {stop_id}")
     with db.session.begin():
         result = db.session.execute(
             text("SELECT 1 FROM stops WHERE stop_id = :stop_id"), {"stop_id": stop_id}
@@ -187,6 +196,7 @@ def stop_exists(stop_id):
 
 
 def stop_on_route(stop_id, route_id):
+    current_app.logger.debug(f"checking {stop_id} {route_id}")
     # print(stop_id, route_id, "checking")
     with db.session.begin():
         result = db.session.execute(
@@ -270,11 +280,15 @@ def add_alert_to_db(id, alert):
                 entity_type = EntityTypes.routes
                 entity_id = entity["routeId"]
 
-            db.session.execute(insert(InformedEntityToAlerts).values(
+            db.session.execute(
+                insert(InformedEntityToAlerts)
+                .values(
                     alert_id=alert_data["alert_id"],
                     entity_id=entity_id,
                     entity_type=entity_type,
-            ).on_conflict_do_nothing())
+                )
+                .on_conflict_do_nothing()
+            )
 
 
 # given a json object of a trip update, add or update into database

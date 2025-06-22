@@ -9,7 +9,7 @@ from gtfs_rt_server.db_utils import (
     trip_exists,
     stop_on_route,
     stop_exists,
-    route_exists,
+    route_exists
 )
 
 
@@ -171,16 +171,18 @@ def verify_entity_selector(informed_entity: dict):
 def get_total_delay(stoptimes, stoptimeUpdates):
     totalDelay = 0
     for stoptime_update in stoptimeUpdates:
-        index = stoptime_update.index
+        arrival = stoptime_update.arrival
+        index = stoptime_update.stop_sequence
         time = datetime.time.fromisoformat(stoptimes[index]["arrival"])
-        if time in stoptime_update and stoptime_update["time"]:
-            diff = datetime.time.fromisoformat(stoptime_update["time"]) - time
-            totalDelay += diff.minute * 60
-        if "skip" in stoptime_update and stoptime_update["skip"]:
+        if hasattr(arrival, "time") and arrival.time:
+            datetime_stoptime = datetime.datetime.fromtimestamp(arrival.time)
+            datetime_scheduled = datetime.datetime.combine(datetime_stoptime.date(), time)
+            diff = datetime_stoptime - datetime_scheduled
+            totalDelay += diff.total_seconds() // 60
+        if hasattr(stoptime_update, "skip") and stoptime_update.skip:
             totalDelay = 0
-        if "delay" in stoptime_update and stoptime_update["delay"]:
-            totalDelay += stoptime_update.delay 
-
+        if hasattr(arrival, "delay") and arrival.delay:
+            totalDelay = arrival.delay ## TODO: FIX THIS
     return totalDelay
 
 def delete_expired_trip_updates(feed ):
@@ -189,9 +191,10 @@ def delete_expired_trip_updates(feed ):
         trip_update = f_entity.trip_update
         trip_id = trip_update.trip.trip_id
         stoptimes = get_stoptimes_of_trip(trip_id)
-        total_delay = get_total_delay(stoptimes, f_entity["stopTimeUpdate"])
+        total_delay = get_total_delay(stoptimes, trip_update.stop_time_update)
+        print(trip_id, total_delay, stoptimes)
         # print(trip_id,datetime.datetime.now().time() , datetime.time.fromisoformat(stoptimes[-1][2]))
-        if datetime.datetime.now().time()+ datetime.timedelta(seconds=total_delay) - datetime.timedelta(hour=1) > datetime.time.fromisoformat(stoptimes[-1]["arrival"]):
-            print("deleted:", trip_id)
+        if (datetime.datetime.now()+ datetime.timedelta(seconds=total_delay) + datetime.timedelta(hours=-1)).time() > datetime.time.fromisoformat(stoptimes[-1]["arrival"]):
+            print("deleted:", trip_id, total_delay)
             del feed.entity[i] 
     # i = 0

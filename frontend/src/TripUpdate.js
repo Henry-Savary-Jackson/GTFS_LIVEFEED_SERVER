@@ -28,7 +28,7 @@ export function convertDictToGTFSTripUpdate(dict) {
             } else {
                 newStopTimeUpdate.arrival = transit_realtime.TripUpdate.StopTimeEvent.create()
                 if ('delay' in element && element.delay !== 0) {
-                    newStopTimeUpdate.arrival.delay = element.delay * 60
+                    newStopTimeUpdate.arrival.delay = (element.totalDelay+element.delay) * 60
                 } else if ('onTime' in element) {
                     newStopTimeUpdate.arrival.time = convertTimeStrToUNIXEpoch(element.time);
                 } else if ('newTime' in element) {
@@ -76,7 +76,7 @@ function StopTimeRow({ status_stop, stoptime, dispatchStopTimesChange }) {
         <td>{stoptime.stopId}</td>
         <td className={status_stop && status_stop !== "Passed" ? "fs-3" : ""}>{status_stop}</td>
         <td className='d-flex flex-column align-items-center'>
-            <input disabled={stoptime.skip || false} type='time' onInput={(e) => { changeTimeStop(e.currentTarget.value, stoptime.stopSequence) }} value={(stoptime.newTime && !stoptime.onTime) ? stoptime.newTime : stoptime.time} />
+            <input disabled={stoptime.skip || false} type='time' onInput={(e) => { changeTimeStop(e.currentTarget.value, stoptime.stopSequence) }} value={(stoptime.newTime && !stoptime.onTime) ? stoptime.newTime : stoptime.arrival} />
             <div>Arrives on Time:
                 <input type='checkbox' onChange={(e) => { changeStopOnTime(e.target.checked, stoptime.stopSequence); }} checked={stoptime.onTime} /></div>
         </td>
@@ -107,7 +107,7 @@ function StopTimeTable({ stoptimes, dispatchStopTimesChange }) {
         <tbody>
             {stoptimes.map((stoptime) => {
                 let status_stop = "Passed"
-                if (convertTimeStrToUNIXEpoch(stoptime.time) + stoptime.totalDelay*60 >= convertTimeStrToUNIXEpoch(current_time_str) && !before) {
+                if (convertTimeStrToUNIXEpoch(stoptime.arrival) + stoptime.totalDelay*60 >= convertTimeStrToUNIXEpoch(current_time_str) && !before) {
                     before = true
                     status_stop = "🚆"
 
@@ -184,7 +184,7 @@ export function TripUpdate() {
         let totalDelay = 0;
         return rows.map((value, i) => {
             let newValue = { ...value }
-            if ("stopSequence" in action && action.stopSequence === i) {
+            if ("stopSequence" in action && action.stopSequence == i) {
                 newValue = { ...newValue, ...action }
             }
             totalDelay += addTotalTime(newValue)

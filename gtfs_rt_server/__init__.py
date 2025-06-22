@@ -1,8 +1,9 @@
 from flask_login import LoginManager
+from apscheduler.triggers.base import BaseTrigger
 from flask_socketio import SocketIO
 import datetime
 from flask_wtf import CSRFProtect
-from werkzeug.exceptions import HTTPException, BadRequest, InternalServerError
+from werkzeug.exceptions import HTTPException, BadRequest, InternalServerError, Unauthorized,Forbidden 
 from flask import Flask, redirect
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -12,46 +13,46 @@ from apscheduler.jobstores.redis import  RedisJobStore
 import os
 from pathlib import Path
 from typing import Optional
-from celery import Task, Celery
-from celery.exceptions import Ignore
 from flask.logging import default_handler
 from flask import has_request_context, request
 from logging import getLogger, FileHandler, DEBUG
 import logging
 from threading import Lock
-from flask_redis import FlaskRedis 
+from flask_login import current_user
+from flask import wrappers
+from gtfs_rt_server.protobuf_utils import get_feed_object_from_file,save_feed_to_file,  delete_expired_trip_updates
+from functools import wraps
+from flask import current_app
+from gtfs_rt_server.schema import db, get_user_by_username, User, Role
+
 lock = Lock()
-db = SQLAlchemy()
 scheduler = APScheduler()
-redis_client = FlaskRedis()
 socketio = SocketIO()
 
-from gtfs_rt_server.protobuf_utils import save_feed_to_file,  delete_expired_trip_updates
-# from https://flask.palletsprojects.com/en/stable/logging/#injecting-request-information 
-class RequestFormatter(logging.Formatter):
-    def format(self, record):
-        if has_request_context():
-            record.url = request.url
-            record.remote_addr = request.remote_addr
-        else:
-            record.url = None
-            record.remote_addr = None
+def has_roles(*roles):
+    def decorator(f):
+        @wraps(f)
+        def dec_func(*args, **kwargs):
+            with db.session.begin():
+                if not current_user:
+                    raise Unauthorized("User is not logged in")
+                
+                given_roles = set(roles)
+                for role in current_user.roles:
+                    if role.name in given_roles:
+                        given_roles.remove(role.name)
 
-        return super().format(record)
+                if len(given_roles) > 0:
+                    raise Forbidden( f"User does not have roles {"".join(given_roles)}") 
+            return f(*args, **kwargs)
+        return dec_func
+    return decorator
+
+
+
 
 def create_logger(app):
-    fm=  RequestFormatter(
-    '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
-    '%(levelname)s in %(module)s: %(message)s'
-    )
-    logger = getLogger("gunicorn.debug") # how to handle different levels and different configurations
-    default_handler.setFormatter(fm)
-    default_handler.setLevel(DEBUG)
-    fileHandler = FileHandler(app.config["LOGGING_FILE_PATH"], mode="a")
-    fileHandler.setFormatter(fm)
-    fileHandler.setLevel(DEBUG)
-    logger.addHandler(default_handler)
-    logger.addHandler(fileHandler)
+    logger = getLogger("gunicorn.error") # how to handle different levels and different configurations
     app.logger = logger
     return logger
 
@@ -74,7 +75,6 @@ def create_error_handlers(app):
 
 
 def create_login_manager(app):
-    from gtfs_rt_server.schema import User, get_user_by_username
 
     login_manager = LoginManager(app)
 
@@ -89,48 +89,6 @@ def create_login_manager(app):
     login_manager.user_loader(get_user_by_username)
 
     return login_manager
-
-
-## from https://flask.palletsprojects.com/en/stable/patterns/celery/
-# def init_celery_app(app):
-
-#     class FlaskTask(Task):
-
-#         status_dict = {"status":"starting", "message":"starting..."}
-
-#         def on_success(self, retval, task_id, args, kwargs):
-#         # Update result with custom structure
-#             super().on_success(retval, task_id, args, kwargs)
-#             self.update_task_status(task_id, "success", f"{retval}\nDone")
-
-#         def on_failure(self, exc, task_id, args, kwargs, einfo):
-#             # Handle failure and update status and message
-#             super().on_failure(exc, task_id, args, kwargs, einfo)
-#             self.update_task_status(task_id, "error", str(exc))
-
-#         def update_task_status(self, task_id, status, message, **kwargs):
-#             result = self.AsyncResult(task_id)
-#             self.status_dict.update({"status": status, "message": f"{ result.info["message"] if result.info and "message" in result.info else ''}\n{message}", **kwargs})
-#             result.backend.store_result(task_id, self.status_dict , status)
-        
-#         def __call__(self, *args: object, **kwargs: object) -> object:
-#             try :
-#                 with app.app_context():
-#                     return self.run(*args, **kwargs)
-#             except Exception as e:
-#                 # Handle any errors
-#                 raise Ignore(f"Task failed due to exception:{e}")
-
-#     celery_app = Celery(app.name, task_cls=FlaskTask)
-#     celery_app.config_from_object(app.config["CELERY"])
-
-
-    
-    # celery_app.add_periodic_task(30*60*60, periodic_remove_expired  )
-
-    celery_app.set_default()
-    app.extensions["celery"] = celery_app
-    return celery_app
 
 def register_blueprints(app):
     from gtfs_rt_server.blueprints import auth_blueprint, db_blueprint, feed_blueprint, gtfs_blueprint, page_blueprint
@@ -158,7 +116,9 @@ def init_redis_client(app):
     redis_client.init_app(app)
 
 def init_sockiet_io(app):
-    socketio.init_app(app, path="/ws", message_queue=app.config["REDIS_URL"])
+    socketio.init_app(app, path="/ws", message_queue=app.config["REDIS_URL"], cors_allowed_origins="*")
+
+
 
 def init_app():
     global db
@@ -166,8 +126,8 @@ def init_app():
     app = create_app()
     config = os.getenv("FLASK_ENVIRON")
     app.config.from_object( config if config else "config.Config")
-    from gtfs_rt_server.protobuf_utils import get_feed_object_from_file
     app.static_folder = app.config["STATIC_FOLDER"]
+
     # get different feeds from files for alerts and stoptimes and vehicle positions
 
     app.config["feed_alerts_location"] = Path(app.config["FEEDS_LOCATION"]) / "alerts.bin" 
@@ -178,20 +138,17 @@ def init_app():
     app.config["feed_updates"] = get_feed_object_from_file(app.config["feed_updates_location"])
     app.config["feed_positions"] = get_feed_object_from_file(app.config["feed_positions_location"])
     login_manager = create_login_manager(app)
-    register_blueprints(app)
-
 
     init_db(app, db)
     init_CORS(app)
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
     create_logger(app)
-    # init_redis_client(app)
     init_scheduler(app)
     create_error_handlers(app)
     init_sockiet_io(app)
+    register_blueprints(app)
     app.config["time_since_last_gtfs"] = datetime.datetime.now().timestamp() 
     scheduler.start() # start scheduler 
     return app
-    # must run socket io with app
 

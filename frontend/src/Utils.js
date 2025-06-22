@@ -43,9 +43,8 @@ export async function getStopTimesofTrip(trip_id) {
             return await getStopTimesFromCache(trip_id)
         }
         let response = await axios.get("/db/get_stop_times_trip", { params: { "tripid": trip_id } })
-        const stoptimes=  response.data.map((val, i) => { return { stopSequence: Number(val[0]), stopId: val[1], time: val[2] }; });
-        saveStopTimeIntoCache(stoptimes)
-        return stoptimes
+        saveStopTimeIntoCache(trip_id,response.data)
+        return response.data 
     })
 }
 export function getHtmlForEntity(entity) {

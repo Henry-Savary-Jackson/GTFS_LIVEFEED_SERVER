@@ -1,6 +1,7 @@
 from flask import Blueprint,request , jsonify
+from flask_login import  login_required
 import datetime
-from flask_login import login_required
+from gtfs_rt_server import  has_roles 
 from gtfs_rt_server.db_utils import get_trips, get_routes, get_trip_ids_routes,  get_stops, get_services,get_stoptimes_of_trip, get_alerts_by_causes, get_alerts_by_effects, get_alerts_by_route, get_alerts_by_stop, get_alerts_by_trips, get_trip_updates_by_routes, get_trip_updates_by_stops, get_trip_updates_by_trips 
 db_bp = Blueprint("db", __name__, url_prefix="/db")
 
@@ -39,6 +40,7 @@ def get_stoptimes_endp():
 
 @db_bp.post("/add_alert")
 @login_required
+@has_roles("excel")
 def add_alert_endp():
     alert = request.get_json()
     if not alert:
@@ -48,6 +50,7 @@ def add_alert_endp():
 
 @db_bp.post("/add_trip_update")
 @login_required
+@has_roles("excel")
 def add_trip_update_endp():
     trip_update = request.get_json()
     if not trip_update:
@@ -57,12 +60,14 @@ def add_trip_update_endp():
 
 @db_bp.delete("/delete_alert/<alert_id>")
 @login_required
+@has_roles("excel")
 def delete_alert_endp(alert_id):
     delete_alert_from_log(alert_id)
     return {"status": "deleted", "alert_id": alert_id}
 
 @db_bp.delete("/delete_trip_update/<trip_update_id>")
 @login_required
+@has_roles("excel")
 def delete_trip_update_endp(trip_update_id):
     delete_trip_update_from_log(trip_update_id)
     return {"status": "deleted", "trip_update_id": trip_update_id}

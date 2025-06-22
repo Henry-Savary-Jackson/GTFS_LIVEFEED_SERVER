@@ -1,19 +1,21 @@
 
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
-from flask_login import login_required, login_user, current_user, logout_user
+from flask_wtf.csrf import generate_csrf
 from wtforms import BooleanField, StringField,PasswordField, validators, SubmitField
 from gtfs_rt_server.db_utils import insert_user, password_hasher,delete_user_with_username 
-from gtfs_rt_server.schema import get_user_by_username
+from gtfs_rt_server import get_user_by_username, has_roles 
 import argon2
-from flask_security import roles_required
+from flask_login import  login_required, login_user, logout_user, current_user
 from werkzeug.exceptions import BadRequest
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+@auth_bp.get("/list_users")
+
 # add
 @auth_bp.post("/add_user")
 @login_required
-@roles_required("admin")
+@has_roles("admin")
 def add_user():
     adduser_form = request.form
     username = login_form.get("username", None)
@@ -33,7 +35,7 @@ def add_user():
 
 @auth_bp.delete("/delete_user")
 @login_required
-@roles_required("admin")
+@has_roles("admin")
 def delete_user():
     adduser_form = request.form
     if not username:
@@ -65,7 +67,7 @@ def login_endpoint():
         matches = password_hasher.verify(user.hash_pass, password)
         login_user(user, remember=remember_me)
         current_app.logger.debug(f"{current_user.username} logged in.")
-        return [ role.role_name for role in user.roles ]
+        return [ role.name for role in user.roles ]
     except argon2.exceptions.VerifyMismatchError:
         raise BadRequest( "Wrong password") 
 ## store async protobuf as blob when edited and keep cache in memory

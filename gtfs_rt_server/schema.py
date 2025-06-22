@@ -1,23 +1,22 @@
 import enum
-from flask_sqlalchemy import model
+from flask_sqlalchemy import model, SQLAlchemy
 from flask_login import UserMixin
-from flask_security import  RoleMixin
-from gtfs_rt_server import db
 from typing import Optional
 from uuid import uuid4
 
+db = SQLAlchemy()
+
 roles_users = db.Table('roles_users',
     db.Column('user_id', db.String(36), db.ForeignKey('user.user_id')),
-    db.Column('role_id', db.String(20), db.ForeignKey('role.role_id'))
+    db.Column('role_id', db.String(20), db.ForeignKey('role.id'))
 )
 
 class User(UserMixin, db.Model):
     __tablename__="user"
-    user_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
+    user_id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
     username = db.Column(db.String(100), unique=True)
     hash_pass = db.Column(db.String(100), nullable=False)
-    roles = db.relationship('Role', secondary=roles_users , backref="roled" )
-
+    roles = db.relationship('Role', secondary=roles_users , backref=["users", {"lazy":True} ])
     def get_id(self):
         return self.username
 
@@ -26,10 +25,10 @@ def get_user_by_username(username) -> Optional[User]:
     with db.session.begin():
         return User.query.filter_by(username=username).first()
 
-class Role(RoleMixin, db.Model):
+class Role( db.Model):
     __tablename__="role"
-    role_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
-    role_name = db.Column(db.String(20) , unique=True, nullable=False)
+    id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
+    name = db.Column(db.String(20) , unique=True, nullable=False)
 
 class Causes(enum.Enum):
     UNKNOWN_CAUSE = "UNKNOWN_CAUSE"
@@ -76,7 +75,7 @@ class InformedEntityToAlerts(db.Model):
 
 class Alert(db.Model):
     __tablename__ = "alerts"
-    alert_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
+    alert_id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
     start_time = db.Column(db.Integer())
     end_time = db.Column(db.Integer())
     cause = db.Column(db.Enum(Causes))
@@ -98,7 +97,7 @@ class TripUpdateToStop(db.Model):
 
 class TripUpdate(db.Model):
     __tablename__ = "trip_update"
-    trip_update_id = db.Column(db.String(36), default=str(uuid4()), primary_key=True)
+    trip_update_id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
     trip_id = db.Column(db.String(36), nullable=False)
     stops = db.relationship(
         "TripUpdateToStop" , backref="trip_update"
