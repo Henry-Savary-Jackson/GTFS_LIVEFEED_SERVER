@@ -9,7 +9,6 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import json
 from flask_apscheduler import APScheduler 
-from apscheduler.jobstores.redis import  RedisJobStore 
 import os
 from pathlib import Path
 from typing import Optional

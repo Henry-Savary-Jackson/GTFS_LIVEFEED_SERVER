@@ -61,7 +61,7 @@ def delete_user_with_username(username):
 
 def list_users():
     with db.session.begin():
-        return db.session.query(User.username, User.user_id).all()
+        return db.session.query(User ).all()
 
 def modify_user(id, username=None, password=None, roles=None):
     with db.session.begin():

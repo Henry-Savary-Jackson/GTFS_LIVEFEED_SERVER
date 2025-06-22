@@ -1,6 +1,7 @@
-import { useContext, useReducer, useState } from 'react';
-import { add_user } from './Utils.js';
+import { useContext, useEffect, useReducer, useState } from 'react';
+import { add_user , get, list_users} from './Utils.js';
 import { UserContext } from './Globals.js';
+import { Link } from 'react-router';
 
 class RoleUI {
 
@@ -20,7 +21,31 @@ class RoleUI {
 
 }
 
-export function AddUserForm() {
+export function UserItem({user}){
+    return <div>
+        <span>{user.username}</span>
+        <ul>
+            {user.roles.map((val,i)=><li key={i}>val</li>)}
+        </ul>
+        <Link >Edit</Link>
+        <button >Edit</button>
+    </div>
+}
+
+// export function UserList(){
+//     let [users , setUsers] = useState([])
+
+//     useEffect(()=>{
+//         (async ()=>setUsers(await list_users()))()
+//     }, [])
+
+//    return <div>
+//         {users,}
+
+//    </div>
+// }
+
+export function AddUserForm({user_id}) {
     let [user, setUser] = useContext(UserContext)
 
     const fixed_roles = [new RoleUI("view", true), new RoleUI("edit"), new RoleUI("gtfs"), new RoleUI("excel"), new RoleUI("admin")]

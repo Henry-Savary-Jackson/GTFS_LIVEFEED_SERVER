@@ -223,7 +223,7 @@ export function Feed() {
     }
 
     // sort by timestamp descending
-    return output.sort((u_1, u_2) => u_2.tripUpdate.timestamp - u_1.tripUpdate.timestamp)
+    return output.sort((u_1, u_2) => u_2.tripUpdate.timestamp - u_1.tripUpdate.timestamp).map((val)=> {return {...val}})
 
   }, feed_updates)
 

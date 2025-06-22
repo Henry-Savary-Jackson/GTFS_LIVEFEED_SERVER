@@ -31,6 +31,22 @@ export async function add_user(username, password, roles) {
     })
 }
 
+export async function list_users() {
+    return await performRequest(async () => {
+        return await axios.get("/auth/list_users", { withCredentials: true })
+    })
+}
+export async function modify_user(user_id, username, password, roles) {
+    return await performRequest(async () => {
+        return await axios.postForm("/auth/modify_user", { "user_id":user_id, "username": username, "password": password, "roles": roles }, { withCredentials: true })
+    })
+}
+export async function delete_user( username) {
+    return await performRequest(async () => {
+        return await axios.delete(`/auth/delete_user/${encodeURIComponent(username)}`, { withCredentials: true })
+    })
+}
+
 export async function logout() {
     return await performRequest(async () => {
         return await axios.get("/auth/logout", { withCredentials: true })
@@ -39,14 +55,14 @@ export async function logout() {
 
 export async function getStopTimesofTrip(trip_id) {
     return await performRequest(async () => {
-        if (isStopTimesInCache(trip_id)){
+        if (isStopTimesInCache(trip_id)) {
             let result = await getStopTimesFromCache(trip_id)
             if (result)
-                return result.map((val)=> { return {...val}})
+                return result.map((val) => { return { ...val } })
         }
         let response = await axios.get("/db/get_stop_times_trip", { params: { "tripid": trip_id } })
-        saveStopTimeIntoCache(trip_id,response.data)
-        return response.data 
+        saveStopTimeIntoCache(trip_id, response.data)
+        return response.data
     })
 }
 export function getHtmlForEntity(entity) {
@@ -276,7 +292,7 @@ export async function getStopTimesFromCache(trip_id) {
     let mapResult = tripIdToStopTimesCache[trip_id]
     const now = Date.now().valueOf()
     if (mapResult.timestamp + 5 * 60 * 1000 < now) {
-        if (await getTimeSinceLastGTFS() > now) 
+        if (await getTimeSinceLastGTFS() > now)
             return null
         mapResult.timestamp = now
     }
