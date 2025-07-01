@@ -28,8 +28,28 @@ lock = Lock()
 scheduler = APScheduler()
 socketio = SocketIO()
 
+
+def has_any_role(*roles):
+    def decorator(f):
+        @wraps(f)
+        def dec_func(*args, **kwargs):
+            with db.session.begin():
+                if not current_user:
+                    raise Unauthorized("User is not logged in")
+                
+                user_roles = set([role.name for role in current_user.roles])
+                given_roles = set(roles)
+
+
+                if len(given_roles.intersection(user_roles)) <= 0:
+                    raise Forbidden( f"User does not have at least on of the following roles: {",".join(given_roles)}") 
+            return f(*args, **kwargs)
+        return dec_func
+    return decorator
+
+
+
 def has_roles(*roles):
-    
     def decorator(f):
         @wraps(f)
         def dec_func(*args, **kwargs):
@@ -43,7 +63,7 @@ def has_roles(*roles):
                         given_roles.remove(role.name)
 
                 if len(given_roles) > 0:
-                    raise Forbidden( f"User does not have roles {"".join(given_roles)}") 
+                    raise Forbidden( f"User does not have the {",".join(given_roles)} roles ") 
             return f(*args, **kwargs)
         return dec_func
     return decorator
@@ -91,12 +111,13 @@ def create_login_manager(app):
     return login_manager
 
 def register_blueprints(app):
-    from gtfs_rt_server.blueprints import auth_blueprint, db_blueprint, feed_blueprint, gtfs_blueprint, page_blueprint
+    from gtfs_rt_server.blueprints import excel_blueprint,auth_blueprint, db_blueprint, feed_blueprint, gtfs_blueprint, page_blueprint
     app.register_blueprint(auth_blueprint.auth_bp)
     app.register_blueprint(db_blueprint.db_bp)
     app.register_blueprint(feed_blueprint.feed_bp)
     app.register_blueprint(gtfs_blueprint.gtfs_blueprint)
     app.register_blueprint(page_blueprint.page_bp)
+    app.register_blueprint(excel_blueprint.excel_bp)
 
 def init_db(app,db):
     db.init_app(app)

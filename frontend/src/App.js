@@ -1,6 +1,6 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
 import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert } from './Utils'
-import {  getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
+import { getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserContext, RolesContext, alertsContext } from './Globals';
@@ -9,35 +9,37 @@ import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
 import { UploadsGTFS } from './FileUpload';
 import { TripUpdateFilter } from './Search';
-import { AddUserForm } from './AddUser';
+import { AddUserForm, UserList } from './AddUser';
 import { AlertsProvider } from './Alerts';
+import { ExcelList } from './Excel';
+import { Form, Table, Image, Stack, Button, ButtonGroup } from 'react-bootstrap'
 
 
 
-function TripUpdateFeedEntityRow({  entity, delete_feed_entity_callback }) {
+function TripUpdateFeedEntityRow({ entity, delete_feed_entity_callback }) {
 
   let [stoptimes, setStoptime] = useState([])
-  
-  useEffect(()=>{
-    (async () =>{
+
+  useEffect(() => {
+    (async () => {
       if (entity)
-        setStoptime(getUpdatesWithStopTimes(entity.tripUpdate.stopTimeUpdate,await getStopTimesofTrip(entity.tripUpdate.trip.tripId)))
+        setStoptime(getUpdatesWithStopTimes(entity.tripUpdate.stopTimeUpdate, await getStopTimesofTrip(entity.tripUpdate.trip.tripId)))
     })()
-    
+
   }, [])
   let [alerts, popUpAlert] = useContext(alertsContext)
 
-  let first_stoptime = stoptimes && stoptimes.length> 0 ? stoptimes[0] : null
-  let last_stoptime = stoptimes && stoptimes.length> 0? stoptimes[stoptimes.length-1] : null
-  let first = first_stoptime ? convertTimeStrToDate(first_stoptime.newTime || first_stoptime.arrival   )  : null
-  let last = last_stoptime ? convertTimeStrToDate(last_stoptime.newTime || last_stoptime.arrival ) : null
+  let first_stoptime = stoptimes && stoptimes.length > 0 ? stoptimes[0] : null
+  let last_stoptime = stoptimes && stoptimes.length > 0 ? stoptimes[stoptimes.length - 1] : null
+  let first = first_stoptime ? convertTimeStrToDate(first_stoptime.newTime || first_stoptime.arrival) : null
+  let last = last_stoptime ? convertTimeStrToDate(last_stoptime.newTime || last_stoptime.arrival) : null
 
   let first_minutes = first && first.valueOf() / (1000 * 60)
-  if ( first_stoptime && !first_stoptime.newTime)
-     first_minutes += first_stoptime.totalDelay 
+  if (first_stoptime && !first_stoptime.newTime)
+    first_minutes += first_stoptime.totalDelay
   let last_minutes = last && last.valueOf() / (1000 * 60)
-  if ( last_minutes && ! last_stoptime.newTime)
-    last_minutes += last_stoptime.totalDelay 
+  if (last_minutes && !last_stoptime.newTime)
+    last_minutes += last_stoptime.totalDelay
   let now = new Date()
   let now_minutes = now.valueOf() / (1000 * 60)
 
@@ -56,7 +58,7 @@ function TripUpdateFeedEntityRow({  entity, delete_feed_entity_callback }) {
 
   // add delay 
   if (first_minutes && last_minutes) {
-    if ( first_minutes >= now_minutes) {
+    if (first_minutes >= now_minutes) {
       css_class = "table-warning"
       trip_state = "Trip yet to start"
     } else if (last_minutes >= now_minutes) {
@@ -138,8 +140,8 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
 }
 
 
-function FeedEntityRow({  entity, delete_feed_entity_callback }) {
-  return entity.tripUpdate ? <TripUpdateFeedEntityRow   entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /> : <ServiceAlertFeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />
+function FeedEntityRow({ entity, delete_feed_entity_callback }) {
+  return entity.tripUpdate ? <TripUpdateFeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /> : <ServiceAlertFeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />
 }
 
 function DeleteFeedEntityButton({ entity, delete_feed_entity_callback }) {
@@ -176,6 +178,7 @@ export function Feed() {
   }
 
 
+  let [popAlerts, popUpAlert] = useContext(alertsContext)
   let [trips_to_route, setTripToRoute] = useState({})
 
   useEffect(() => {
@@ -223,7 +226,7 @@ export function Feed() {
     }
 
     // sort by timestamp descending
-    return output.sort((u_1, u_2) => u_2.tripUpdate.timestamp - u_1.tripUpdate.timestamp).map((val)=> {return {...val}})
+    return output.sort((u_1, u_2) => u_2.tripUpdate.timestamp - u_1.tripUpdate.timestamp).map((val) => { return { ...val } })
 
   }, feed_updates)
 
@@ -249,21 +252,21 @@ export function Feed() {
       await refreshFeeds()
     }
     catch (error) {
-      alert(`Error deleting feed:\n${error.title}\n${error.message}`)
+      popUpAlert({ "message": `Error deleting feed:\n${error.title}\n${error.message}`, "type": "error" })
     }
   }
 
 
   return (
-    <div className="container d-flex flex-column align-items-center">
-      <div className='container d-flex flex-row gap-3 justify-content-center'>
-        <button className='btn btn-secondary' onClick={(e) => { setFeedType("alerts") }}>⚠️ List of service alerts</button>
-        <button className='btn btn-secondary' onClick={(e) => { setFeedType("updates") }}>🕛 List of trip updates</button>
-        <button className='btn btn-secondary' onClick={(e) => { refreshFeeds() }}>🔄Refresh service alerts and trip updates</button>
-      </div >
+    <Stack className=' justify-content-center align-items-center' gap={3}>
+      <ButtonGroup direction="horizontal"  >
+        <Button variant='secondary' onClick={(e) => { setFeedType("alerts") }}>⚠️ List of service alerts</Button>
+        <Button variant='secondary' onClick={(e) => { setFeedType("updates") }}>🕛 List of trip updates</Button>
+        <Button variant='secondary' onClick={(e) => { refreshFeeds() }}>🔄Refresh service alerts and trip updates</Button>
+      </ButtonGroup >
       {feed_type == "updates" ? <TripUpdateFilter setNumber={setNumber} number={number} route={route} setRoute={setRoute} routes={routes} /> : <></>}
       <span className='text-center fs-4'>{feed_type == "updates" ? "List of all currently active Trip Updates (Double click a row to get additional details): " : "List of all currently stored Service Alerts:"}</span>
-      <table className=' border table table-hover' id="feed-table">
+      <Table bordered hover id="feed-table">
         <thead>
           <tr>
             {feed_type === "alerts" ?
@@ -283,10 +286,10 @@ export function Feed() {
             <th>Delete</th>
           </tr></thead>
         <tbody>
-          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity, index) => <FeedEntityRow  entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
+          {(feed_type == "alerts" ? feed_alerts : feed_updates_filtered).map((entity, index) => <FeedEntityRow entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} />)}
         </tbody>
-      </table>
-    </div>
+      </Table>
+    </Stack>
   );
 }
 
@@ -320,19 +323,19 @@ export default function App() {
   return <BrowserRouter>
     <UserContext.Provider value={[user, setUserCallback]}>
       <RolesContext.Provider value={[roles, setRolesCallback]}>
-        <div className='container d-flex flex-column align-items-center'>
-          <AlertsProvider>
-            <Routes>
-              <Route path='/'>
-                <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
-                <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
-                <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
-                <Route path='upload_gtfs' element={user ? <UploadsGTFS /> : <LoginForm />} />
-                <Route path='add_newuser' element={user ? <AddUserForm /> : <LoginForm />} />
-              </Route>
-            </Routes>
-          </AlertsProvider>
-        </div>
+        <AlertsProvider>
+          <Routes>
+            <Route path='/'>
+              <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
+              <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
+              <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
+              <Route path='upload_gtfs' element={user && roles.includes("gtfs")? <UploadsGTFS /> : <LoginForm />} />
+              <Route path='add_user' element={user && roles.includes("admin")? <AddUserForm /> : <LoginForm />} />
+              <Route path='list_user' element={user && roles.includes("admin")? <UserList /> : <LoginForm />} />
+              <Route path='list_excel' element={user && roles.includes("excel")? <ExcelList /> : <LoginForm />} />
+            </Route>
+          </Routes>
+        </AlertsProvider>
       </RolesContext.Provider>
     </UserContext.Provider>
   </BrowserRouter>
@@ -341,15 +344,18 @@ export default function App() {
 export function Main({ logout_cookie }) {
 
   let [roles, setRoles] = useContext(RolesContext)
+  console.log(roles)
 
 
-  return <div className='d-flex flex-column align-items-center gap-3'  >
-    <img src='/static/prasa-main.png' width={250} height={100} />
-    <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link> 
-    <Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>
-    <Link className=' btn btn-primary' to="/trip_update">Create new trip update</Link>
-    <a className=' btn btn-primary' href='/static/shared/gtfs.zip'>GTFS zip for permanent schedules</a>
-    <a className=' btn btn-danger' onClick={async (e) => {
+  return <Stack gap={4} className='d-flex flex-column align-items-center justify-content-center' >
+    <Image src='/static/prasa-main.png' width={250} height={100} />
+    {roles.includes("gtfs") && <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
+    {roles.includes("admin") && <Link className='btn btn-primary' to="/list_user">Manage user access </Link>}
+    {roles.includes("excel") && <Link className='btn btn-primary' to="/list_excel">Manage tracking excels</Link>}
+    {roles.includes("edit") &&<Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>}
+    {roles.includes("edit") && <Link className=' btn btn-primary' to="/trip_update">Create new trip update</Link>}
+    <Button href='/static/shared/gtfs.zip'>GTFS zip for permanent schedules</Button>
+    <Button variant='danger' onClick={async (e) => {
       try {
         e.preventDefault()
         await logout()
@@ -363,8 +369,8 @@ export function Main({ logout_cookie }) {
         logout_cookie()
         window.location.pathname = "/"
       }
-    }} href='/auth/logout'>Logout</a>
+    }} href='/auth/logout'>Logout</Button>
     <Feed />
-    <img src='/static/lines.png' width={500} height={500} />
-  </div>
+    <Image src='/static/lines.png' width={500} height={500} />
+  </Stack>
 }

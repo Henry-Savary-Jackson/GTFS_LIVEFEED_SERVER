@@ -44,17 +44,18 @@ def list_user_endp():
 @has_roles("admin")
 def add_user():
     adduser_form = request.form
-    username = login_form.get("username", None)
+    username = adduser_form.get("username", None)
     if not username:
         raise BadRequest("No username given")
-    password = login_form.get("password", None)
+    password = adduser_form.get("password", None)
     if not password:
         raise BadRequest("No password given")
-
+    if len(password) < 10:
+        raise BadRequest("Password must be more than 10 characters long")
     user = get_user_by_username(username)
     if user:
         raise BadRequest("User already exists")
-    roles = adduser_form.getlist("roles")
+    roles = adduser_form.getlist("roles[]")
     insert_user(username, password, roles)
     current_app.logger.debug(f"{current_user.username} added {username}.")
     return "Successful"
@@ -65,14 +66,22 @@ def add_user():
 @has_roles("admin")
 def mod_user():
     moduser_form = request.form
-    user_id = moduser_form.get("id", None)
+    user_id = moduser_form.get("user_id", None)
     if not user_id:
         raise BadRequest("Must prove a user id for the user")
-    username = login_form.get("username", None)
-    password = login_form.get("password", None)
-    if not user:
-        raise BadRequest("User already exists")
-    roles = adduser_form.getlist("roles")
+    username = moduser_form.get("username", None)
+    if not username:
+        raise BadRequest("Please enter a username")
+    password = moduser_form.get("password", None)
+    if not password:
+        raise BadRequest("Please enter a password")
+    if len(password) < 10:
+        raise BadRequest("Password must be greater than 10 characters long")
+    roles =  moduser_form.getlist("roles[]")
+    if username == "admin" and "admin" not in roles :
+        raise BadRequest("The admin user should always have the role to manage users.")
+    modify_user(user_id, username, password, roles)
+    return "Successful"
 
 
 @auth_bp.delete("/delete_user/<username>")
@@ -81,6 +90,8 @@ def mod_user():
 def delete_user(username):
     if not username:
         raise BadRequest("No username given")
+    if username == "admin":
+        raise BadRequest("Cannot delete the admin.")
     try:
         delete_user_with_username(username)
         return "Successful"

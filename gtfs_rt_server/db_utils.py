@@ -61,7 +61,8 @@ def delete_user_with_username(username):
 
 def list_users():
     with db.session.begin():
-        return db.session.query(User ).all()
+        return db.session.query(User).all()
+
 
 def modify_user(id, username=None, password=None, roles=None):
     with db.session.begin():
@@ -75,10 +76,8 @@ def modify_user(id, username=None, password=None, roles=None):
                 user.password = password_hasher.hash(password)
             if roles is not None:
                 user.roles = [
-                    (
-                        db.session.query(Role).filter(Role.name == name).first()
-                        or Role(name=name)
-                    )
+                    db.session.query(Role).filter(Role.name == name).first()
+                    or Role(name=name)
                     for name in roles
                 ]
             db.session.merge(user)
@@ -275,6 +274,7 @@ def add_alert_to_db(id, alert):
         "alert_id": id,
         "cause": getattr(Causes, alert["cause"]),
         "effect": getattr(Effects, alert["effect"]),
+        "date": datetime.date.today().isoformat()
     }
     if "activePeriod" in alert and len(alert["activePeriod"]) > 0:
         if "start" in alert["activePeriod"][0]:
@@ -324,6 +324,7 @@ def add_trip_update_to_db(id, trip_update):
     update_data = {
         "trip_update_id": id,
         "trip_id": trip_update["trip"]["tripId"],
+        "date": datetime.date.today().isoformat(),
         "cancelled": trip_update.get("cancelled", False),
     }
     update_data["route_id"] = get_route_id_of_trip(update_data["trip_id"])
@@ -453,6 +454,33 @@ def get_trip_updates_by_routes():
     # return list(result)
     return pd.DataFrame(result, columns=["route_id", "update_count"])
 
+def get_trip_updates_by_date():
+    result = (
+        db.session.query(
+            TripUpdate.date,
+            func.count(TripUpdate.trip_update_id).label("update_count"),
+        )
+        .group_by(TripUpdate.date)
+        .all()
+    )
+
+    # return list(result)
+    return pd.DataFrame(result, columns=["date", "update_count"])
+
+
+def get_alerts_by_date():
+    result = (
+        db.session.query(
+            Alert.date,
+            func.count(Alert.alert_id).label("count_alerts"),
+        )
+        .group_by(Alert.date)
+        .all()
+    )
+
+    return pd.DataFrame(result, columns=["date", "count_alerts"])
+
+
 
 def get_alerts_by_causes():
     result = (
@@ -464,7 +492,6 @@ def get_alerts_by_causes():
         .all()
     )
 
-    # return list(result)
     return pd.DataFrame(result, columns=["cause", "count_alerts"])
 
 
@@ -477,52 +504,63 @@ def get_alerts_by_effects():
         .group_by(Alert.effect)
         .all()
     )
-
-    # return list(result)
     return pd.DataFrame(result, columns=["effect", "count_alerts"])
 
 
-def addAlertInfoToSheet(excel_sheet, sheet_name):
+def addAlertInfoToSheet(writer, sheet_name):
 
+    alerts_by_date = get_alerts_by_date()
     alerts_by_effects = get_alerts_by_effects()
     alerts_by_causes = get_alerts_by_causes()
     alerts_by_routes = get_alerts_by_route()
     alerts_by_trips = get_alerts_by_trips()
     alerts_by_stops = get_alerts_by_stop()
-    list_tables = [
-        alerts_by_causes,
-        alerts_by_effects,
-        alerts_by_routes,
-        alerts_by_stops,
-        alerts_by_trips,
-    ]
+    list_tables = {
+        "Number of alerts by date issued": alerts_by_date,
+        "Number of alerts by cause": alerts_by_causes,
+        "Number of alerts by effects": alerts_by_effects,
+        "Number of alerts by routes": alerts_by_routes,
+        "Number of alerts by stops": alerts_by_stops,
+        "Number of alerts by trips": alerts_by_trips,
+    }
+    write_dataframes_to_sheet(writer, sheet_name, list_tables)
 
-    current_row = 0
-    for df in list_tables:
-        numRows = len(excel_sheet) + 1
-        df.to_excel(excel_sheet, sheet_name, header=True, startrow=current_row)
-        current_row += numRows
+def write_dataframes_to_sheet(writer, sheet_name, df_dict):
+    worksheet = writer.book.get_sheet_by_name(sheet_name)
+    current_row = 1
+    for name, df in df_dict.items():
+        numRows = len(df) + 2
+        cell_header = worksheet.cell(row=current_row, column=1)
+        cell_header.value = name
+        df.to_excel(writer, sheet_name=sheet_name, index=False,header=True, startrow=current_row )
+        current_row += numRows +1
 
 
-def addTripUpdateInfoToSheet(excel_sheet, sheet_name):
 
+def addTripUpdateInfoToSheet(writer, sheet_name):
+
+    trip_updates_dates = get_trip_updates_by_date()
     trip_updates_routes = get_trip_updates_by_routes()
     trip_updates_trips = get_trip_updates_by_trips()
     trip_updates_stops = get_trip_updates_by_stops()
-    list_tables = [trip_updates_routes, trip_updates_trips, trip_updates_stops]
+    list_tables = {
+        "Number of trip updates by date issued": trip_updates_dates,
+        "Number of trip updates by route": trip_updates_routes,
+        "Number of trip updates by trips": trip_updates_trips,
+        "Number of trip updates by stops": trip_updates_stops,
+    }
 
-    current_row = 0
-    for df in list_tables:
-        numRows = len(excel_sheet) + 2
-        df.to_excel(excel_sheet, sheet_name, header=True, startrow=current_row)
-        current_row += numRows
+    write_dataframes_to_sheet(writer, sheet_name, list_tables)
 
 
 def create_service_excel(filename):
-    workbook = openpyxl.open(filename)
-    workbook.create_sheet("Alerts")
-    workbook.create_sheet("TripUpdates")
-
-    addAlertInfoToSheet(worksheet, "Alerts")
-    addTripUpdateInfoToSheet(worksheet, "TripUpdates")
-    workbook.save()
+    writer = pd.ExcelWriter(filename, engine="openpyxl")
+    try :
+        workbook = writer.book
+        workbook.create_sheet("Alerts")
+        workbook.create_sheet("TripUpdates")
+        addAlertInfoToSheet(writer, "Alerts")
+        addTripUpdateInfoToSheet(writer, "TripUpdates")
+        writer.close()
+    except Exception as e:
+        raise e

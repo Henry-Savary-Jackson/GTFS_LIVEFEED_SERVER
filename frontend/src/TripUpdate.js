@@ -239,7 +239,7 @@ export function TripUpdate() {
                     "cancelled": cancelled,
                 }
                 const trip_update_gtfs = convertDictToGTFSTripUpdate(object)
-                await sendTripUpdate(trip_update_gtfs)
+                await sendTripUpdate(trip_update_gtfs) // todo fix bug
                 location.state = trip_update_gtfs
             }
                 , "✅ Sucessfully saved Trip Update", popUpAlert)

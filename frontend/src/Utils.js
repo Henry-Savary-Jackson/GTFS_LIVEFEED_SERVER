@@ -33,12 +33,12 @@ export async function add_user(username, password, roles) {
 
 export async function list_users() {
     return await performRequest(async () => {
-        return await axios.get("/auth/list_users", { withCredentials: true })
+        return (await axios.get("/auth/list_users", { withCredentials: true })).data
     })
 }
 export async function modify_user(user_id, username, password, roles) {
     return await performRequest(async () => {
-        return await axios.postForm("/auth/modify_user", { "user_id":user_id, "username": username, "password": password, "roles": roles }, { withCredentials: true })
+        return await axios.putForm("/auth/modify_user", { "user_id":user_id, "username": username, "password": password, "roles": roles }, { withCredentials: true })
     })
 }
 export async function delete_user( username) {
@@ -244,6 +244,19 @@ export async function get_csrf() {
 
 export function setCSRFToken(token) {
     axios.defaults.headers.common["X-CSRF-Token"] = token
+}
+
+
+export async function get_list_excels(){
+    return await performRequest(async ()=>{
+        return (await axios.get("/excel/list_excel", {withCredentials:true})).data
+    })
+}
+
+export async function order_new_excel(){
+    return await performRequest(async ()=>{
+        return (await axios.post("/excel/make_excel", {withCredentials:true})).data
+    })
 }
 
 export async function submitGTFS(file_data) {

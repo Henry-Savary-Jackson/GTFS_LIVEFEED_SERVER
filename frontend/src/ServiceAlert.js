@@ -162,101 +162,102 @@ export function ServiceAlert() {
         changeInformedEntities({ "action": "save", "entity": entity })
     }
 
-    let [alerts, popUpAlert] = useContext(alertsContext) 
+    let [alerts, popUpAlert] = useContext(alertsContext)
 
-    return <div className="d-flex flex-column align-items-center gap-5">
-        <div className=' d-flex flex-column gap-3 position-fixed top-50 start-0'>
-            <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
-            <button onClick={(e) => { window.location.reload() }} className='btn btn-primary' to="/">Create a new service alert</button>
-        </div>
-        <EntitySelectorTabs setInformedEntities={addInformedEntity} />
-        {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
-        <div className='d-flex flex-column align-items-center w-100 gap-3' >
-            <div className="form-group w-100 d-flex flex-row gap-2" >
-                <label htmlFor='input-start'> Start Time</label>
-                <input id="input-start" className='form-control' type='date' onInput={(e) => {
-                    setStartDate(e.target.value)
-                }}
-                    value={startDate} />
-                <input id="input-end-time" className='form-control' type='time' value={startTime} onInput={(e) => { setStartTime(e.target.value) }} />
+    return <div className='container flex-column d-flex align-items-center gap-5' >
+        <div className="d-flex flex-column align-items-center gap-5">
+            <div className=' d-flex flex-column gap-3 position-fixed top-50 start-0'>
+                <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
+                <button onClick={(e) => { window.location.reload() }} className='btn btn-primary' to="/">Create a new service alert</button>
             </div>
-            <div className="form-group w-100 d-flex flex-row gap-2">
-                <label htmlFor='input-end-date'>End Time</label>
-                <input id="input-end-date" className='form-control' type='date' onInput={(e) => {
-                    setEndDate(e.target.value)
-                }} value={endDate} />
-                <input id="input-end-time" className='form-control' type='time' value={endTime} onInput={(e) => { setEndTime(e.target.value) }} />
-
-            </div>
-            <div className="form-group w-100" >
-                <label htmlFor='cause-select' >Cause</label>
-                <select id="cause-select" className="form-control w-100" value={cause} onChange={(e) => { setCause(e.target.value) }}>
-                    {causes.map((val, i) => <option key={i} value={val}>{val}</option>)}
-                </select>
-            </div>
-            <div className="form-group w-100 ">
-                <label htmlFor='effect-select'>Effect</label>
-                <select id="effect-select" className='form-control w-100' value={effect} onChange={(e) => { setEffect(e.target.value) }}>
-                    {effects.map((val, i) => <option key={i} value={val}>{val}</option>)}
-                </select>
-            </div>
-
-            <div className="form-group d-flex flex-column gap-3 m-3 w-100" >
-                <div className='form-group w-100 d-flex flex-row gap-3 align-items-center justify-content-center'>
-                    <label htmlFor='addDescButton'>Description/s</label>
-                    <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
-                        changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
-                    }} id='addDescButton'>Add Description</button>
+            <EntitySelectorTabs setInformedEntities={addInformedEntity} />
+            {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
+            <div className='d-flex flex-column align-items-center w-100 gap-3' >
+                <div className="form-group w-100 d-flex flex-row gap-2" >
+                    <label htmlFor='input-start'> Start Time</label>
+                    <input id="input-start" className='form-control' type='date' onInput={(e) => {
+                        setStartDate(e.target.value)
+                    }}
+                        value={startDate} />
+                    <input id="input-end-time" className='form-control' type='time' value={startTime} onInput={(e) => { setStartTime(e.target.value) }} />
                 </div>
-                <div className='container w-100 d-flex flex-column align-items-center gap-3'>
-                    {descriptions.map((desc, i) => <div key={i} className='d-flex w-100 flex-column align-items-left gap-1 form-group'>
-                        <textarea style={{ "minHeight": "18rem" }} className="w-100 form-control" value={desc.text} onChange={(e) => {
-                            changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
-                        }}></textarea>
-                        <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
-                            {system_languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
-                        </select>
-                        <button className='btn btn-danger' onClick={(e) => {
-                            changeDescriptions({ "action": "delete", "index": i })
-                        }} >X</button>
+                <div className="form-group w-100 d-flex flex-row gap-2">
+                    <label htmlFor='input-end-date'>End Time</label>
+                    <input id="input-end-date" className='form-control' type='date' onInput={(e) => {
+                        setEndDate(e.target.value)
+                    }} value={endDate} />
+                    <input id="input-end-time" className='form-control' type='time' value={endTime} onInput={(e) => { setEndTime(e.target.value) }} />
+
+                </div>
+                <div className="form-group w-100" >
+                    <label htmlFor='cause-select' >Cause</label>
+                    <select id="cause-select" className="form-control w-100" value={cause} onChange={(e) => { setCause(e.target.value) }}>
+                        {causes.map((val, i) => <option key={i} value={val}>{val}</option>)}
+                    </select>
+                </div>
+                <div className="form-group w-100 ">
+                    <label htmlFor='effect-select'>Effect</label>
+                    <select id="effect-select" className='form-control w-100' value={effect} onChange={(e) => { setEffect(e.target.value) }}>
+                        {effects.map((val, i) => <option key={i} value={val}>{val}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group d-flex flex-column gap-3 m-3 w-100" >
+                    <div className='form-group w-100 d-flex flex-row gap-3 align-items-center justify-content-center'>
+                        <label htmlFor='addDescButton'>Description/s</label>
+                        <button hidden={system_languages.length === 0} className='btn btn-primary' onClick={(e) => {
+                            changeDescriptions({ "action": "add", "entity": transit_realtime.TranslatedString.Translation.create({ language: system_languages[0].tag }) })
+                        }} id='addDescButton'>Add Description</button>
                     </div>
-                    )}
+                    <div className='container w-100 d-flex flex-column align-items-center gap-3'>
+                        {descriptions.map((desc, i) => <div key={i} className='d-flex w-100 flex-column align-items-left gap-1 form-group'>
+                            <textarea style={{ "minHeight": "18rem" }} className="w-100 form-control" value={desc.text} onChange={(e) => {
+                                changeDescriptions({ "action": "modify", "index": i, "entity": { "text": e.target.value } })
+                            }}></textarea>
+                            <select className='form-control' value={desc.language} onChange={(e) => changeDescriptions({ "action": "modify", "index": i, "entity": { "language": e.target.value } })}>
+                                {system_languages.map((val, i) => <option key={i} value={val.tag}>{val.long_name}</option>)}
+                            </select>
+                            <button className='btn btn-danger' onClick={(e) => {
+                                changeDescriptions({ "action": "delete", "index": i })
+                            }} >X</button>
+                        </div>
+                        )}
 
+                    </div>
+                </div>
+                <div className="form-group w-100">
+                    <label htmlFor='url-input'>URL</label>
+                    <input className='form-control w-100' id='url-input' value={url} onChange={(e) => { setURL(e.target.value) }} />
                 </div>
             </div>
-            <div className="form-group w-100">
-                <label htmlFor='url-input'>URL</label>
-                <input className='form-control w-100' id='url-input' value={url} onChange={(e) => { setURL(e.target.value) }} />
-            </div>
+            <button className="btn btn-success " onClick={async (e) => {
+                await doActionWithAlert(async () => {
+                    let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")).valueOf() : undefined;
+                    let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")).valueOf() : undefined;
+                    let period = startDate || endDate ? { "start": start, "end": end } : undefined;
+                    // combine date and time strings into date and then into unix time
+                    const object = {
+                        "id": id,
+                        "period": period,
+                        "cause": cause,
+                        "effect": effect,
+                        "descriptions": descriptions,
+                        "informed_entities": informed_entities,
+                        "url": url
+                    }
+                    const service_alert_gtfs = convertServiceAlertDictToGTFS(object)
+                    await sendServiceAlert(service_alert_gtfs)
+                    location.state = service_alert_gtfs
+
+                }, " ✅ Successfully saved Alert!", popUpAlert)
+                // save object
+            }} >Save</button>
+            <button className='btn btn-danger' onClick={(e) => {
+                if (window.confirm("Are you sure you want to cancel? You might lose unsaved changes"))
+                    window.location = "/"
+
+            }}>Cancel</button>
         </div>
-        <button className="btn btn-success " onClick={async (e) => {
-            await doActionWithAlert(async () => {
-                let start = startDate ? new Date(startDate + (startTime ? `T${startTime}` : "")).valueOf() : undefined;
-                let end = endDate ? new Date(endDate + (endTime ? `T${endTime}` : "")).valueOf() : undefined;
-                let period = startDate || endDate ? { "start": start, "end": end } : undefined;
-                // combine date and time strings into date and then into unix time
-                const object = {
-                    "id": id,
-                    "period": period,
-                    "cause": cause,
-                    "effect": effect,
-                    "descriptions": descriptions,
-                    "informed_entities": informed_entities,
-                    "url": url
-                }
-                const service_alert_gtfs = convertServiceAlertDictToGTFS(object)
-                await sendServiceAlert(service_alert_gtfs)
-                location.state = service_alert_gtfs
-
-            }, " ✅ Successfully saved Alert!", popUpAlert)
-            // save object
-        }} >Save</button>
-        <button className='btn btn-danger' onClick={(e) => {
-            if (window.confirm("Are you sure you want to cancel? You might lose unsaved changes"))
-                window.location = "/"
-
-        }}>Cancel</button>
     </div>
-
 
 }

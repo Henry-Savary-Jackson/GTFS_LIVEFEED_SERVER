@@ -17,7 +17,7 @@ export function LoginForm() {
             let roles = (await login(username, password, remember_me)).data
             setRoles(roles)
             setUser(username)
-            window.location.pathname = "/"
+            window.location.reload()
         } catch (error) {
             setError(error.message)
             console.error(error)

@@ -5,9 +5,11 @@
   "dependencies": {
     "ajv": "8.17.1",
     "axios": "1.9.0",
+    "bootstrap": "^5.3.7",
     "gtfs-realtime-bindings": "1.1.1",
     "protobufjs": "7.5.3",
     "react": "19.1.0",
+    "react-bootstrap": "^2.10.10",
     "react-cookie": "8.0.1",
     "react-dom": "19.1.0",
     "react-router": "7.6.2",

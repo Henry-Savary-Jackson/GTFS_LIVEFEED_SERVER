@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 load_dotenv()
 app = init_app()
 
-
-
 with app.app_context():
     add_role("admin")
     add_role("excel")

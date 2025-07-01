@@ -11,7 +11,7 @@ from wtforms import (
     FileField,
 )
 import datetime
-from gtfs_rt_server import db, scheduler , socketio, has_roles
+from gtfs_rt_server import db, scheduler , socketio, has_roles, has_any_role
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
 from flask import current_app
 from flask_socketio import join_room
@@ -102,13 +102,13 @@ def upload_gtfs():
 
 @socketio.on('connect')
 @login_required
-@has_roles("excel")
+@has_any_role("gtfs", "excel")
 def test_connect():
     pass 
 
 @socketio.on("join-room")
 @login_required
-@has_roles("excel")
+@has_any_role("gtfs", "excel")
 def join_room_ev(event):
     join_room(event["room"])
 

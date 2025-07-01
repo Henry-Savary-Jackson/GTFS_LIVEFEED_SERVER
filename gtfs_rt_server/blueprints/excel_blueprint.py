@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify, make_response ,send_from_directory
+from flask import Blueprint, request, jsonify, make_response ,send_from_directory, current_app
 from werkzeug.exceptions import NotFound
 from flask_login import login_required
 import datetime
-from gtfs_rt_server import has_roles, scheduler, socketio
+from gtfs_rt_server import has_roles, scheduler, socketio, db
 from gtfs_rt_server.db_utils import create_service_excel
 from uuid import uuid4
 from apscheduler.events import EVENT_JOB_EXECUTED
@@ -14,17 +14,18 @@ excel_bp = Blueprint("excel", __name__, url_prefix="/excel")
 
 def create_excel_task(task_id, folder, filename):
     try:
-        create_service_excel(Path(folder, filename))
-        socketio.emit(
-            "finished", {"status": "success", "message": filename}, room=task_id
-        )
+        with scheduler.app.app_context():
+            with db.session.begin():
+                create_service_excel(Path(folder, filename))
+                socketio.emit(
+                    "finished", {"status": "success", "message": filename}, room=task_id
+                )
     except Exception as e:
         socketio.emit(
             "finished",
             {"status": "error", "message": str(e)},
             room=task_id,
         )
-
 
 @excel_bp.get("/<path:filename>")
 @login_required
@@ -45,7 +46,7 @@ def make_excel():
 
     current_time = datetime.datetime.now()
 
-    filename = f"{current_time.strftime()}.xlsx"
+    filename = f"{current_time.isoformat()}.xlsx"
 
     task_id = str(uuid4())
     scheduler.add_job(

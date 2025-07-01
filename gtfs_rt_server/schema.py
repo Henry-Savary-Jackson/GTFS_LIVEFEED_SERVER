@@ -16,7 +16,7 @@ class User(UserMixin, db.Model):
     user_id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
     username = db.Column(db.String(100), unique=True)
     hash_pass = db.Column(db.String(100), nullable=False)
-    roles = db.relationship('Role', secondary=roles_users , backref=["users", {"lazy":True} ])
+    roles = db.relationship('Role', secondary=roles_users , backref=db.backref('users', lazy='dynamic'))
     def get_id(self):
         return self.username
 
@@ -83,6 +83,7 @@ class Alert(db.Model):
     entities = db.relationship(
         "InformedEntityToAlerts", backref="alert"
     )
+    date = db.Column(db.String())
 
 
 class TripUpdateToStop(db.Model):
@@ -104,3 +105,4 @@ class TripUpdate(db.Model):
     )
     route_id =  db.Column(db.String(36), nullable=False)
     cancelled = db.Column(db.Boolean())
+    date = db.Column(db.String())
