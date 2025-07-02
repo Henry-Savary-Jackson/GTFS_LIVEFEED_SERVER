@@ -78,17 +78,11 @@ def upload_gtfs():
 
     if excel_file:
 
+        task_id = str(uuid4())
         ## stop current thread running if any
         ## see if you can deal with multiple uploads at the same time (maybe not necessary or adviable)
-        def job_remove_event(event):
-            publish_event("gtfs_upload", "event",  {"status":"error", "message": "The job was terminated abruptly."})
-            # publish to pubsub stream instead
-
-        if scheduler.get_job("gtfs_upload"):
-            scheduler.remove_job("gtfs_upload")
-        #     scheduler.remove_listener(job_remove_event)
-
-        # scheduler.add_listener(job_remove_event, mask=EVENT_JOB_REMOVED)
+        # def job_remove_event(event):
+            # publish_event(task_id, "event",  {"status":"error", "message": "The job was terminated abruptly."})
 
         excel_file_perm_path = os.path.join(
             current_app.config["SHARED_FOLDER"], "gtfs.xlsx"
@@ -96,11 +90,10 @@ def upload_gtfs():
         with open(excel_file_perm_path, "wb") as excel_file_perm:
             excel_file_perm.write(excel_file.read())
         
-        # socketio.emit("event", {"status":"working", "message":"starting..." })
         run_date = datetime.datetime.now() + datetime.timedelta(seconds=1)
-        scheduler.add_job("gtfs_upload",  generate_gtfs_from_xlsx, kwargs={"channel":"gtfs_upload",  "excel_file_path":excel_file_perm_path}, trigger="date", run_date=run_date)
+        scheduler.add_job(task_id,  generate_gtfs_from_xlsx, kwargs={"channel":task_id,  "excel_file_path":excel_file_perm_path}, trigger="date", run_date=run_date)
 
-        return "gtfs_upload"
+        return task_id 
     return "No file given", 400
     ## give error if errors in report.json
 
@@ -118,11 +111,10 @@ def join_room_ev(event):
     job_id = f"pubsub:{room}"
     join_room(room)
     # only once a user has joined a room should events be consumed in a separate thread
-    if  scheduler.get_job(job_id):
+    if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
-    print("hey")
+    
     scheduler.add_job(job_id, listen_to_redis_pubsub, args=(room,room) )
-    print(scheduler.get_jobs())
 
 
 

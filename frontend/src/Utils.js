@@ -265,12 +265,12 @@ export async function delete_excel_file(filename){
     })
 }
 export async function submitGTFS(file_data) {
-    await performRequest(async () => {
+    return await performRequest(async () => {
         let formdata = new FormData()
         formdata.append("file", file_data)
-        return await axios.postForm("/gtfs/upload_gtfs", formdata, {
+        return( await axios.postForm("/gtfs/upload_gtfs", formdata, {
             withCredentials: true,
-        })
+        })).data
     })
 }
 

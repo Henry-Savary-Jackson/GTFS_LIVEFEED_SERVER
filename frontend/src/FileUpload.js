@@ -66,14 +66,15 @@ export function UploadsGTFS() {
             }
             let file = files[0]
             await doActionWithAlert(async () => {
-                await submitGTFS(file)
+                let task_id = await submitGTFS(file)
+                console.log(task_id)
                 setHasValidationReport(false)
                 setUploading(true)
                 setText("")
                 if (socketRef.current){
                     socketRef.current.disconnect()
                     socketRef.current.connect()
-                    socketRef.current.emit("join-room", { "room": "gtfs_upload" })
+                    socketRef.current.emit("join-room", { "room": task_id })
                 }else{
                     throw new Error("No socket") 
                 }
