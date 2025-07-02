@@ -11,30 +11,31 @@ from wtforms import (
     FileField,
 )
 import datetime
-from gtfs_rt_server import db, scheduler , socketio, has_roles, has_any_role
+from gtfs_rt_server import db, scheduler , socketio, has_roles, has_any_role, redis
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
+from gtfs_rt_server.redis_utils import publish_event, publish_kill,listen_to_redis_pubsub 
 from flask import current_app
 from flask_socketio import join_room
 from tempfile import NamedTemporaryFile, SpooledTemporaryFile
 import os
 from apscheduler.events import EVENT_JOB_REMOVED
 from uuid import uuid4
+from gtfs_rt_server.redis_utils import PubSubListener
 
 gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 
 def generate_gtfs_from_xlsx(channel,excel_file_path):
     print("stating generate gtfs xlsx task")
     # use this method as a helper to update the tasks metainfo to contain status and messages
-    # socketio.emit("event", {"status":"working", "message":"starting..." },)
     def send_status_to_task(status="working", message=None, **kwargs):
-        socketio.emit("event", {"status":status, "message":message, **kwargs},room=channel)
-        # print(f"{status} {message}")
+        publish_event(channel,"event", {"status":status, "message":message, **kwargs})
+
     ## create temp file to store zip
     named_temp_zip = NamedTemporaryFile(mode="w+b")
     validation_report = False
     try:
 
-        send_status_to_task(status="starting", message="Starting ...")
+        send_status_to_task(status="working", message="Starting ...")
         result_path = scheduler.app.config["GTFS_VALIDATOR_RESULT_PATH"]
         df_dict = generate_gtfs_zip(
             excel_file_path,
@@ -65,6 +66,7 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
         send_status_to_task(status="error", message=str(e), validation_report=validation_report)
         raise e
     finally:
+        publish_kill(channel)
         named_temp_zip.close()
 
 
@@ -73,18 +75,20 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
 @has_roles("gtfs")
 def upload_gtfs():
     excel_file = request.files.get("file", None)
+
     if excel_file:
 
         ## stop current thread running if any
         ## see if you can deal with multiple uploads at the same time (maybe not necessary or adviable)
         def job_remove_event(event):
-            socketio.emit("event", {"status":"error", "message": "The job was terminated abruptly."}, room="gtfs_upload")
+            publish_event("gtfs_upload", "event",  {"status":"error", "message": "The job was terminated abruptly."})
+            # publish to pubsub stream instead
 
         if scheduler.get_job("gtfs_upload"):
             scheduler.remove_job("gtfs_upload")
-            scheduler.remove_listener(job_remove_event)
+        #     scheduler.remove_listener(job_remove_event)
 
-        scheduler.add_listener(job_remove_event, mask=EVENT_JOB_REMOVED)
+        # scheduler.add_listener(job_remove_event, mask=EVENT_JOB_REMOVED)
 
         excel_file_perm_path = os.path.join(
             current_app.config["SHARED_FOLDER"], "gtfs.xlsx"
@@ -110,11 +114,19 @@ def test_connect():
 @login_required
 @has_any_role("gtfs", "excel")
 def join_room_ev(event):
-    join_room(event["room"])
+    room = event["room"]
+    job_id = f"pubsub:{room}"
+    join_room(room)
+    # only once a user has joined a room should events be consumed in a separate thread
+    if  scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+    print("hey")
+    scheduler.add_job(job_id, listen_to_redis_pubsub, args=(room,room) )
+    print(scheduler.get_jobs())
+
 
 
 @gtfs_blueprint.get("/time_since_last_schedule")
 def time_since_last_upload():
-    current_app.logger.debug(str(current_app.config["time_since_last_gtfs"]))
-    # socketio.emit("event", {"status":"working", "message":current_app.config["time_since_last_gtfs"]} )
+    # current_app.logger.debug(str(current_app.config["time_since_last_gtfs"]))
     return str(current_app.config["time_since_last_gtfs"])

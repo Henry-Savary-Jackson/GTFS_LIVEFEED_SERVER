@@ -13,3 +13,4 @@ Flask-APScheduler
 flask-socketio
 flask-wtf
 eventlet
+flask-redis

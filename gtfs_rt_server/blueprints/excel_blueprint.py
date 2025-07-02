@@ -2,11 +2,14 @@ from flask import Blueprint, request, jsonify, make_response ,send_from_director
 from werkzeug.exceptions import NotFound
 from flask_login import login_required
 import datetime
-from gtfs_rt_server import has_roles, scheduler, socketio, db
+from gtfs_rt_server import has_roles, scheduler, socketio, db,redis 
 from gtfs_rt_server.db_utils import create_service_excel
+from gtfs_rt_server.redis_utils import publish_event, publish_kill
 from uuid import uuid4
 from apscheduler.events import EVENT_JOB_EXECUTED
 import os
+from werkzeug.security import safe_join
+import json
 from pathlib import Path
 
 excel_bp = Blueprint("excel", __name__, url_prefix="/excel")
@@ -17,22 +20,29 @@ def create_excel_task(task_id, folder, filename):
         with scheduler.app.app_context():
             with db.session.begin():
                 create_service_excel(Path(folder, filename))
-                socketio.emit(
-                    "finished", {"status": "success", "message": filename}, room=task_id
-                )
+                publish_event(task_id, "finished", {"status":"success", "message":filename})
     except Exception as e:
-        socketio.emit(
-            "finished",
-            {"status": "error", "message": str(e)},
-            room=task_id,
-        )
+        publish_event(task_id, "finished", {"status": "error", "message": str(e)})
+    finally:
+        publish_kill(task_id)
 
+
+@excel_bp.delete("/<path:filename>")
+@login_required
+@has_roles("excel")
+def del_excel(filename):
+    path = safe_join(current_app.config["EXCEL_SUMMARIES"], filename)
+    if not path:
+        raise NotFound()
+    os.remove(path)
+    return "Successful"
+        
 @excel_bp.get("/<path:filename>")
 @login_required
 @has_roles("excel")
 def get_excel(filename):
     return send_from_directory(current_app.config["EXCEL_SUMMARIES"],filename) 
-        
+
 @excel_bp.get("/list_excel")
 @login_required
 @has_roles("excel")
@@ -45,9 +55,7 @@ def list_excels():
 def make_excel():
 
     current_time = datetime.datetime.now()
-
     filename = f"{current_time.isoformat()}.xlsx"
-
     task_id = str(uuid4())
     scheduler.add_job(
         task_id,

@@ -1,5 +1,5 @@
 import { createRef, useContext, useEffect, useReducer, useRef, useState } from 'react';
-import { add_user, get, get_list_excels, list_users, order_new_excel } from './Utils.js';
+import { add_user, delete_excel_file, get, get_list_excels, list_users, order_new_excel } from './Utils.js';
 import { ListGroup, Button, ListGroupItem, Spinner, Stack, Container } from 'react-bootstrap'
 import { io } from 'socket.io-client'
 import { alertsContext } from './Globals.js';
@@ -8,47 +8,37 @@ import { Link } from 'react-router-dom';
 export function ExcelList() {
 
     let [excel_files, set_excel_files] = useState([])
-    let [create_status, set_create_status] = useState("")
+    let [loading, setLoading] = useState(false)
     let [alertsVal, popUpAlert] = useContext(alertsContext)
-    let [task_id, set_task_id] = useState("")
     let socketRef = useRef(null)
 
+    let  reload_excels= (async () => { set_excel_files(await get_list_excels()) })
 
     useEffect(() => {
-        if (create_status !== "")
+        if (loading)
             return
-        (async () => { set_excel_files(await get_list_excels()) })()
-    }, [create_status])
+        reload_excels()
+    }, [loading])
 
-    useEffect(() => {
-        if (create_status === "" && socketRef.current) {
-            socketRef.current.disconnect()
-        } else if (create_status === "loading" && task_id !== "") {
-            if (socketRef.current) {
-                socketRef.current.connect()
-                socketRef.current.emit("join-room", { "room": task_id })
-            } else {
-                popUpAlert({ "message": "event.message", "type": "error" })
-            }
-        }
-    }, [create_status])
 
     function onFinished(event) {
-        set_create_status("")
+        setLoading(false)
         if (event.status !== "success") {
             popUpAlert({ "message": event.message, "type": "error" })
         } else {
 
             popUpAlert({ "message": `Sucessfully create summary excel ${event.message}`, "type": "success" })
         }
+        if (socketRef.current) {
+            socketRef.current.disconnect()
+        }
     }
 
     function onDisconnect(event) {
-        set_create_status("")
-        popUpAlert({ "message": "Disconnected", "type": "error" })
+        setLoading(false)
     }
     function onConnectFailed(event) {
-        set_create_status("")
+        setLoading(false)
         popUpAlert({ "message": "Failed to connect to file status.", "type": "error" })
     }
 
@@ -56,11 +46,11 @@ export function ExcelList() {
         let newSocket = io(`wss://${window.location.host}`, { path: "/ws", transports: ["websocket"], reconnection: true, reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
         socketRef.current = newSocket
         newSocket.on("finished", onFinished)
-        // newSocket.on("disconnect", onDisconnect)
+        newSocket.on("disconnect", onDisconnect)
         newSocket.on("connect_failed", onConnectFailed)
         return () => {
             newSocket.off("finished", onFinished)
-            // newSocket.off("disconnect", onDisconnect)
+            newSocket.off("disconnect", onDisconnect)
             newSocket.off("connect_failed", onConnectFailed)
             newSocket.disconnect()
         }
@@ -72,17 +62,23 @@ export function ExcelList() {
         </Stack>
         <Stack className='d-flex flex-column  align-items-center 
                         justify-content-center' ><span>List of all the summary excels</span><ListGroup  >
-                {excel_files.map((val, i) => <ListGroupItem key={i} ><a href={`/excel/${val}`} >{val} </a></ListGroupItem>)}
+                {excel_files.map((val, i) => <ListGroupItem key={i} ><a href={`/excel/${val}`} >{val} </a><Button onClick={async(e) => { await delete_excel_file(val); await reload_excels()  }} variant='danger'>X</Button></ListGroupItem>)}
             </ListGroup>
-            <Button onClick={async (e) => {
+            <Button disabled={loading} onClick={async (e) => {
                 try {
-                    set_task_id(await order_new_excel())
-                    set_create_status("loading")
+                    let task_id = await order_new_excel()
+                    if (socketRef.current) {
+                        socketRef.current.connect()
+                        setLoading(true)
+                        socketRef.current.emit("join-room", { "room": task_id })
+                    } else {
+                        popUpAlert({ "message": "event.message", "type": "error" })
+                    }
                 } catch (e) {
                     popUpAlert({ "message": `${e.title} , ${e.description}`, "type": "error" })
                 }
             }} >Make new excel summary</Button>
-            <Spinner variant="primary" animation='border' hidden={create_status !== "loading"} ></Spinner>
+            <Spinner variant="primary" animation='border' hidden={!loading} ></Spinner>
         </Stack >
     </Container>
 }

@@ -23,11 +23,12 @@ from gtfs_rt_server.protobuf_utils import get_feed_object_from_file,save_feed_to
 from functools import wraps
 from flask import current_app
 from gtfs_rt_server.schema import db, get_user_by_username, User, Role
+from flask_redis import FlaskRedis
 
 lock = Lock()
 scheduler = APScheduler()
 socketio = SocketIO()
-
+redis = FlaskRedis()
 
 def has_any_role(*roles):
     def decorator(f):
@@ -134,7 +135,10 @@ def init_scheduler(app):
     scheduler.init_app(app)
 
 def init_sockiet_io(app):
-    socketio.init_app(app, path="/ws", cors_allowed_origins="*")
+    socketio.init_app(app, logger=True, engineio_logger=True,path="/ws", cors_allowed_origins="*")
+
+def init_flask_redis(app):
+    redis.init_app(app)
 
 def init_app():
     global db
@@ -163,6 +167,7 @@ def init_app():
     init_scheduler(app)
     create_error_handlers(app)
     init_sockiet_io(app)
+    init_flask_redis(app)
     register_blueprints(app)
     app.config["time_since_last_gtfs"] = datetime.datetime.now().timestamp() 
     scheduler.start() # start scheduler 

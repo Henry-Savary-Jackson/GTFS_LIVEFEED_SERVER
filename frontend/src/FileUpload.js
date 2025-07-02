@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
 import { alertsContext } from './Globals';
 import { io, Socket } from "socket.io-client"
+import { ExcelList } from './Excel';
 
 
 export function UploadsGTFS() {
@@ -17,6 +18,9 @@ export function UploadsGTFS() {
     const onMessage = (event) => {
         setText((prevText) => prevText + "\n" + event.message)
         setStatus(event.status)
+        if (event.status !== "working") {
+            socketRef.current.disconnect()
+        }
         if ("validationReport" in event)
             setHasValidationReport(true)
         let textarea = document.getElementById("status-text-area")
@@ -24,7 +28,6 @@ export function UploadsGTFS() {
             textarea.scrollTop = textarea.scrollHeight
     }
     const onConnect = (event) => {
-        socketRef.current.emit("join-room", {"room":"gtfs_upload"})
         popUpAlert({ "message": "Connected to status of upload", "type": "success" })
 
     }
@@ -34,7 +37,6 @@ export function UploadsGTFS() {
     }
     const onDisconnect = (event) => {
         popUpAlert({ "message": "Lost Connection to status of upload", "type": "error" })
-
     }
 
     useEffect(() => {
@@ -54,25 +56,10 @@ export function UploadsGTFS() {
         }
     }, [])
 
-    useEffect(() => {
-        if (uploading) {
-            setText("")
-            socketRef.current.connect()
-        } else {
-            socketRef.current.disconnect()
-        }
-    }, [uploading])
-
-    useEffect(() => {
-        if (status === "error") {
-            setUploading(false)
-        }
-    }, [status])
 
     return <div >
         <form className='container d-flex flex-column align-items-center gap-5 fs-3 justify-content-center' onSubmit={async (e) => {
             e.preventDefault()
-
             if (files.length === 0) {
                 popUpAlert({ "message": "Upload file!", "type": "error" })
                 return
@@ -82,6 +69,14 @@ export function UploadsGTFS() {
                 await submitGTFS(file)
                 setHasValidationReport(false)
                 setUploading(true)
+                setText("")
+                if (socketRef.current){
+                    socketRef.current.disconnect()
+                    socketRef.current.connect()
+                    socketRef.current.emit("join-room", { "room": "gtfs_upload" })
+                }else{
+                    throw new Error("No socket") 
+                }
             }, " ✅ Successfully uploaded the gtfs excel file.", popUpAlert, (error) => {
                 console.error(error)
             })

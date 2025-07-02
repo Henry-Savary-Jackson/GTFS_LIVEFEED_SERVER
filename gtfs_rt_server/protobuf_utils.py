@@ -46,7 +46,9 @@ def get_feed_object_from_file(feed_location):
         return feed_object
 
 
+
 def save_feed_to_file(feed_message: gtfs_rt.FeedMessage, feed_location):
+    # save to redis
     with open(feed_location, "wb") as feed_bin:
         # print(feed_message, feed_location)
         feed_bin.write(feed_message.SerializeToString())

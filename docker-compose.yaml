@@ -10,3 +10,8 @@ services:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
       C_FORCE_ROOT: "true"
+  redis_db:
+    image:
+      "redis"
+    ports:
+      - 6379:6379

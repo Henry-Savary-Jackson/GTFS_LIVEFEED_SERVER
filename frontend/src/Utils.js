@@ -259,6 +259,11 @@ export async function order_new_excel(){
     })
 }
 
+export async function delete_excel_file(filename){
+    return await performRequest(async ()=>{
+        return (await axios.delete(`/excel/${encodeURIComponent(filename)}`, {withCredentials:true})).data
+    })
+}
 export async function submitGTFS(file_data) {
     await performRequest(async () => {
         let formdata = new FormData()

@@ -1,6 +1,7 @@
 import json
 from gtfs_rt_server.protobuf_utils import delete_expired_trip_updates, get_feed_object_from_file, verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
 from gtfs_rt_server import lock, scheduler, has_roles
+from gtfs_rt_server.redis_utils import get_feed_from_redis, save_feed_to_redis 
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from flask_login import  login_required 
 from google.protobuf.message import DecodeError, EncodeError
@@ -16,6 +17,7 @@ import datetime
 @feed_bp.get("/<type>")
 def get_feed(type):
     feed_object= None 
+    
     if type=="updates":
         feed_object = current_app.config["feed_updates"] 
     elif type == "alerts":
@@ -60,7 +62,6 @@ def trip_update():
 @login_required
 @has_roles("edit")
 def service_alert():
-    
     try:
         with lock:
             feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"

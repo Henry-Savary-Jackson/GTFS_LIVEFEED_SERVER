@@ -4,6 +4,7 @@ FILE_DIR = os.path.dirname(__file__)
 
 # from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.jobstores.memory import MemoryJobStore 
+from apscheduler.executors.pool import ThreadPoolExecutor 
 
 class Config(object):
     FLASK_ENV = "production"
@@ -27,6 +28,9 @@ class Config(object):
     SCHEDULER_JOBSTORES={ 
         "default":MemoryJobStore(),
     } 
+    SCHEDULER_EXECUTORS = {
+        "default": ThreadPoolExecutor(50)
+    }
     WTF_CSRF_ENABLED = True
     LOGGING_FILE_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "server.log")
     GTFS_VALIDATOR_RESULT_PATH = os.path.join(SHARED_FOLDER, "result")
