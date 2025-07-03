@@ -4,7 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "Python Debugger: Current File with Arguments",
             "type": "debugpy",
@@ -14,6 +13,26 @@
             "args": [
                 "${command:pickArgs}"
             ]
+        },
+        {
+            "name": "Python: Webapp",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "venv/bin/gunicorn",
+            "gevent": true,
+            "args": [
+                "app:app",
+                "--bind=127.0.0.1:5000",
+                "--reload",
+                "--worker-class",
+                "eventlet",
+                "--certfile","fullchain.pem",
+                "--keyfile","privkey.pem",
+                "--log-level","debug",
+                "--log-file","server_files/shared_private/server.log",
+                "--timeout=7200"
+            ],
+            // "postDebugTask": "killdebugger"
         }
     ]
 }

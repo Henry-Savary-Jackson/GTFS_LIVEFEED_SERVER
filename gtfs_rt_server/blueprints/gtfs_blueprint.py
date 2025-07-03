@@ -13,6 +13,7 @@ from wtforms import (
 import datetime
 from gtfs_rt_server import db, scheduler , socketio, has_roles, has_any_role, redis
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
+from threading import Thread
 from gtfs_rt_server.redis_utils import publish_event, publish_kill,listen_to_redis_pubsub 
 from flask import current_app
 from flask_socketio import join_room
@@ -20,7 +21,6 @@ from tempfile import NamedTemporaryFile, SpooledTemporaryFile
 import os
 from apscheduler.events import EVENT_JOB_REMOVED
 from uuid import uuid4
-from gtfs_rt_server.redis_utils import PubSubListener
 
 gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 
@@ -79,11 +79,6 @@ def upload_gtfs():
     if excel_file:
 
         task_id = str(uuid4())
-        ## stop current thread running if any
-        ## see if you can deal with multiple uploads at the same time (maybe not necessary or adviable)
-        # def job_remove_event(event):
-            # publish_event(task_id, "event",  {"status":"error", "message": "The job was terminated abruptly."})
-
         excel_file_perm_path = os.path.join(
             current_app.config["SHARED_FOLDER"], "gtfs.xlsx"
         )
@@ -110,11 +105,16 @@ def join_room_ev(event):
     room = event["room"]
     job_id = f"pubsub:{room}"
     join_room(room)
+
     # only once a user has joined a room should events be consumed in a separate thread
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
-    
-    scheduler.add_job(job_id, listen_to_redis_pubsub, args=(room,room) )
+
+    run_date = datetime.datetime.now() + datetime.timedelta(seconds=1)
+    def function():
+        Thread(target=listen_to_redis_pubsub, args=(room,room)).start()
+        
+    scheduler.add_job(job_id, function, trigger="date", run_date=run_date )
 
 
 

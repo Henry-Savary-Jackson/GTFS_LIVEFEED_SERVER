@@ -67,16 +67,17 @@ export function UploadsGTFS() {
             let file = files[0]
             await doActionWithAlert(async () => {
                 let task_id = await submitGTFS(file)
-                console.log(task_id)
                 setHasValidationReport(false)
                 setUploading(true)
                 setText("")
-                if (socketRef.current){
-                    socketRef.current.disconnect()
-                    socketRef.current.connect()
-                    socketRef.current.emit("join-room", { "room": task_id })
-                }else{
-                    throw new Error("No socket") 
+                if (socketRef.current) {
+                    setTimeout(() => {
+                        socketRef.current.disconnect()
+                        socketRef.current.connect()
+                        socketRef.current.emit("join-room", { "room": task_id })
+                    }, 3000)
+                } else {
+                    throw new Error("No socket")
                 }
             }, " ✅ Successfully uploaded the gtfs excel file.", popUpAlert, (error) => {
                 console.error(error)
