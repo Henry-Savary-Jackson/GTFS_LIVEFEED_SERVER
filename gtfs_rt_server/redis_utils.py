@@ -5,11 +5,13 @@ from gtfs_rt_server import redis, socketio
 from gtfs_rt_server.protobuf_utils import get_empty_feed_message
 from threading import Thread
 import json
+from celery import shared_task
 
-def listen_to_redis_pubsub(pubsub_channel, socketio_room):
+def listen_to_redis_pubsub(socketio, pubsub_channel, socketio_room):
     while True:
+        # print("hey")
         key, data = redis.blpop(pubsub_channel)
-        if data == "kill":
+        if data == b"kill":
             redis.delete(pubsub_channel)
             break
         event, message = read_pubsub_to_dict(data)
@@ -39,3 +41,5 @@ def get_feed_from_redis(key):
         feed_object.ParseFromString(feed_str)
     return  feed_object
 
+def get_feed_lock(type):
+    return redis.lock(f"lock:{type}")

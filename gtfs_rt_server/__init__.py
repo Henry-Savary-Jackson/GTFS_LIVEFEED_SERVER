@@ -8,7 +8,6 @@ from flask import Flask, redirect
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import json
-from flask_apscheduler import APScheduler 
 import os
 from pathlib import Path
 from typing import Optional
@@ -20,15 +19,19 @@ from threading import Lock
 from flask_login import current_user
 from flask import wrappers
 from gtfs_rt_server.protobuf_utils import get_feed_object_from_file,save_feed_to_file,  delete_expired_trip_updates
+# from gtfs_rt_server.redis_utils import save_feed_to_redis, get_feed_from_redis
 from functools import wraps
 from flask import current_app
 from gtfs_rt_server.schema import db, get_user_by_username, User, Role
 from flask_redis import FlaskRedis
+from celery import Celery, shared_task
+# from gtfs_rt_server.redis_utils import listen_to_redis_pubsub
 
 lock = Lock()
-scheduler = APScheduler()
+# scheduler = APScheduler()
 socketio = SocketIO()
 redis = FlaskRedis()
+global_app = Flask("gtfs_rt_server")
 
 def has_any_role(*roles):
     def decorator(f):
@@ -78,8 +81,7 @@ def create_logger(app):
     return logger
 
 def create_app():
-    app = Flask("gtfs_rt_server")
-    return app
+    return global_app
 
 def create_error_handlers(app):
 
@@ -131,14 +133,32 @@ def init_csrf(app):
 def init_CORS(app):
     return CORS(app,supports_credentials=True) 
 
-def init_scheduler(app):
-    scheduler.init_app(app)
 
 def init_sockiet_io(app):
-    socketio.init_app(app, logger=True, engineio_logger=True,path="/ws", cors_allowed_origins="*")
+    socketio.init_app(app, message_queue=app.config["REDIS_URL"],logger=True, engineio_logger=True,path="/ws", cors_allowed_origins="*")
 
 def init_flask_redis(app):
     redis.init_app(app)
+
+@shared_task(name='remove periodic task')
+def periodic_remove_expired():
+    with global_app.app_context():
+        with redis.lock(f"lock:updates"):
+            print("removing expired trip updates")
+            feed = get_feed_object_from_file(global_app.config["feed_updates_location"]) 
+            delete_expired_trip_updates(feed) # why not changing object
+            save_feed_to_file(feed, global_app.config["feed_updates_location"])
+
+def init_celery_app(app):
+    celery_app = Celery(app.name)
+    celery_app.config_from_object(app.config["CELERY"])
+
+    celery_app.add_periodic_task(30*60*60,periodic_remove_expired)
+
+    celery_app.set_default()
+
+    app.extensions["celery"] =celery_app 
+    return celery_app 
 
 def init_app():
     global db
@@ -154,9 +174,6 @@ def init_app():
     app.config["feed_updates_location"] = Path(app.config["FEEDS_LOCATION"]) / "updates.bin"
     app.config["feed_positions_location"] = Path(app.config["FEEDS_LOCATION"]) / "positions.bin"
 
-    app.config["feed_alerts"] = get_feed_object_from_file(app.config["feed_alerts_location"])
-    app.config["feed_updates"] = get_feed_object_from_file(app.config["feed_updates_location"])
-    app.config["feed_positions"] = get_feed_object_from_file(app.config["feed_positions_location"])
     login_manager = create_login_manager(app)
     init_db(app, db)
     init_CORS(app)
@@ -164,12 +181,10 @@ def init_app():
     if app.config["WTF_CSRF_ENABLED"]:
         csrf= init_csrf(app)
     create_logger(app)
-    init_scheduler(app)
     create_error_handlers(app)
     init_sockiet_io(app)
     init_flask_redis(app)
     register_blueprints(app)
-    app.config["time_since_last_gtfs"] = datetime.datetime.now().timestamp() 
-    scheduler.start() # start scheduler 
-    return app
+    celery_app = init_celery_app(app)
+    return app, celery_app 
 

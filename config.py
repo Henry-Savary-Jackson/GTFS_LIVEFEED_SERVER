@@ -25,11 +25,20 @@ class Config(object):
     REDIS_HOST=os.getenv("REDIS_HOST") or "localhost"
     REDIS_PORT = os.getenv("REDIS_PORT") or 6379 
     REDIS_URL=f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
-    SCHEDULER_JOBSTORES={ 
-        "default":MemoryJobStore(),
-    } 
+    # SCHEDULER_JOBSTORES={ 
+        # "default":MemoryJobStore(),
+    # } 
+    CELERY = dict(
+        track_started=True,
+        broker_url=REDIS_URL,
+        cache_backend=REDIS_URL,
+        result_backend=REDIS_URL,
+        accept_content=["json"],
+        task_serializer="json",
+        result_serializer="json",
+    )
     # SCHEDULER_EXECUTORS = {
-    #     "default": ThreadPoolExecutor(50)
+        # "default": ThreadPoolExecutor(50)
     # }
     WTF_CSRF_ENABLED = True
     LOGGING_FILE_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "server.log")

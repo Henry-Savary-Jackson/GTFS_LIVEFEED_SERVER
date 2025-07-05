@@ -1,6 +1,6 @@
 import json
-from gtfs_rt_server.protobuf_utils import delete_expired_trip_updates, get_feed_object_from_file, verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
-from gtfs_rt_server import lock, scheduler, has_roles
+from gtfs_rt_server.protobuf_utils import save_feed_to_file_data, delete_expired_trip_updates, get_feed_object_from_file, verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
+from gtfs_rt_server import lock,  has_roles
 from gtfs_rt_server.redis_utils import get_feed_from_redis, save_feed_to_redis 
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from flask_login import  login_required 
@@ -9,23 +9,26 @@ from gtfs_rt_server.db_utils import delete_alert_from_log, delete_trip_update_fr
 import  google.transit.gtfs_realtime_pb2  as gtfs_rt
 from google.protobuf.json_format import  MessageToDict
 from pathlib import Path
+from gtfs_rt_server.redis_utils import get_feed_lock
 
+from celery import shared_task
 feed_bp = Blueprint("feeds", __name__, url_prefix="/feed")
 
 import datetime
 
+# @shared_task
+# def save_feed_task(location, data):
+#    save_feed_to_file_data(data, location) 
+
 @feed_bp.get("/<type>")
 def get_feed(type):
     feed_object= None 
-    
     if type=="updates":
-        feed_object = current_app.config["feed_updates"] 
+        feed_object =  get_feed_object_from_file(current_app.config["feed_updates_location"])
     elif type == "alerts":
-        feed_object = current_app.config["feed_alerts"]
+        feed_object =  get_feed_object_from_file(current_app.config["feed_alerts_location"])
     else:
-        feed_object = current_app.config["feed_positions"]
-        
-
+        feed_object =  get_feed_object_from_file(current_app.config["feed_positions_location"])
     feed_object.header.timestamp =int(datetime.datetime.now().timestamp())
 
     resp = make_response(feed_object.SerializeToString())
@@ -37,9 +40,10 @@ def get_feed(type):
 @has_roles("edit")
 def trip_update():
     try:
-        with lock:
-            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
-            feed_object = current_app.config["feed_updates"]
+        with get_feed_lock("updates"): 
+            feed_location = current_app.config["feed_updates_location"]
+            feed_object =  get_feed_object_from_file(feed_location)
+
             entity = gtfs_rt.FeedEntity()
             entity.ParseFromString(request.data)
             entity_dict = MessageToDict(entity) 
@@ -48,6 +52,7 @@ def trip_update():
                 return "Entity is not of type TripUpdate", 400
             verify_trip_update(entity_dict["tripUpdate"])
             save_feed_entity_to_feed(entity, feed_object)
+            # save_feed_to_redis(feed_object,"updates" ) 
             save_feed_to_file(feed_object,feed_location ) 
             if "LogEntity"  in request.headers and request.headers["LogEntity"]:
                 add_trip_update_to_db(entity_dict["id"], entity_dict["tripUpdate"])
@@ -63,9 +68,10 @@ def trip_update():
 @has_roles("edit")
 def service_alert():
     try:
-        with lock:
-            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
-            feed_object = current_app.config["feed_alerts"]
+        with get_feed_lock("alerts"):
+            feed_location = current_app.config["feed_alerts_location"]
+            feed_object = get_feed_object_from_file(feed_location)
+
             entity = gtfs_rt.FeedEntity()
             entity.ParseFromString(request.data)
             entity_dict = MessageToDict(entity) 
@@ -74,6 +80,7 @@ def service_alert():
                 return "Entity is not of type Alert", 400
             verify_service_alert(entity_dict["alert"])
             save_feed_entity_to_feed(entity, feed_object)
+            # save_feed_to_redis(feed_object,"alerts" ) 
             save_feed_to_file(feed_object, feed_location) 
             # add to log
             if "LogEntity"  in request.headers and request.headers["LogEntity"]:
@@ -91,9 +98,9 @@ def service_alert():
 @has_roles("edit")
 def vehicle_postion():
     try:
-        with lock:
-            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
-            feed_object = current_app.config["feed_positions"]
+        with get_feed_lock("positions"):
+            feed_location = current_app.config["feed_positions_location"]
+            feed_object =  get_feed_object_from_file(feed_location)
             entity = gtfs_rt.FeedEntity()
             entity.ParseFromString(request.data)
             entity_dict = MessageToDict(entity) 
@@ -101,6 +108,7 @@ def vehicle_postion():
                 return "Entity is not of type VehiclePosition", 400
             verify_vehicle_position(entity_dict["vehicle"])  ## TODO: check this
             save_feed_entity_to_feed(entity, feed_object)
+            # save_feed_to_redis(feed_object,"positions" ) 
             save_feed_to_file(feed_object, feed_location) 
             return "Successful"
     except DecodeError as d_err :
@@ -116,15 +124,16 @@ def vehicle_postion():
 @has_roles("edit")
 def delete_feed_entity(type_entity):
     with lock:
-        feed_object = current_app.config["feed_alerts"]
-        feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "alerts.bin"
-        if type_entity=="updates":
-            feed_object = current_app.config["feed_updates"]
-            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "updates.bin"
-        elif type_entity == "positions":
-            feed_object = current_app.config["feed_positions"]
-            feed_location = Path(current_app.config["FEEDS_LOCATION"]) / "positions.bin"
+        feed_location = ""
 
+        if type_entity=="updates":
+            feed_location = current_app.config["feed_updates_location"]
+        elif type_entity == "alerts":
+            feed_location = current_app.config["feed_alerts_location"]
+        else:
+            feed_location = current_app.config["feed_positions_location"]
+
+        feed_object =  get_feed_object_from_file(feed_location)
 
         request_data = json.loads(request.data.decode())
         if "entity_id" not in request_data:
@@ -141,12 +150,3 @@ def delete_feed_entity(type_entity):
 
     return "Successful"
 
-@scheduler.task("interval", id="remove_old_trip_updates", seconds=30*60)
-def periodic_remove_expired():
-    with lock:
-        with scheduler.app.app_context():
-            scheduler.app.logger.debug("removing expired trip updates")
-            print("removing expired trip updates")
-            delete_expired_trip_updates(scheduler.app.config["feed_updates"]) # why not changing object
-            save_feed_to_file(scheduler.app.config["feed_updates"], scheduler.app.config["feed_updates_location"])
-    
