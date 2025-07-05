@@ -140,20 +140,19 @@ def init_sockiet_io(app):
 def init_flask_redis(app):
     redis.init_app(app)
 
-@shared_task(name='remove periodic task')
-def periodic_remove_expired():
-    with global_app.app_context():
-        with redis.lock(f"lock:updates"):
-            print("removing expired trip updates")
-            feed = get_feed_object_from_file(global_app.config["feed_updates_location"]) 
-            delete_expired_trip_updates(feed) # why not changing object
-            save_feed_to_file(feed, global_app.config["feed_updates_location"])
-
 def init_celery_app(app):
     celery_app = Celery(app.name)
     celery_app.config_from_object(app.config["CELERY"])
 
-    celery_app.add_periodic_task(30*60*60,periodic_remove_expired)
+    @celery_app.task(name='remove periodic task')
+    def periodic_remove_expired():
+        print("removing expired trip updates")
+        with global_app.app_context():
+            feed = get_feed_object_from_file(global_app.config["feed_updates_location"]) 
+            delete_expired_trip_updates(feed) # why not changing object
+            save_feed_to_file(feed, global_app.config["feed_updates_location"])
+
+    celery_app.add_periodic_task(10*60,periodic_remove_expired)
 
     celery_app.set_default()
 

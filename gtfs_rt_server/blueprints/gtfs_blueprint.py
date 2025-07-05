@@ -13,7 +13,7 @@ from wtforms import (
 import datetime
 from gtfs_rt_server import db,  socketio, has_roles, has_any_role, redis , global_app
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
-from threading import Thread
+from threading import Thread, Lock
 from gtfs_rt_server.redis_utils import publish_event, publish_kill,listen_to_redis_pubsub 
 from flask import current_app
 from flask_socketio import join_room
@@ -26,14 +26,18 @@ from pathlib import Path
 
 gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 
+from celery import current_task, Task
+from time import sleep
+
 @shared_task
 def listen_to_room(channel,room):
-    redis.set(f"working:{channel}", 1)
-    with redis.lock(f"lock:{channel}"):
-        if not redis.exists(f"working:{channel}"):
-            return
+    lock =  redis.lock(f"lock:{channel}", timeout=60*60)
+    aquired = lock.acquire(blocking=False)
+    if aquired: 
         listen_to_redis_pubsub(socketio,channel, room)
-        redis.delete(f"working:{channel}")
+    else:
+        return 0
+    return 1
 
 @shared_task
 def generate_gtfs_from_xlsx(channel,excel_file_path):
@@ -118,9 +122,9 @@ def join_room_ev(event):
     room = event["room"]
     # job_id = f"pubsub:{room}"
     join_room(room)
-
     # only once a user has joined a room should events be consumed in a separate thread
     listen_to_room.delay(room,room)
+
 
 @gtfs_blueprint.get("/time_since_last_schedule")
 def time_since_last_upload():
