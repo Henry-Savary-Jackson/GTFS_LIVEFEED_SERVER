@@ -1,7 +1,6 @@
 import json
 from gtfs_rt_server.protobuf_utils import save_feed_to_file_data, delete_expired_trip_updates, get_feed_object_from_file, verify_vehicle_position,is_feed_entity_position,delete_feed_entity_from_feed, save_feed_to_file,get_feed_object_from_file, save_feed_entity_to_feed,is_feed_entity_alert, is_feed_entity_trip_update,verify_service_alert, verify_trip_update
 from gtfs_rt_server import lock,  has_roles
-from gtfs_rt_server.redis_utils import get_feed_from_redis, save_feed_to_redis 
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from flask_login import  login_required 
 from google.protobuf.message import DecodeError, EncodeError
@@ -16,9 +15,6 @@ feed_bp = Blueprint("feeds", __name__, url_prefix="/feed")
 
 import datetime
 
-# @shared_task
-# def save_feed_task(location, data):
-#    save_feed_to_file_data(data, location) 
 
 @feed_bp.get("/<type>")
 def get_feed(type):
@@ -133,20 +129,21 @@ def delete_feed_entity(type_entity):
         else:
             feed_location = current_app.config["feed_positions_location"]
 
-        feed_object =  get_feed_object_from_file(feed_location)
+        with get_feed_lock(type_entity): 
+            feed_object =  get_feed_object_from_file(feed_location)
 
-        request_data = json.loads(request.data.decode())
-        if "entity_id" not in request_data:
-            return "No entity ID given " , 400
-        entity_id = request_data["entity_id"] 
-        delete_from_log = request_data["deleteFromLog"] 
-        delete_feed_entity_from_feed(entity_id, feed_object)
-        save_feed_to_file(feed_object, feed_location)
-        if delete_from_log:
-            if type_entity == "alerts":
-                delete_alert_from_log(entity_id)
-            else:
-                delete_trip_update_from_log(entity_id)
+            request_data = json.loads(request.data.decode())
+            if "entity_id" not in request_data:
+                return "No entity ID given " , 400
+            entity_id = request_data["entity_id"] 
+            delete_from_log = request_data["deleteFromLog"] 
+            delete_feed_entity_from_feed(entity_id, feed_object)
+            save_feed_to_file(feed_object, feed_location)
+            if delete_from_log:
+                if type_entity == "alerts":
+                    delete_alert_from_log(entity_id)
+                else:
+                    delete_trip_update_from_log(entity_id)
 
     return "Successful"
 

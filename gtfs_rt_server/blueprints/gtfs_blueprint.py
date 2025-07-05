@@ -22,6 +22,7 @@ import os
 from apscheduler.events import EVENT_JOB_REMOVED
 from uuid import uuid4
 from celery import shared_task
+from pathlib import Path
 
 gtfs_blueprint = Blueprint("gtfs", __name__, url_prefix="/gtfs")
 

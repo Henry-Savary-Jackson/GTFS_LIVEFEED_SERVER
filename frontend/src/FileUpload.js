@@ -21,7 +21,7 @@ export function UploadsGTFS() {
         if (event.status !== "working") {
             socketRef.current.disconnect()
         }
-        if ("validationReport" in event)
+        if ("validation_report" in event && event.validation_report)
             setHasValidationReport(true)
         let textarea = document.getElementById("status-text-area")
         if (textarea)
@@ -70,12 +70,12 @@ export function UploadsGTFS() {
                 setHasValidationReport(false)
                 setUploading(true)
                 setText("")
+                setStatus("working")
                 if (socketRef.current) {
-                    setTimeout(() => {
-                        socketRef.current.disconnect()
-                        socketRef.current.connect()
-                        socketRef.current.emit("join-room", { "room": task_id })
-                    }, 3000)
+                    
+                    socketRef.current.disconnect()
+                    socketRef.current.connect()
+                    socketRef.current.emit("join-room", { "room": task_id })
                 } else {
                     throw new Error("No socket")
                 }

@@ -9,7 +9,6 @@ from celery import shared_task
 
 def listen_to_redis_pubsub(socketio, pubsub_channel, socketio_room):
     while True:
-        # print("hey")
         key, data = redis.blpop(pubsub_channel)
         if data == b"kill":
             redis.delete(pubsub_channel)
@@ -26,20 +25,6 @@ def read_pubsub_to_dict(data_str):
 
 def publish_kill(channel):
     redis.rpush(channel,"kill")
-
-def save_feed_to_redis(feed_message:gtfs_rt.FeedMessage, key):
-    redis.set(f"feed:{key}", feed_message.SerializeToString())
-
-def get_feed_from_redis(key):
-    feed_str = redis.get(f"feed:{key}")
-    feed_object = gtfs_rt.FeedMessage()
-    if not feed_str:
-        feed_object = get_empty_feed_message() 
-        save_feed_to_redis(feed_object, key)
-        return feed_object
-    else:
-        feed_object.ParseFromString(feed_str)
-    return  feed_object
 
 def get_feed_lock(type):
     return redis.lock(f"lock:{type}")
