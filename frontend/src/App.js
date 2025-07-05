@@ -26,7 +26,7 @@ function TripUpdateFeedEntityRow({ entity, delete_feed_entity_callback }) {
         setStoptime(getUpdatesWithStopTimes(entity.tripUpdate.stopTimeUpdate, await getStopTimesofTrip(entity.tripUpdate.trip.tripId)))
     })()
 
-  }, [])
+  }, [entity])
   let [alerts, popUpAlert] = useContext(alertsContext)
 
   let first_stoptime = stoptimes && stoptimes.length > 0 ? stoptimes[0] : null
@@ -168,13 +168,13 @@ export function Feed() {
         setFeedAlerts([...feed_message.entity])
         break;
       case "updates":
-        setFeedUpdates(feed_message.entity)
+        setFeedUpdates([...feed_message.entity])
         break;
       default:
         break;
     }
     // returns the feed entities, as you may want to use them before the next update of state
-    return feed_message.entity
+    return  [ ... feed_message.entity ]
   }
 
 
@@ -238,7 +238,7 @@ export function Feed() {
 
   useEffect(() => {
     updateMirroredUpdates()
-  }, [route, number])
+  }, [route, number ])
 
 
   async function refreshFeeds() {
