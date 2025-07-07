@@ -2,7 +2,7 @@ services:
   flask:
     build: .
     ports:
-      - 443:5000
+      - 5000:5000
     volumes:
       - ./server_files/static/shared:/flask-app/server_files/static/shared
       - ./server_files/shared_private:/flask-app/server_files/shared_private
@@ -15,3 +15,31 @@ services:
       "redis"
     ports:
       - 6379:6379
+  
+  reverse-proxy:
+        image: "jwilder/nginx-proxy:latest"
+        container_name: "reverse-proxy"
+        volumes:
+            # - "./nginx_conf/dhparam:/etc/nginx/dhparam"
+            # - "./nginx_conf/vhost:/etc/nginx/vhost.d"
+            - "./nginx_conf/certs:/etc/nginx/certs:ro"
+            - "./nginx_conf/nginx.conf:/etc/nginx/nginx.conf:ro"
+            - "./server_files/shared_private/:/var/log/nginx/"
+            - "/run/docker.sock:/tmp/docker.sock:ro"
+        restart: "always"
+        ports:
+            - "80:80"
+            - "443:443"
+  # acme-companion:
+  #       image: nginxproxy/acme-companion
+  #       container_name: "acme-companion"
+  #       volumes:
+  #           - ./nginx_conf/certs:/etc/nginx/certs:rw
+  #           - ./nginx_conf/acme/acme.sh:/etc/acme.sh
+  #       volumes_from:
+  #         - reverse-proxy
+  #       environment:
+  #           DEFAULT_EMAIL: ${USER_EMAIL}
+  #       restart: "always"
+  #       depends_on:
+  #           - "reverse-proxy"
