@@ -104,6 +104,9 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
   let start_date = entity.alert && activePeriod && activePeriod.start ? new Date(activePeriod.start * 1000) : null
   let end_date = entity.alert && activePeriod && activePeriod.end ? new Date(activePeriod.end * 1000) : null
   let informed_entities = entity.alert.informedEntity
+  let description = (entity.alert && entity.alert.descriptionText && entity.alert.descriptionText.translation.length > 0 ) ? entity.alert.descriptionText.translation[0].text : ""
+  description = description.length > 60 ? `${description.slice(0,60)}...`  : description
+
   let now = new Date()
 
   function returnTime() {
@@ -134,6 +137,7 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
     <td ><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
     <td>{transit_realtime.Alert.Cause[entity.alert.cause]}</td>
     <td>{transit_realtime.Alert.Effect[entity.alert.effect]}</td>
+    <td width={300}>{description}</td>
     <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
     <td ><DeleteFeedEntityButton entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /></td>
   </tr>
@@ -271,9 +275,10 @@ export function Feed() {
           <tr>
             {feed_type === "alerts" ?
               <><th>Active Times</th>
-                <th>Entities affected</th>
+                <th>Scope of the alert</th>
                 <th>Cause</th>
                 <th>Effect</th>
+                <th>Description</th>
               </> :
               <>
                 <th>Trip ID</th>

@@ -53,7 +53,7 @@ export function TripSearch({ setTripID, routes, services }) {
         searchState.current = true
         try {
             let current_time_str =  convertDateToTimeString(new Date())
-            setTrips(await getTrips(route, new Date().getDay() > 5? "WE":"WD", new_number === ""? undefined: new_number, current_time_str))
+            setTrips(await getTrips(route, new Date().getDay() > 5? "WE":"WD", new_number === ""? undefined: new_number.replace(/^0+/,''), current_time_str))
         } finally {
             searchState.current = false
         }
