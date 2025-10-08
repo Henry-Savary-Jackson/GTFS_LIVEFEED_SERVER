@@ -70,7 +70,8 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
             ) as gtfs_file:
                 ##  wrtie data from temporary file to file on server permanently
                 gtfs_file.write(named_temp_zip.read())
-            add_gtfs_tables_to_db(db.engine, df_dict)
+            with global_app.app_context(): 
+                add_gtfs_tables_to_db(db.engine, df_dict)
             global_app.config["time_since_last_gtfs"] =  datetime.datetime.now().timestamp()  #TODO: FIX
             send_status_to_task(status="done", message=" Finished adding tabled to db")
         else:

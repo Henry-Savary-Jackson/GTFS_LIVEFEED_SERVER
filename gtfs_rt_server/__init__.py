@@ -10,6 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 import json
 import os
 from pathlib import Path
+from celery import Task
 from typing import Optional
 from flask.logging import default_handler
 from flask import has_request_context, request

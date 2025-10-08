@@ -7,6 +7,7 @@ import subprocess
 import os
 import io
 import sys
+import datetime
 import json
 import numpy as np
 
@@ -174,9 +175,16 @@ def add_schedule(
             skip = 0;
             for i in range(len(df_schedule.index)):
                 time = df_schedule.iloc[i,index_col]
+                # if None, Nan or "..", skip adding stop time
                 if not time or pd.isna(time) or time == "..":
                     skip += 1;
                     continue
+                # convert to str if it is time object
+                if type(time) == datetime.time:
+                    time = time.strftime("%H:%M:%S")
+                
+                if time.rfind(":") == time.find(":"):
+                    time += ":00"
                 stop = df_schedule.index[i]
                 if stop not in stops:
                     raise ValueError(f"Stop {stop} in sheet {sheet_title_directory} ( name in excel file is {sheet_name}) doesnt exist.")
@@ -357,4 +365,4 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 
 if __name__ == "__main__":
-    generate_gtfs_zip(open("Schedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.java", "server_files/static/shared/result")
+    generate_gtfs_zip(open("NewSchedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/static/shared/result")
