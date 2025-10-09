@@ -116,8 +116,8 @@ def getServices(services_df):
     return set(services_df["service_id"])
 
 
-def get_metadata(excel_file, sheet_name, services, shapes):
-    df = read_sheet_as_df(excel_file, sheet_name, nrows=2)
+def get_metadata(excel_file, sheet_name, services, shapes, start):
+    df = read_sheet_as_df(excel_file, sheet_name,skiprows=start-1, nrows=2)
 
     if "Service" not in df.columns:
         raise ValueError(f"No Service column provided in sheet {sheet_name}")
@@ -136,8 +136,77 @@ def get_metadata(excel_file, sheet_name, services, shapes):
     return df["Service"][0], df["Shape"][0]
 
 
-def read_schedule_as_df(excel_file, sheet_name):
-    return read_sheet_as_df(excel_file, sheet_name, skiprows=2)
+def read_schedule_as_df(excel_file, sheet_name, start, length ):
+    return read_sheet_as_df(excel_file, sheet_name, nrows=length , skiprows=start-1)
+
+def get_timetable_info(excel_file, sheet_name, start, length ,
+sheet_title_directory,
+    stoptime_df: pd.DataFrame,
+    stop_df,
+    trip_df,
+    route_id,
+    services,
+    shapes,
+    stops,):
+    service_id, shape_id = get_metadata(excel_file, sheet_name, services, shapes, start)
+    
+    df_schedule = read_schedule_as_df(excel_file, sheet_name, start+2, length )
+    if ("TRAIN NO."not in df_schedule.columns):
+        raise ValueError(f"TRAIN NO. not in the sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
+    df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
+    for index_col,train_number in enumerate(df_schedule.columns):
+
+        train_number = str(train_number)
+        dot_index = train_number.rfind(".")
+        if dot_index != -1:
+            train_number = train_number[:dot_index]
+
+        stop_times_trip_df = pd.DataFrame(columns=stoptime_df.columns)
+        trip_id = f"{service_id}-{train_number}"
+        # must make list so that string comparison works
+        if trip_id in list(trip_df["trip_id"]):
+            raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
+
+        stop = ""
+        skip = 0;
+        for i in range(len(df_schedule.index)):
+            time = df_schedule.iloc[i,index_col]
+            # if None, Nan or "..", skip adding stop time
+            if not time or pd.isna(time) or time == "..":
+                skip += 1;
+                continue
+            # convert to str if it is time object
+            if type(time) == datetime.time:
+                time = time.strftime("%H:%M:%S")
+            
+            if time.rfind(":") == time.find(":"):
+                time += ":00"
+            stop = df_schedule.index[i]
+            if stop not in stops:
+                raise ValueError(f"Stop {stop} in sheet {sheet_title_directory} ( name in excel file is {sheet_name}) doesnt exist.")
+            stop_times_trip_df = stop_times_trip_df._append(
+                {
+                    "trip_id": trip_id,
+                    "arrival_time": time,
+                    "departure_time": time,
+                    "stop_id": stop,
+                    "stop_sequence": i-skip,
+                    "timepoint": 1,
+                },
+                ignore_index=True,
+            )
+        stoptime_df = pd.concat([stoptime_df, stop_times_trip_df])
+        trip_df = trip_df._append(
+            {
+                "route_id": route_id,
+                "service_id": service_id,
+                "trip_id": trip_id,
+                "trip_headsign": get_stop_name(stop_df, stop),
+                "shape_id": shape_id,
+            },
+            ignore_index=True,
+        )
+    return stoptime_df, trip_df
 
 
 def add_schedule(
@@ -153,67 +222,32 @@ def add_schedule(
     stops,
 ):
     try:
-        service_id, shape_id = get_metadata(excel_file, sheet_name, services, shapes)
-        df_schedule = read_schedule_as_df(excel_file, sheet_name)
-        if ("TRAIN NO."not in df_schedule.columns):
-            raise ValueError(f"TRAIN NO. not in the sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
-        df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
-        for index_col,train_number in enumerate(df_schedule.columns):
-
-            train_number = str(train_number)
-            dot_index = train_number.rfind(".")
-            if dot_index != -1:
-                train_number = train_number[:dot_index]
-
-            stop_times_trip_df = pd.DataFrame(columns=stoptime_df.columns)
-            trip_id = f"{service_id}-{train_number}"
-            # must make list so that string comparison works
-            if trip_id in list(trip_df["trip_id"]):
-                raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
-
-            stop = ""
-            skip = 0;
-            for i in range(len(df_schedule.index)):
-                time = df_schedule.iloc[i,index_col]
-                # if None, Nan or "..", skip adding stop time
-                if not time or pd.isna(time) or time == "..":
-                    skip += 1;
-                    continue
-                # convert to str if it is time object
-                if type(time) == datetime.time:
-                    time = time.strftime("%H:%M:%S")
+        workbook = openpyxl.load_workbook(excel_file)
+        worksheet =workbook[sheet_name]
+        min_row  = worksheet.min_row
+        max_row = worksheet.max_row
+        current_row = min_row
+        while current_row <= max_row:
+            current_cell = worksheet.cell(current_row,1)
+            if current_cell.value == "Service":
+                current_length = 0
+                row_for_schedule = current_row + 2 # increment current row until you reach the  end of the schedule
+                current_cell = worksheet.cell(row_for_schedule,1)
+                while current_cell.value not in ["", " ",None, "Service"] and row_for_schedule <= max_row:
+                    current_length += 1
+                    row_for_schedule += 1
+                    current_cell = worksheet.cell(row_for_schedule,1)
                 
-                if time.rfind(":") == time.find(":"):
-                    time += ":00"
-                stop = df_schedule.index[i]
-                if stop not in stops:
-                    raise ValueError(f"Stop {stop} in sheet {sheet_title_directory} ( name in excel file is {sheet_name}) doesnt exist.")
-                stop_times_trip_df = stop_times_trip_df._append(
-                    {
-                        "trip_id": trip_id,
-                        "arrival_time": time,
-                        "departure_time": time,
-                        "stop_id": stop,
-                        "stop_sequence": i-skip,
-                        "timepoint": 1,
-                    },
-                    ignore_index=True,
-                )
-            stoptime_df = pd.concat([stoptime_df, stop_times_trip_df])
-            trip_df = trip_df._append(
-                {
-                    "route_id": route_id,
-                    "service_id": service_id,
-                    "trip_id": trip_id,
-                    "trip_headsign": get_stop_name(stop_df, stop),
-                    "shape_id": shape_id,
-                },
-                ignore_index=True,
-            )
+                stoptime_df, trip_df =  get_timetable_info(excel_file, sheet_name, current_row, current_length ,sheet_title_directory,stoptime_df, stop_df,trip_df, route_id,services,shapes,stops)
+                current_row = row_for_schedule
+                continue
+            
+            current_row += 1
+        print(stoptime_df.shape)
         return stoptime_df, trip_df
     except ValueError as e:
-        raise e
 
+        raise e
 
 def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, update_method=None):
     trip_df = pd.DataFrame(
