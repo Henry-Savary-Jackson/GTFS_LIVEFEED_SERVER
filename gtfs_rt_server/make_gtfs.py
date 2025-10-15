@@ -51,10 +51,35 @@ def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None)
             if update_method:
                 update_method(status="working", message=stdout or "")
 
-def read_sheet_as_df(excel_file, sheet_name, **kwargs):
+def read_sheet_as_df(worksheet, **kwargs):
     try:
-        # print("hey", kwargs )
-        return pd.read_excel(excel_file, sheet_name, **kwargs)
+        start = kwargs["skiprows"]+1 if "skiprows" in kwargs else 1
+        nrows = kwargs["nrows"] if "" in kwargs else None
+        start_cell = worksheet.cell( start, 1)
+        current_cell = start_cell
+        columns = []
+        i = 1
+        while current_cell.value not in ["", " ", None]:
+            columns.append(str(current_cell.value))
+            i += 1
+            current_cell = worksheet.cell( current_cell.row, i)
+        
+        row = start +1
+        current_cell = worksheet.cell(row,1)
+        rows = []
+        while current_cell.value not in ["", " ", None, "TRAIN NO.", "Service"] and ( not nrows or row-start<=nrows-1):
+            # add
+            current_row =  []
+            for col in range(1,len(columns)+1):
+                current_cell = worksheet.cell(row, col)
+                current_row.append(current_cell.value)
+            rows.append(current_row)
+            row+=1
+            current_cell = worksheet.cell(row, 1)
+
+        df = pd.DataFrame(rows, columns= columns)                
+
+        return df 
     except ValueError as e:
         if "Excel file format cannot be determined" in str(e):
             print(str(e))
@@ -62,42 +87,59 @@ def read_sheet_as_df(excel_file, sheet_name, **kwargs):
         raise e
 
 
-def getRoutesDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "Routes")
+def getRoutesDataFrame(workbook):
+    df =  read_sheet_as_df(workbook["Routes"])
+    df["route_type"] = df["route_type"].astype(np.int64)
+    return df
 
-def getFareRulesDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "FareRules")
+def getFareRulesDataFrame(workbook):
+    return read_sheet_as_df(workbook["FareRules"])
 
-def getFareAttributesDataFrame(excel_file):
-    df = read_sheet_as_df(excel_file, "FareAttributes")
+def getFareAttributesDataFrame(workbook):
+    df = read_sheet_as_df(workbook["FareAttributes"] )
     if "transfers" in df:
         print(df["transfers"])
         df["transfers"]= df["transfers"].fillna(-1).astype(np.int64).astype(str)
         df["transfers"]= df["transfers"].replace("-1","")
+    df["payment_method"] = df["payment_method"].astype(np.int64)
     return df
 
-def getStopsDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "Stops")
+def getStopsDataFrame(workbook):
+    return read_sheet_as_df(workbook["Stops"])
 
 
-def getServicesDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "Services")
+def getServicesDataFrame(workbook):
+    df =  read_sheet_as_df(workbook["Services"])
+    df["start_date"] = df["start_date"].astype(np.int64)
+    df["end_date"] = df["end_date"].astype(np.int64)
+    df["monday"] = df["monday"].astype(np.int64)
+    df["tuesday"] = df["tuesday"].astype(np.int64)
+    df["wednesday"] = df["wednesday"].astype(np.int64)
+    df["thursday"] = df["thursday"].astype(np.int64)
+    df["friday"] = df["friday"].astype(np.int64)
+    df["saturday"] = df["saturday"].astype(np.int64)
+    df["sunday"] = df["sunday"].astype(np.int64)
+    return df
+
+def getShapesDataFrame(workbook):
+    df =  read_sheet_as_df(workbook["Shapes"])
+    df["shape_pt_sequence"] = df["shape_pt_sequence"].astype(np.int64)
+    return df
+
+def getAgencyDataFrame(workbook):
+    return read_sheet_as_df(workbook["AgencyInfo"])
 
 
-def getShapesDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "Shapes")
+def getFeedInfoDataFrame(workbook):
+    df =  read_sheet_as_df(workbook["FeedInfo"])
+    df["feed_start_date"] = df["feed_start_date"].astype(np.int64)
+    df["feed_end_date"] = df["feed_end_date"].astype(np.int64)
+    return df
 
 
-def getAgencyDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "AgencyInfo")
-
-
-def getFeedInfoDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "FeedInfo")
-
-
-def getCalendarDaysDataFrame(excel_file):
-    return read_sheet_as_df(excel_file, "CalendarDays")
+def getCalendarDaysDataFrame(workbook):
+    df = read_sheet_as_df(workbook["CalendarDays"])
+    return df
 
 
 def getStops(stops_df):
@@ -116,8 +158,8 @@ def getServices(services_df):
     return set(services_df["service_id"])
 
 
-def get_metadata(excel_file, sheet_name, services, shapes, start):
-    df = read_sheet_as_df(excel_file, sheet_name,skiprows=start-1, nrows=2)
+def get_metadata(worksheet, services, shapes, start):
+    df = read_sheet_as_df(worksheet ,skiprows=start-1, nrows=2)
 
     if "Service" not in df.columns:
         raise ValueError(f"No Service column provided in sheet {sheet_name}")
@@ -136,10 +178,10 @@ def get_metadata(excel_file, sheet_name, services, shapes, start):
     return df["Service"][0], df["Shape"][0]
 
 
-def read_schedule_as_df(excel_file, sheet_name, start, length ):
-    return read_sheet_as_df(excel_file, sheet_name, nrows=length , skiprows=start-1)
+def read_schedule_as_df(worksheet, start, length ):
+    return read_sheet_as_df(worksheet,  nrows=length , skiprows=start-1)
 
-def get_timetable_info(excel_file, sheet_name, start, length ,
+def get_timetable_info(worksheet,sheet_name, start, length ,
 sheet_title_directory,
     stoptime_df: pd.DataFrame,
     stop_df,
@@ -148,9 +190,9 @@ sheet_title_directory,
     services,
     shapes,
     stops,):
-    service_id, shape_id = get_metadata(excel_file, sheet_name, services, shapes, start)
+    service_id, shape_id = get_metadata(worksheet, services, shapes, start)
     
-    df_schedule = read_schedule_as_df(excel_file, sheet_name, start+2, length )
+    df_schedule = read_schedule_as_df(worksheet,start+2, length )
     if ("TRAIN NO."not in df_schedule.columns):
         raise ValueError(f"TRAIN NO. not in the sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
     df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
@@ -210,7 +252,7 @@ sheet_title_directory,
 
 
 def add_schedule(
-    excel_file,
+    worksheet,
     sheet_name,
     sheet_title_directory,
     stoptime_df: pd.DataFrame,
@@ -222,8 +264,6 @@ def add_schedule(
     stops,
 ):
     try:
-        workbook = openpyxl.load_workbook(excel_file)
-        worksheet =workbook[sheet_name]
         min_row  = worksheet.min_row
         max_row = worksheet.max_row
         current_row = min_row
@@ -238,7 +278,7 @@ def add_schedule(
                     row_for_schedule += 1
                     current_cell = worksheet.cell(row_for_schedule,1)
                 
-                stoptime_df, trip_df =  get_timetable_info(excel_file, sheet_name, current_row, current_length ,sheet_title_directory,stoptime_df, stop_df,trip_df, route_id,services,shapes,stops)
+                stoptime_df, trip_df =  get_timetable_info(worksheet,sheet_name, current_row, current_length ,sheet_title_directory,stoptime_df, stop_df,trip_df, route_id,services,shapes,stops)
                 current_row = row_for_schedule
                 continue
             
@@ -266,21 +306,22 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
     if update_method:
         update_method(status="working", message="Reading Spreadsheets")
     print("getting dataframes")
-    routes_df = getRoutesDataFrame(excel_file)
-    services_df = getServicesDataFrame(excel_file)
-    shapes_df = getShapesDataFrame(excel_file)
-    fare_rules_df = getFareRulesDataFrame(excel_file)
-    fare_attributes_df = getFareAttributesDataFrame(excel_file)
-    agency_df = getAgencyDataFrame(excel_file)
-    calendar_days_df = getCalendarDaysDataFrame(excel_file)
-    feed_info_df = getFeedInfoDataFrame(excel_file)
-    stops_df = getStopsDataFrame(excel_file)
+
+    workbook = openpyxl.load_workbook(excel_file,data_only=True)
+    routes_df = getRoutesDataFrame(workbook)
+    services_df = getServicesDataFrame(workbook)
+    shapes_df = getShapesDataFrame(workbook)
+    fare_rules_df = getFareRulesDataFrame(workbook)
+    fare_attributes_df = getFareAttributesDataFrame(workbook)
+    agency_df = getAgencyDataFrame(workbook)
+    calendar_days_df = getCalendarDaysDataFrame(workbook)
+    feed_info_df = getFeedInfoDataFrame(workbook)
+    stops_df = getStopsDataFrame(workbook)
     stops = getStops(stops_df)
     routes = getRoutes(routes_df)
     services = getServices(services_df)
     shapes = getShapes(shapes_df)
     ## in binary mode right?
-    workbook = openpyxl.load_workbook(excel_file)
     print("getting directory")
 
     directory = workbook["Directory"]
@@ -299,21 +340,25 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
                 sheet_name = get_sheet_name_from_hyperlink(
                     sheet_cell.hyperlink.location
                 )
-                stop_time_df, trip_df = add_schedule(
-                    excel_file,
-                    sheet_name,
-                    sheet_title_directory,
-                    stop_time_df,
-                    stops_df,
-                    trip_df,
-                    route_id,
-                    services,
-                    shapes,
-                    stops,
-                )
-                print(sheet_name)
-                if update_method:
-                    update_method( message=f"Added {sheet_title_directory}")
+
+                try :
+                    stop_time_df, trip_df = add_schedule(
+                        workbook[sheet_name],
+                        sheet_name,
+                        sheet_title_directory,
+                        stop_time_df,
+                        stops_df,
+                        trip_df,
+                        route_id,
+                        services,
+                        shapes,
+                        stops,
+                    )
+                    print(sheet_name)
+                    if update_method:
+                        update_method( message=f"Added {sheet_title_directory}")
+                except KeyError as e:
+                    raise ValueError(f"The link for sheet \'{sheet_title_directory}\' in the Directory is an invalid link or that sheet doesnt exist." )
             except Exception as e:
                 print(sheet_name, e)
                 raise e
@@ -399,4 +444,4 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 
 if __name__ == "__main__":
-    generate_gtfs_zip(open("NewSchedules.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/static/shared/result")
+    generate_gtfs_zip(open("/home/hsj/Downloads/Schedules latest(1).xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/static/shared/result")

@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
-import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert } from './Utils'
+import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert, getTimeSinceLastGTFS } from './Utils'
 import { getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -349,17 +349,27 @@ export default function App() {
 export function Main({ logout_cookie }) {
 
   let [roles, setRoles] = useContext(RolesContext)
-  console.log(roles)
+
+  let [time_last_sched, set_time_since_last_schedules] = useState(null)
+
+  useEffect(()=>{
+    async function setTime(){
+      set_time_since_last_schedules(new Date(Number(await getTimeSinceLastGTFS() )*1000))
+    }
+    setTime()
+  }, [])
 
 
   return <Stack gap={4} className='d-flex flex-column align-items-center justify-content-center' >
     <Image src='/static/prasa-main.png' width={250} height={100} />
     {roles.includes("gtfs") && <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
-    {roles.includes("admin") && <Link className='btn btn-primary' to="/list_user">Manage user access </Link>}
+    <Button href='/static/shared/gtfs.xlsx'><Image src="/static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
+    <span>(last modified : {(time_last_sched && `${time_last_sched.toDateString()} ${time_last_sched.toLocaleTimeString()}` ) || ""})</span>
+    <Button href='/static/shared/gtfs.zip'><Image src="/static/zip-file.svg" width={30} height={35}/>GTFS zip for permanent schedules</Button>
+    {roles.includes("admin") && <Link className='btn btn-primary mt-2' to="/list_user">Manage user access </Link>}
     {roles.includes("excel") && <Link className='btn btn-primary' to="/list_excel">Manage tracking excels</Link>}
     {roles.includes("edit") &&<Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>}
     {roles.includes("edit") && <Link className=' btn btn-primary' to="/trip_update">Create new trip update</Link>}
-    <Button href='/static/shared/gtfs.zip'>GTFS zip for permanent schedules</Button>
     <Button variant='danger' onClick={async (e) => {
       try {
         e.preventDefault()
