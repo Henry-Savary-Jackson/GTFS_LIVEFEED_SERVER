@@ -18,7 +18,7 @@ export function UploadsGTFS() {
     const onMessage = (event) => {
         setText((prevText) => prevText + "\n" + event.message)
         setStatus(event.status)
-        if (event.status !== "working") {
+        if (event.status !== "working" && event.status !== "error-cont") { // TODO Make the stauts code cleaner if possible
             socketRef.current.disconnect()
         }
         if ("validation_report" in event && event.validation_report)

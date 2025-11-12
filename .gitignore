@@ -39,3 +39,5 @@ instance
 **.log
 **/**.log 
 **/**.bin
+
+static/shared/result/**

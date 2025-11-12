@@ -158,7 +158,7 @@ def getServices(services_df):
     return set(services_df["service_id"])
 
 
-def get_metadata(worksheet, services, shapes, start):
+def get_metadata(worksheet, sheet_name,services, shapes, start):
     df = read_sheet_as_df(worksheet ,skiprows=start-1, nrows=2)
 
     if "Service" not in df.columns:
@@ -168,8 +168,8 @@ def get_metadata(worksheet, services, shapes, start):
             f"No such service ( {df["Service"][0] or ""} ) in sheet {sheet_name}  "
         )
 
-    if "Shape" not in df.columns:
-        raise ValueError(f"No Shape column provided in sheet {sheet_name}")
+    if "Shape" not  in df.columns:
+        raise ValueError(f"Your shape column is missing or in the incorrect place at the top of the schedule.")
 
     if pd.notna(df["Shape"][0]) and df["Shape"][0] not in shapes:
         raise ValueError(f"No such shape ( {df["Shape"][0]} ) in sheet {sheet_name}  ")
@@ -190,11 +190,11 @@ sheet_title_directory,
     services,
     shapes,
     stops,):
-    service_id, shape_id = get_metadata(worksheet, services, shapes, start)
+    service_id, shape_id = get_metadata(worksheet, sheet_title_directory, services, shapes, start)
     
     df_schedule = read_schedule_as_df(worksheet,start+2, length )
     if ("TRAIN NO."not in df_schedule.columns):
-        raise ValueError(f"TRAIN NO. not in the sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
+        raise ValueError(f"TRAIN NO. not in the sheet \"{sheet_title_directory}\".")
     df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
     for index_col,train_number in enumerate(df_schedule.columns):
 
@@ -207,7 +207,7 @@ sheet_title_directory,
         trip_id = f"{service_id}-{train_number}"
         # must make list so that string comparison works
         if trip_id in list(trip_df["trip_id"]):
-            raise ValueError(f"Duplicate trip {trip_id} in sheet {sheet_title_directory}, name in excel file is {sheet_name}.")
+            raise ValueError(f"Duplicate trip \"{trip_id}\" in sheet {sheet_title_directory}.")
 
         stop = ""
         skip = 0;
@@ -225,7 +225,7 @@ sheet_title_directory,
                 time += ":00"
             stop = df_schedule.index[i]
             if stop not in stops:
-                raise ValueError(f"Stop {stop} in sheet {sheet_title_directory} ( name in excel file is {sheet_name}) doesnt exist.")
+                raise ValueError(f"Stop \"{stop}\" in sheet {sheet_title_directory} doesn\'t exist.")
             stop_times_trip_df = stop_times_trip_df._append(
                 {
                     "trip_id": trip_id,
@@ -244,7 +244,7 @@ sheet_title_directory,
                 "service_id": service_id,
                 "trip_id": trip_id,
                 "trip_headsign": get_stop_name(stop_df, stop),
-                "shape_id": shape_id,
+                "shape_id": shape_id or "",
             },
             ignore_index=True,
         )
@@ -323,7 +323,7 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
     shapes = getShapes(shapes_df)
     ## in binary mode right?
     print("getting directory")
-
+    error= False
     directory = workbook["Directory"]
     for route in directory.iter_cols(min_col=2):
         
@@ -333,35 +333,36 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
             "route_id"
         ]
         for sheet_cell in route[1:]:
+            if not sheet_cell.hyperlink:
+                continue
+            sheet_title_directory = sheet_cell.value
             try:
-                if not sheet_cell.hyperlink:
-                    continue
-                sheet_title_directory = sheet_cell.value
                 sheet_name = get_sheet_name_from_hyperlink(
                     sheet_cell.hyperlink.location
                 )
 
-                try :
-                    stop_time_df, trip_df = add_schedule(
-                        workbook[sheet_name],
-                        sheet_name,
-                        sheet_title_directory,
-                        stop_time_df,
-                        stops_df,
-                        trip_df,
-                        route_id,
-                        services,
-                        shapes,
-                        stops,
-                    )
-                    print(sheet_name)
-                    if update_method:
-                        update_method( message=f"Added {sheet_title_directory}")
-                except KeyError as e:
-                    raise ValueError(f"The link for sheet \'{sheet_title_directory}\' in the Directory is an invalid link or that sheet doesnt exist." )
+                if sheet_name not in workbook: 
+                    raise Exception(f"The link for sheet \'{sheet_title_directory}\' in the Directory is an invalid link or that sheet doesnt exist." )
+                stop_time_df, trip_df = add_schedule(
+                    workbook[sheet_name],
+                    sheet_name,
+                    sheet_title_directory,
+                    stop_time_df,
+                    stops_df,
+                    trip_df,
+                    route_id,
+                    services,
+                    shapes,
+                    stops,
+                )
+                print(sheet_name)
+                if update_method:
+                    update_method( message=f"Added {sheet_title_directory}")
             except Exception as e:
-                print(sheet_name, e)
-                raise e
+                print("error", sheet_name, e)
+                if update_method:
+                    update_method(status="error-cont", message=f"\nError in \"{sheet_title_directory}\":\n{e}\n")
+                error =True
 
     df_dict = {
         "stop_times.txt": stop_time_df,
@@ -376,6 +377,10 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
         "fare_attributes.txt":fare_attributes_df,
         "fare_rules.txt":fare_rules_df
     }
+
+    if error:
+        # there was an error in reading the gtfs zip 
+        raise Exception("There was at least 1 error in reading the excel file.")
 
     if update_method:
         update_method( message=f"Writing the zip file")
@@ -444,4 +449,4 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 
 if __name__ == "__main__":
-    generate_gtfs_zip(open("/home/hsj/Downloads/Schedules latest(1).xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/static/shared/result")
+    generate_gtfs_zip(open("/home/hsj/Downloads/gtfs.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/static/shared/result")
