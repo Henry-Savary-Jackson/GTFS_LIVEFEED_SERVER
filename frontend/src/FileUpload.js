@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
+import {  Button } from 'react-bootstrap'
 import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
 import { alertsContext } from './Globals';
 import { io, Socket } from "socket.io-client"
@@ -84,7 +85,10 @@ export function UploadsGTFS() {
             })
 
         }} >
+
             {status && status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={text || ""}></textarea>}
+
+            <Button href='/static/shared/result/report.html'>Latest validation report</Button>
             {
                 status && status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!

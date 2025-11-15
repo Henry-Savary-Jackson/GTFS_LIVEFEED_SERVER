@@ -81,10 +81,9 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
         print(e)
         print("validation_report", validation_report)
         send_status_to_task(status="error", message=str(e), validation_report=validation_report)
-        raise e
     finally:
-        publish_kill(channel)
         named_temp_zip.close()
+        publish_kill(channel)
 
 
 
