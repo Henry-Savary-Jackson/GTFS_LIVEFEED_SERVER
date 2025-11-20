@@ -330,7 +330,7 @@ export default function App() {
       <RolesContext.Provider value={[roles, setRolesCallback]}>
         <AlertsProvider>
           <Routes>
-            <Route path='/'>
+            <Route path={document.location.pathname.split('/')[1]}>
               <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
               <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
               <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />

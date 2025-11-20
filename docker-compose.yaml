@@ -1,8 +1,17 @@
 services:
-  flask:
-    build: .
+
+  build-flask:
+    build: . 
+    image: hsj/flask-app
+    volumes:
+      - ./server_files/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/shared_private:/flask-app/server_files/shared_private
+
+  flask: &flask
+    image: hsj/flask-app
     ports:
       - 5000:5000
+      - 5555:5555
     volumes:
       - ./server_files/static/shared:/flask-app/server_files/static/shared
       - ./server_files/shared_private:/flask-app/server_files/shared_private
@@ -10,26 +19,63 @@ services:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
       C_FORCE_ROOT: "true"
+    # networks:
+      # - regions_net
+  wc:
+    image: hsj/flask-app
+    environment:
+      REDIS_HOST: redis_db
+      REDIS_PORT: 6379 
+      C_FORCE_ROOT: "true"
+    #
+    volumes:
+      - ./server_files/wc/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/wc/shared_private:/flask-app/server_files/shared_private
+
+    ports:
+      - 5000:5000
+      - 5555:5555
+
+  gaut:
+    <<: *flask 
+    volumes:
+      - ./server_files/gaut/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/gaut/shared_private:/flask-app/server_files/shared_private
+    ports:
+      - 5001:5000
+      - 5556:5555
+  
+  durb:
+    <<: *flask
+    volumes:
+      - ./server_files/durb/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/durb/shared_private:/flask-app/server_files/shared_private
+    ports:
+      - 5002:5000
+      - 5557:5555
+
   redis_db:
     image:
       "redis"
     ports:
       - 6379:6379
+    # networks:
+      # - regions_net
   
   reverse-proxy:
-        image: "jwilder/nginx-proxy:latest"
-        container_name: "reverse-proxy"
-        volumes:
-            # - "./nginx_conf/dhparam:/etc/nginx/dhparam"
-            # - "./nginx_conf/vhost:/etc/nginx/vhost.d"
-            - "./nginx_conf/certs:/etc/nginx/certs:ro"
-            - "./nginx_conf/nginx.conf:/etc/nginx/nginx.conf:ro"
-            - "./server_files/shared_private/:/var/log/nginx/"
-            - "/run/docker.sock:/tmp/docker.sock:ro"
-        restart: "always"
-        ports:
-            - "80:80"
-            - "443:443"
+    image: "jwilder/nginx-proxy:latest"
+    container_name: "reverse-proxy"
+    volumes:
+        - "./nginx_conf/certs:/etc/nginx/certs:ro"
+        - "./nginx_conf/nginx.conf:/etc/nginx/nginx.conf:ro"
+        - "./server_files/shared_private/:/var/log/nginx/"
+        - "/run/docker.sock:/tmp/docker.sock:ro"
+    restart: "always"
+    ports:
+        - "80:80"
+        - "443:443"
+    # networks:
+          # - regions_net
   # acme-companion:
   #       image: nginxproxy/acme-companion
   #       container_name: "acme-companion"
@@ -43,3 +89,6 @@ services:
   #       restart: "always"
   #       depends_on:
   #           - "reverse-proxy"
+
+# networks:
+  # regions_net:

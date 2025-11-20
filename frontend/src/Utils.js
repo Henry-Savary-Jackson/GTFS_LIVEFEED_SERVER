@@ -2,6 +2,8 @@ import axios from 'axios';
 import { transit_realtime } from "gtfs-realtime-bindings"
 import { useContext } from 'react';
 
+axios.defaults.baseURL = document.location.pathname.split('/')[1];
+
 export var routeIDstoNames = new Map()
 async function performRequest(callback) {
     try {

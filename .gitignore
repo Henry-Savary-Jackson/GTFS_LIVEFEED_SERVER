@@ -40,4 +40,6 @@ instance
 **/**.log 
 **/**.bin
 
-static/shared/result/**
+server_files/gaut/**/shared_private/**
+server_files/wc/**/shared_private/**
+server_files/durb/**/shared_private/**
