@@ -2,7 +2,7 @@ from flask import Blueprint,request , jsonify
 from flask_login import  login_required
 import datetime
 from gtfs_rt_server import  has_roles 
-from gtfs_rt_server.db_utils import get_trips, get_routes, get_trip_ids_routes,  get_stops, get_services,get_stoptimes_of_trip, get_alerts_by_causes, get_alerts_by_effects, get_alerts_by_route, get_alerts_by_stop, get_alerts_by_trips, get_trip_updates_by_routes, get_trip_updates_by_stops, get_trip_updates_by_trips 
+from gtfs_rt_server.db_utils import get_trips, get_routes,get_stop_on_routes, get_trip_ids_routes,  get_stops, get_services,get_stoptimes_of_trip, get_alerts_by_causes, get_alerts_by_effects, get_alerts_by_route, get_alerts_by_stop, get_alerts_by_trips, get_trip_updates_by_routes, get_trip_updates_by_stops, get_trip_updates_by_trips 
 db_bp = Blueprint("db", __name__, url_prefix="/db")
 
 @db_bp.get("/get_trips")
@@ -12,6 +12,13 @@ def get_trips_endp():
     number = request.args.get("number", None )
     time_after = request.args.get("after", None )
     return get_trips( service, route, number, time_after ) 
+
+@db_bp.get("/get_stops_route")
+def get_stops_route():
+    route = request.args.get("route", None )
+    if route is None:
+        return "Please give a route id." , 400
+    return get_stop_on_routes(route=route)
 
 @db_bp.get("/trips_to_routes")
 def get_trips_to_routes():

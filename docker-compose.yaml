@@ -1,17 +1,11 @@
 services:
 
-  build-flask:
-    build: . 
-    image: hsj/flask-app
-    volumes:
-      - ./server_files/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/shared_private:/flask-app/server_files/shared_private
 
-  flask: &flask
-    image: hsj/flask-app
+  flask: 
+    build: .
     ports:
       - 5000:5000
-      - 5555:5555
+      - 5556:5555
     volumes:
       - ./server_files/static/shared:/flask-app/server_files/static/shared
       - ./server_files/shared_private:/flask-app/server_files/shared_private
@@ -21,38 +15,6 @@ services:
       C_FORCE_ROOT: "true"
     # networks:
       # - regions_net
-  wc:
-    image: hsj/flask-app
-    environment:
-      REDIS_HOST: redis_db
-      REDIS_PORT: 6379 
-      C_FORCE_ROOT: "true"
-    #
-    volumes:
-      - ./server_files/wc/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/wc/shared_private:/flask-app/server_files/shared_private
-
-    ports:
-      - 5000:5000
-      - 5555:5555
-
-  gaut:
-    <<: *flask 
-    volumes:
-      - ./server_files/gaut/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/gaut/shared_private:/flask-app/server_files/shared_private
-    ports:
-      - 5001:5000
-      - 5556:5555
-  
-  durb:
-    <<: *flask
-    volumes:
-      - ./server_files/durb/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/durb/shared_private:/flask-app/server_files/shared_private
-    ports:
-      - 5002:5000
-      - 5557:5555
 
   redis_db:
     image:
@@ -74,6 +36,7 @@ services:
     ports:
         - "80:80"
         - "443:443"
+        - 5555:5556
     # networks:
           # - regions_net
   # acme-companion:

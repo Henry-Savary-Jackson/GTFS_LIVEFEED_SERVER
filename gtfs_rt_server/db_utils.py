@@ -115,6 +115,17 @@ def insert_user(username, rawPassword, roles=[]):
             raise e
 
 
+def get_stop_on_routes(route):
+    with db.session.begin():
+        sql = "SELECT DISTINCT stops.stop_name as stopName FROM stops INNER JOIN stop_times"\
+            +" ON stop_times.stop_id = stops.stop_id "\
+            +"INNER JOIN trips ON trips.trip_id = stop_times.trip_id"\
+            +" INNER JOIN  routes ON trips.route_id = routes.route_id WHERE routes.route_id = :route_id "
+        params = {"route_id":route}
+        stops = db.session.execute(text(sql), params).fetchall()
+        return [stop[0] for stop in stops]
+
+
 # add a column for active trips and inactive trips
 def get_trips(service=None, route=None, number=None, time_after=None):
     with db.session.begin():
@@ -194,7 +205,7 @@ def get_stoptimes_of_trip(trip_id, include_time=True):
     with db.session.begin():
         stoptimes = db.session.execute(
             text(
-                f"SELECT stop_sequence AS stopSequence, stop_id AS stopId {', strftime("%H:%M:%S", arrival_time) as arrival' if include_time else ''} FROM stop_times WHERE trip_id = :trip_id"
+                f"SELECT stops.stop_name AS stopName, stop_times.stop_sequence AS stopSequence, stop_times.stop_id AS stopId {', strftime("%H:%M:%S", arrival_time) as arrival' if include_time else ''} FROM stop_times INNER JOIN stops ON stops.stop_id = stop_times.stop_id WHERE trip_id = :trip_id"
             ),
             {"trip_id": trip_id},
         ).fetchall()

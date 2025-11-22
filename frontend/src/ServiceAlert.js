@@ -1,10 +1,11 @@
 import { useContext, useState, useEffect, useReducer } from 'react';
 import { RouteSelect, StopSearch, TripSearch } from './Search';
-import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages, doActionWithAlert } from './Utils';
+import { getHtmlForEntity, getRoutes, convertDateToDateTimeString, getServices, getCauses, getEffects, sendServiceAlert, system_languages, doActionWithAlert, getStops, getStopTimesofTrip, getTripsToRouteID, generate_google_maps_link, get_stops_of_route } from './Utils';
 import { Link, useLocation } from 'react-router-dom'
 import { v4 } from 'uuid'
 import { transit_realtime } from "gtfs-realtime-bindings"
 import { alertsContext } from './Globals';
+import { Button } from 'react-bootstrap';
 function convertServiceAlertDictToGTFS(dict) {
     let feedEntity = transit_realtime.FeedEntity.create()
     let alert = transit_realtime.Alert.create()
@@ -113,6 +114,8 @@ export function ServiceAlert() {
     let id = service_alert_inp ? service_alert_inp.id : v4()
     let causes = getCauses()
     let effects = getEffects()
+    let [google_maps_link, set_google_maps_link] = useState("")
+    let [saved, set_saved] = useState(service_alert_inp ? true: false)
 
 
     let list_reducer = (state, action) => {
@@ -123,6 +126,36 @@ export function ServiceAlert() {
 
     }
     let [informed_entities, changeInformedEntities] = useReducer(list_reducer, service_alert_inp && service_alert_inp.alert.informedEntity ? service_alert_inp.alert.informedEntity : [])
+
+    useEffect(() => {
+        (async () => {
+            if (informed_entities.length == 0) {
+                set_google_maps_link(null)
+            } else {
+                let first_entity = informed_entities[0]
+
+                if (first_entity.trip || first_entity.tripId) {
+                    let stops_times = await getStopTimesofTrip(first_entity.trip.tripId || first_entity.tripId)
+                    let name_first = stops_times[0].stopName;
+                    let name_last = stops_times[stops_times.length-1].stopName;
+                    set_google_maps_link(generate_google_maps_link(name_first, name_last))
+                } else if (first_entity.routeId) {
+                    // this is a route, generate a link from endpoint to start of route
+                    let stops = await get_stops_of_route(first_entity.routeId)
+                    let stops_shuffled =[...stops].sort(() => 0.5 - Math.random()); 
+                    let [random_stop_1,random_stop_2] =  stops_shuffled.slice(0,2)
+                    set_google_maps_link(generate_google_maps_link(random_stop_1, random_stop_2))
+
+                } else {
+                    // this is a stop
+                    // generate a link 
+                    let destination = "Cape Town Station"
+                    set_google_maps_link(generate_google_maps_link(first_entity.stopId, destination))
+                }
+
+            }
+        })()
+    }, [informed_entities])
 
     let [cause, setCause] = useState(service_alert_inp ? transit_realtime.Alert.Cause[service_alert_inp.alert.cause] : causes[0])
     let [effect, setEffect] = useState(service_alert_inp ? transit_realtime.Alert.Effect[service_alert_inp.alert.effect] : effects[0])
@@ -172,6 +205,7 @@ export function ServiceAlert() {
             </div>
             <EntitySelectorTabs setInformedEntities={addInformedEntity} />
             {informed_entities.length > 0 && <InformedEntities entities={informed_entities} changeInformedEntities={changeInformedEntities} />}
+            {saved && google_maps_link && <Button  target='_blank' href={google_maps_link}>Example google maps link</Button>}
             <div className='d-flex flex-column align-items-center w-100 gap-3' >
                 <div className="form-group w-100 d-flex flex-row gap-2" >
                     <label htmlFor='input-start'> Start Time</label>
@@ -247,6 +281,7 @@ export function ServiceAlert() {
                     }
                     const service_alert_gtfs = convertServiceAlertDictToGTFS(object)
                     await sendServiceAlert(service_alert_gtfs)
+                    set_saved(true)
                     location.state = service_alert_gtfs
 
                 }, " ✅ Successfully saved Alert!", popUpAlert)

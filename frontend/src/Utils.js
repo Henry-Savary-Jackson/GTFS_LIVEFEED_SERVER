@@ -2,7 +2,6 @@ import axios from 'axios';
 import { transit_realtime } from "gtfs-realtime-bindings"
 import { useContext } from 'react';
 
-axios.defaults.baseURL = document.location.pathname.split('/')[1];
 
 export var routeIDstoNames = new Map()
 async function performRequest(callback) {
@@ -93,6 +92,18 @@ export async function getTrips(route = undefined, service = undefined, number = 
     })
 
 }
+
+export async function get_stops_of_route(route = undefined) {
+    return await performRequest(async () => {
+        let params = {}
+        if (route)
+            params.route = route
+        let response = await axios.get("/db/get_stops_route", { params: params })
+        return response.data;
+    })
+
+}
+
 export async function getStops(stop_name) {
     return await performRequest(async () => {
         let response = await axios.get("/db/get_stops", { params: { "stopname": stop_name } })
@@ -324,6 +335,11 @@ export async function getTimeSinceLastGTFS() {
         let response = await axios.get("/gtfs/time_since_last_schedule")
         return parseFloat(response.data)
     })
+}
+
+
+export function generate_google_maps_link(origin, destination){
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURI(origin)}&destination=${encodeURI(destination)}&travelmode=transit`
 }
 
 export var tripIdToStopTimesCache = new Map()
