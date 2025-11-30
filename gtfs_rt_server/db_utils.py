@@ -1,9 +1,9 @@
 from sqlalchemy.dialects.sqlite import insert
-from sqlalchemy import select
+from sqlalchemy import select, extract
 import pandas as pd
 from flask import current_app
 from pathlib import Path
-import datetime
+import datetime as dt
 import openpyxl
 from gtfs_rt_server.schema import (
     TripUpdate,
@@ -155,6 +155,11 @@ def get_trips(service=None, route=None, number=None, time_after=None):
         trips = db.session.execute(text(sql), params=params).fetchall()
         return [trip._asdict() for trip in trips]
 
+def get_date_range():
+    sql = "SELECT MIN(alerts.start_time), MAX(alerts.end_time) FROM alerts  "
+    result = db.session.execute(text(sql)).fetchall()
+    return  result[0][0], result[0][1]
+
 
 def get_stops(stop_name=None):
     with db.session.begin():
@@ -280,18 +285,19 @@ def delete_trip_update_from_log(trip_update_id):
 
 # given a json object of an alert, add or update into database
 def add_alert_to_db(id, alert):
-
+    descriptions = alert["descriptionText"]["translation"]
     alert_data = {
         "alert_id": id,
         "cause": getattr(Causes, alert["cause"]),
         "effect": getattr(Effects, alert["effect"]),
-        "date": datetime.date.today().isoformat()
+        "date": dt.date.today().isoformat(),
+        "description":  descriptions[0]["text"] if len(descriptions) > 0  else ""
     }
     if "activePeriod" in alert and len(alert["activePeriod"]) > 0:
         if "start" in alert["activePeriod"][0]:
-            alert_data.update({"start_time": alert["activePeriod"][0]["start"]})
+            alert_data.update({"start_time": dt.datetime.fromtimestamp(int(alert["activePeriod"][0]["start"]))})
         if "end" in alert["activePeriod"][0]:
-            alert_data.update({"end_time": alert["activePeriod"][0]["end"]})
+            alert_data.update({"end_time": dt.datetime.fromtimestamp(int(alert["activePeriod"][0]["end"]))})
 
     stmt = (
         insert(Alert)
@@ -335,7 +341,7 @@ def add_trip_update_to_db(id, trip_update):
     update_data = {
         "trip_update_id": id,
         "trip_id": trip_update["trip"]["tripId"],
-        "date": datetime.date.today().isoformat(),
+        "date": dt.date.today().isoformat(),
         "cancelled": trip_update.get("cancelled", False),
     }
     update_data["route_id"] = get_route_id_of_trip(update_data["trip_id"])
@@ -563,6 +569,46 @@ def addTripUpdateInfoToSheet(writer, sheet_name):
 
     write_dataframes_to_sheet(writer, sheet_name, list_tables)
 
+def get_alerts_on_date(date):
+
+    result = (
+        db.session.query(
+            Alert
+        )
+        .where( ( (Alert.end_time >= date) & (Alert.start_time <= date ) )| (func.date(Alert.start_time) == date.date()))
+        .all()
+    )
+
+     
+    list_alerts = []
+
+    for alert in result:
+        entity_summary = "\n".join([f"{entity.entity_type}:{entity.entity_id}," for entity in alert.entities])
+        list_alerts.append([ alert.start_time, alert.end_time,alert.cause, alert.effect, entity_summary, alert.description ])
+
+    return pd.DataFrame(list_alerts, columns=["start date", "end date", "cause", "effect", "affect entities", "description"])
+
+
+def add_alerts_days(writer, sheet_name):
+    print("getting date range")
+    min_date, max_date = get_date_range()
+
+    min_datetime = dt.datetime.combine( dt.datetime.fromisoformat(min_date).date(), dt.time.min)
+    max_datetime = dt.datetime.combine( dt.datetime.fromisoformat(max_date).date(), dt.time.min)
+
+    time_delta = max_datetime - min_datetime
+    start_row = 1
+    print(time_delta)
+    for i in range(time_delta.days):
+            worksheet = writer.book.get_sheet_by_name(sheet_name)
+            current_date =min_datetime + dt.timedelta(days=i) 
+            worksheet.cell(start_row, 1).value = current_date.date().isoformat()
+            print(current_date.isoformat())
+            alerts = get_alerts_on_date(current_date)
+            num_values = len(alerts)
+            alerts.to_excel(writer, sheet_name=sheet_name, index=False, header=True, startrow=start_row+1)
+            start_row += num_values + 4 
+
 
 def create_service_excel(filename):
     writer = pd.ExcelWriter(filename, engine="openpyxl")
@@ -570,8 +616,10 @@ def create_service_excel(filename):
         workbook = writer.book
         workbook.create_sheet("Alerts")
         workbook.create_sheet("TripUpdates")
+        workbook.create_sheet("alerts for each day")
         addAlertInfoToSheet(writer, "Alerts")
         addTripUpdateInfoToSheet(writer, "TripUpdates")
+        add_alerts_days(writer, "alerts for each day")
         writer.close()
     except Exception as e:
         raise e

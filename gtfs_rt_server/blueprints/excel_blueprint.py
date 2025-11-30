@@ -22,6 +22,7 @@ def create_excel_task(task_id, folder, filename):
                 create_service_excel(Path(folder, filename))
                 publish_event(task_id, "finished", {"status":"success", "message":filename})
     except Exception as e:
+        print(e)
         publish_event(task_id, "finished", {"status": "error", "message": str(e)})
     finally:
         publish_kill(task_id)

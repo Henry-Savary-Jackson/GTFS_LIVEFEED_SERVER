@@ -76,8 +76,9 @@ class InformedEntityToAlerts(db.Model):
 class Alert(db.Model):
     __tablename__ = "alerts"
     alert_id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
-    start_time = db.Column(db.Integer())
-    end_time = db.Column(db.Integer())
+    start_time = db.Column(db.DateTime())
+    description = db.Column(db.String(), default='')
+    end_time = db.Column(db.DateTime())
     cause = db.Column(db.Enum(Causes))
     effect = db.Column(db.Enum(Effects))
     entities = db.relationship(
