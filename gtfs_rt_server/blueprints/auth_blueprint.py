@@ -90,8 +90,8 @@ def mod_user():
 def delete_user(username):
     if not username:
         raise BadRequest("No username given")
-    if username == "admin":
-        raise BadRequest("Cannot delete the admin.")
+    if username == current_app.config["ADMIN_USERNAME"]:
+        raise BadRequest("Cannot delete the admin user.")
     try:
         delete_user_with_username(username)
         return "Successful"

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, make_response, redirect, url_for, render_template
+import argon2
 from flask_login import login_required
 from wtforms import (
     BooleanField,
@@ -14,8 +15,9 @@ import datetime
 from gtfs_rt_server import db,  socketio, has_roles, has_any_role, redis , global_app
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
 from threading import Thread, Lock
+from gtfs_rt_server.db_utils import check_feed_password
 from gtfs_rt_server.redis_utils import publish_event, publish_kill,listen_to_redis_pubsub 
-from flask import current_app
+from flask import current_app, send_file
 from flask_socketio import join_room
 from tempfile import NamedTemporaryFile, SpooledTemporaryFile
 import os
@@ -66,7 +68,7 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
             send_status_to_task(status="error", message="No /static/result")
         if not has_errors(result_path):
             with open(
-                os.path.join(global_app.config["SHARED_FOLDER"],"gtfs.zip"), "wb"
+                global_app.config["GTFS_ZIP_PATH"], "wb"
             ) as gtfs_file:
                 ##  wrtie data from temporary file to file on server permanently
                 gtfs_file.write(named_temp_zip.read())
@@ -86,7 +88,37 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
         publish_kill(channel)
 
 
+@gtfs_blueprint.get("/gtfs.xlsx")
+@login_required
+@has_roles("gtfs")
+def get_gtfs_excel():
+    return send_file(current_app.config["GTFS_EXCEL_PATH"])
 
+@gtfs_blueprint.get("/gtfs.zip")
+@login_required
+@has_roles("gtfs")
+def get_gtfs_zip_prasa():
+    return send_file(current_app.config["GTFS_ZIP_PATH"])
+
+@gtfs_blueprint.get("/report")
+@login_required
+@has_roles("gtfs")
+def get_gtfs_validation_report():
+    return send_file(os.path.join(current_app.config["GTFS_VALIDATOR_RESULT_PATH"], "report.html"))
+
+
+
+@gtfs_blueprint.get("/google_gtfs")
+def get_gtfs_zip_google():
+    username = request.args.get("username", None)
+    password = request.args.get("password", None)
+    try :
+        if not check_feed_password(username=username, password=password):
+            return f"Wrong username for {username}",403
+    except ValueError as e:
+        return str(e), 400
+    return send_file(current_app.config["GTFS_ZIP_PATH"])
+    
 
 @gtfs_blueprint.post("/upload_gtfs")
 @login_required
@@ -98,7 +130,7 @@ def upload_gtfs():
 
         task_id = str(uuid4())
         excel_file_perm_path = os.path.join(
-            current_app.config["SHARED_FOLDER"], "gtfs.xlsx"
+            current_app.config["GTFS_EXCEL_PATH"]
         )
         with open(excel_file_perm_path, "wb") as excel_file_perm:
             excel_file_perm.write(excel_file.read())

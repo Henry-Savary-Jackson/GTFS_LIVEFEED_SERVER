@@ -363,9 +363,9 @@ export function Main({ logout_cookie }) {
   return <Stack gap={4} className='d-flex flex-column align-items-center justify-content-center' >
     <Image src='/static/prasa-main.png' width={250} height={100} />
     {roles.includes("gtfs") && <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
-    <Button href='/static/shared/gtfs.xlsx'><Image src="/static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
+    <Button href='/gtfs/gtfs.xlsx'><Image src="/static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
     <span>(last modified : {(time_last_sched && `${time_last_sched.toDateString()} ${time_last_sched.toLocaleTimeString()}` ) || ""})</span>
-    <Button href='/static/shared/gtfs.zip'><Image src="/static/zip-file.svg" width={30} height={35}/>GTFS zip for permanent schedules</Button>
+    <Button href='/gtfs/gtfs.zip'><Image src="/static/zip-file.svg" width={30} height={35}/>GTFS zip for permanent schedules</Button>
     {roles.includes("admin") && <Link className='btn btn-primary mt-2' to="/list_user">Manage user access </Link>}
     {roles.includes("excel") && <Link className='btn btn-primary' to="/list_excel">Manage tracking excels</Link>}
     {roles.includes("edit") &&<Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>}

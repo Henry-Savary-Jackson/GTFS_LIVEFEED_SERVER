@@ -22,6 +22,7 @@ COPY .env config.py app.py ./
 RUN mkdir server_files
 RUN mkdir server_files/shared_private
 RUN mkdir server_files/static
+COPY server_files/*.jar server_files/
 COPY gtfs_rt_server ./gtfs_rt_server
 
 WORKDIR /flask-app/frontend

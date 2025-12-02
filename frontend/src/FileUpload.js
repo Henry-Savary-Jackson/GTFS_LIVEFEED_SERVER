@@ -88,15 +88,15 @@ export function UploadsGTFS() {
 
             {status && status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={text || ""}></textarea>}
 
-            <Button href='/static/shared/result/report.html'>Latest validation report</Button>
+            <Button href='/gtfs/report'>Latest validation report</Button>
             {
                 status && status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!
-                    < a href='/static/shared/gtfs.zip'>Zip file</a>
-                    <a href='/static/shared/result/report.html'>Validation report</a>
+                    < a href='/gtfs/gtfs.zip'>Zip file</a>
+                    <a href='/gtfs/report'>Validation report</a>
                 </div>}
             {status && status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
-                {validationReport && <a href='/static/shared/result/report.html'>Validation report</a>
+                {validationReport && <a href='/gtfs/report'>Validation report</a>
                 }</div>
             }
             <div className='form-group'>

@@ -4,7 +4,7 @@ from gtfs_rt_server import lock,  has_roles
 from flask import Blueprint,request , make_response, redirect, url_for, render_template, current_app
 from flask_login import  login_required 
 from google.protobuf.message import DecodeError, EncodeError
-from gtfs_rt_server.db_utils import delete_alert_from_log, delete_trip_update_from_log ,add_alert_to_db, add_trip_update_to_db
+from gtfs_rt_server.db_utils import check_feed_password,delete_alert_from_log, delete_trip_update_from_log ,add_alert_to_db, add_trip_update_to_db
 import  google.transit.gtfs_realtime_pb2  as gtfs_rt
 from google.protobuf.json_format import  MessageToDict
 from pathlib import Path

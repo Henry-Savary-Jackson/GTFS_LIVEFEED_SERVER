@@ -40,6 +40,9 @@ instance
 **/**.log 
 **/**.bin
 
+server_files/shared_private/**
+!server_files/shared_private/excels
+!server_files/shared_private/result
 server_files/gaut/**/shared_private/**
 server_files/wc/**/shared_private/**
 server_files/durb/**/shared_private/**

@@ -1,4 +1,5 @@
 from sqlalchemy.dialects.sqlite import insert
+import argon2
 from sqlalchemy import select, extract
 import pandas as pd
 from flask import current_app
@@ -18,6 +19,7 @@ from gtfs_rt_server.schema import (
     Role,
     roles_users,
     get_user_by_username,
+    FeedPermission
 )
 from sqlalchemy import text, func
 from typing import Optional
@@ -609,6 +611,26 @@ def add_alerts_days(writer, sheet_name):
             alerts.to_excel(writer, sheet_name=sheet_name, index=False, header=True, startrow=start_row+1)
             start_row += num_values + 4 
 
+
+def set_feed_password(username, password):
+    
+    with db.session.begin():
+        hash_pass = password_hasher.hash(password)
+        stmt = insert(FeedPermission).values(username=username, hash_pass=hash_pass).on_conflict_do_update(index_elements=["username"], set_={"hash_pass":hash_pass})
+        db.session.execute(stmt)
+
+def check_feed_password(username, password):
+    if not (username and password):
+        raise ValueError("Empty username and/or password.")
+    with db.session.begin():
+        result = db.session.query(FeedPermission).where(FeedPermission.username==username).first()
+        if not result:
+            raise ValueError(f"User  {username} doesn't exist.")
+        try :
+            password_hasher.verify(result.hash_pass, password)
+            return True
+        except argon2.exceptions.VerifyMismatchError:
+            return False 
 
 def create_service_excel(filename):
     writer = pd.ExcelWriter(filename, engine="openpyxl")

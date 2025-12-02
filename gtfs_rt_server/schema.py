@@ -11,6 +11,11 @@ roles_users = db.Table('roles_users',
     db.Column('role_id', db.String(20), db.ForeignKey('role.id'))
 )
 
+class FeedPermission(db.Model):
+    __tablename__="feed_permission"
+    username= db.Column(db.String(100), primary_key=True)
+    hash_pass = db.Column(db.String(100), nullable=False)
+
 class User(UserMixin, db.Model):
     __tablename__="user"
     user_id = db.Column(db.String(36), default=lambda:str(uuid4()), primary_key=True)
