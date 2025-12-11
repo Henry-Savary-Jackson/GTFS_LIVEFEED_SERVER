@@ -51,9 +51,10 @@ export function TripSearch({ setTripID, routes, services }) {
     }
     async function setTripsCallback(new_number) {
         searchState.current = true
+        let now = new Date()
         try {
-            let current_time_str =  convertDateToTimeString(new Date())
-            setTrips(await getTrips(route, new Date().getDay() > 5? "WE":"WD", new_number === ""? undefined: new_number.replace(/^0+/,''), current_time_str))
+            let current_time_str =  convertDateToTimeString(now)
+            setTrips(await getTrips(route, null, new_number === ""? undefined: new_number.replace(/^0+/,''), current_time_str))
         } finally {
             searchState.current = false
         }

@@ -645,3 +645,12 @@ def create_service_excel(filename):
         writer.close()
     except Exception as e:
         raise e
+
+def get_todays_service(day_of_week):
+    with db.session.begin():
+        sql = "SELECT service_id,monday, tuesday, wednesday, thursday, friday, saturday, sunday FROM calendar"
+        result =db.session.execute(text(sql))
+        for row in result:
+            if str(row[day_of_week+1]) == "1":
+                return row[0]
+        

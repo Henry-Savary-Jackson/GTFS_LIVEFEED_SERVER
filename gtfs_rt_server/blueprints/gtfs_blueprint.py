@@ -161,7 +161,7 @@ def join_room_ev(event):
 @gtfs_blueprint.get("/time_since_last_schedule")
 def time_since_last_upload():
     try :
-        timestamp_gtfs = os.path.getmtime(Path(current_app.config["SHARED_FOLDER"], "gtfs.zip"))
+        timestamp_gtfs = os.path.getmtime(Path(current_app.config["SHARED_PRIVATE_FOLDER"], "gtfs.zip"))
         return str(timestamp_gtfs)
     except OSError as e:
         return 0

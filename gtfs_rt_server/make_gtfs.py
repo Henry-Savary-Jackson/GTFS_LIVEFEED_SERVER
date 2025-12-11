@@ -60,7 +60,10 @@ def read_sheet_as_df(worksheet, **kwargs):
         columns = []
         i = 1
         while current_cell.value not in ["", " ", None]:
-            columns.append(str(current_cell.value))
+            value = current_cell.value
+            if type(value) == float: # remove decimals
+                value = int(value)
+            columns.append(str(value))
             i += 1
             current_cell = worksheet.cell( current_cell.row, i)
         
@@ -186,6 +189,7 @@ sheet_title_directory,
     stoptime_df: pd.DataFrame,
     stop_df,
     trip_df,
+    sub_routes,
     route_id,
     services,
     shapes,
@@ -196,9 +200,15 @@ sheet_title_directory,
     if ("TRAIN NO."not in df_schedule.columns):
         raise ValueError(f"TRAIN NO. not in the sheet \"{sheet_title_directory}\".")
     df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
+    # keep a list of trains for each sub_route
     for index_col,train_number in enumerate(df_schedule.columns):
 
+        ## if train_number
         train_number = str(train_number)
+        new_route_id= f"{route_id}-{train_number[:2] if len(train_number) >= 4 else train_number[:1]}s" 
+        sub_routes.add(new_route_id)
+
+
         dot_index = train_number.rfind(".")
         if dot_index != -1:
             train_number = train_number[:dot_index]
@@ -240,7 +250,7 @@ sheet_title_directory,
         stoptime_df = pd.concat([stoptime_df, stop_times_trip_df])
         trip_df = trip_df._append(
             {
-                "route_id": route_id,
+                "route_id": new_route_id,
                 "service_id": service_id,
                 "trip_id": trip_id,
                 "trip_headsign": get_stop_name(stop_df, stop),
@@ -258,6 +268,7 @@ def add_schedule(
     stoptime_df: pd.DataFrame,
     stop_df,
     trip_df,
+    sub_routes,
     route_id,
     services,
     shapes,
@@ -278,7 +289,7 @@ def add_schedule(
                     row_for_schedule += 1
                     current_cell = worksheet.cell(row_for_schedule,1)
                 
-                stoptime_df, trip_df =  get_timetable_info(worksheet,sheet_name, current_row, current_length ,sheet_title_directory,stoptime_df, stop_df,trip_df, route_id,services,shapes,stops)
+                stoptime_df, trip_df =  get_timetable_info(worksheet,sheet_name, current_row, current_length ,sheet_title_directory,stoptime_df, stop_df,trip_df,sub_routes, route_id,services,shapes,stops)
                 current_row = row_for_schedule
                 continue
             
@@ -321,11 +332,14 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
     routes = getRoutes(routes_df)
     services = getServices(services_df)
     shapes = getShapes(shapes_df)
+    new_routes = pd.DataFrame(columns=routes_df.columns)
+
     ## in binary mode right?
     print("getting directory")
     error= False
     directory = workbook["Directory"]
     for route in directory.iter_cols(min_col=2):
+        sub_routes = set() 
         
         route_name = route[0].value
         # get route id
@@ -350,6 +364,7 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
                     stop_time_df,
                     stops_df,
                     trip_df,
+                    sub_routes,
                     route_id,
                     services,
                     shapes,
@@ -359,10 +374,20 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
                 if update_method:
                     update_method( message=f"Added {sheet_title_directory}")
             except Exception as e:
+                print(e)
                 print("error", sheet_name, e)
                 if update_method:
                     update_method(status="error-cont", message=f"\nError in \"{sheet_title_directory}\":\n{e}\n")
                 error =True
+
+        # add sub_routes
+        for sub_route in sub_routes:
+            new_row = routes_df[routes_df["route_long_name"] == route_name].iloc[0]
+            if len(sub_routes) > 1:
+                new_row["route_long_name"] = f"{route_name}-{sub_route[sub_route.index("-")+1:]}"
+            new_row["route_id"] = sub_route 
+            new_routes = pd.concat([new_routes, pd.DataFrame(new_row).T], axis=0)
+
 
     df_dict = {
         "stop_times.txt": stop_time_df,
@@ -370,7 +395,7 @@ def generate_gtfs_zip(excel_file, export_location, validator_path,result_path, u
         "trips.txt": trip_df,
         "feed_info.txt": feed_info_df,
         "agency.txt": agency_df,
-        "routes.txt": routes_df,
+        "routes.txt": new_routes,
         "calendar_dates.txt": calendar_days_df,
         "shapes.txt": shapes_df,
         "calendar.txt": services_df,
@@ -449,4 +474,4 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 
 if __name__ == "__main__":
-    generate_gtfs_zip(open("/home/hsj/Downloads/gtfs.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/static/shared/result")
+    generate_gtfs_zip(open("/home/hsj/Downloads/gtfs_new.xlsx", "rb"), "./gtfs.zip", "./server_files/gtfs-validator-6.0.0-cli.jar", "server_files/shared_private/result")

@@ -16,3 +16,4 @@ eventlet
 flask-redis
 celery
 flower
+Flask-HTTPAuth
