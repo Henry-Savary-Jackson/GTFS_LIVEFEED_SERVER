@@ -100,12 +100,12 @@ function TripUpdateFeedEntityRow({ entity, delete_feed_entity_callback }) {
 }
 function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
 
+  let [show_more, set_show_more] = useState(false)
   let activePeriod = entity.alert && entity.alert.activePeriod && entity.alert.activePeriod.length > 0 ? entity.alert.activePeriod[0] : null;
   let start_date = entity.alert && activePeriod && activePeriod.start ? new Date(activePeriod.start * 1000) : null
   let end_date = entity.alert && activePeriod && activePeriod.end ? new Date(activePeriod.end * 1000) : null
   let informed_entities = entity.alert.informedEntity
-  let description = (entity.alert && entity.alert.descriptionText && entity.alert.descriptionText.translation.length > 0 ) ? entity.alert.descriptionText.translation[0].text : ""
-  description = description.length > 60 ? `${description.slice(0,60)}...`  : description
+  let description = (entity.alert && entity.alert.descriptionText && entity.alert.descriptionText.translation.length > 0) ? entity.alert.descriptionText.translation[0].text : ""
 
   let now = new Date()
 
@@ -115,7 +115,7 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
 
     let start = start_date ? `${start_date.toDateString()} ${start_date.toLocaleTimeString()}` : "Unspecified"
     let end = end_date ? `${end_date.toDateString()} ${end_date.toLocaleTimeString()}` : "Unspecified"
-    return <td><ul>
+    return <td width={300}><ul>
       <li>Start:{start}</li>
       <li>End:{end}</li>
     </ul>
@@ -137,7 +137,7 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
     <td ><ul>{informed_entities.map((entity, i) => <li key={i}>{getHtmlForEntity(entity)}</li>)}</ul></td>
     <td>{transit_realtime.Alert.Cause[entity.alert.cause]}</td>
     <td>{transit_realtime.Alert.Effect[entity.alert.effect]}</td>
-    <td width={300}>{description}</td>
+    <td width={600}>{description.length > 60 && !show_more ? <strong>{description.slice(0, 60)}...</strong> : <><strong>{description.slice(0, 60)}</strong>{description.slice(61)}</>} {description.length > 60 && <Button onClick={(e) => { set_show_more(!show_more) }}>{show_more ? "Show less" : "Show more"}</Button>}</td>
     <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
     <td ><DeleteFeedEntityButton entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /></td>
   </tr>
@@ -178,7 +178,7 @@ export function Feed() {
         break;
     }
     // returns the feed entities, as you may want to use them before the next update of state
-    return  [ ... feed_message.entity ]
+    return [...feed_message.entity]
   }
 
 
@@ -242,7 +242,7 @@ export function Feed() {
 
   useEffect(() => {
     updateMirroredUpdates()
-  }, [route, number ])
+  }, [route, number])
 
 
   async function refreshFeeds() {
@@ -334,10 +334,10 @@ export default function App() {
               <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
               <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
               <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
-              <Route path='upload_gtfs' element={user && roles.includes("gtfs")? <UploadsGTFS /> : <LoginForm />} />
-              <Route path='add_user' element={user && roles.includes("admin")? <AddUserForm /> : <LoginForm />} />
-              <Route path='list_user' element={user && roles.includes("admin")? <UserList /> : <LoginForm />} />
-              <Route path='list_excel' element={user && roles.includes("excel")? <ExcelList /> : <LoginForm />} />
+              <Route path='upload_gtfs' element={user && roles.includes("gtfs") ? <UploadsGTFS /> : <LoginForm />} />
+              <Route path='add_user' element={user && roles.includes("admin") ? <AddUserForm /> : <LoginForm />} />
+              <Route path='list_user' element={user && roles.includes("admin") ? <UserList /> : <LoginForm />} />
+              <Route path='list_excel' element={user && roles.includes("excel") ? <ExcelList /> : <LoginForm />} />
             </Route>
           </Routes>
         </AlertsProvider>
@@ -352,9 +352,9 @@ export function Main({ logout_cookie }) {
 
   let [time_last_sched, set_time_since_last_schedules] = useState(null)
 
-  useEffect(()=>{
-    async function setTime(){
-      set_time_since_last_schedules(new Date(Number(await getTimeSinceLastGTFS() )*1000))
+  useEffect(() => {
+    async function setTime() {
+      set_time_since_last_schedules(new Date(Number(await getTimeSinceLastGTFS()) * 1000))
     }
     setTime()
   }, [])
@@ -364,11 +364,11 @@ export function Main({ logout_cookie }) {
     <Image src='/static/prasa-main.png' width={250} height={100} />
     {roles.includes("gtfs") && <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
     <Button href='/gtfs/gtfs.xlsx'><Image src="/static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
-    <span>(last modified : {(time_last_sched && `${time_last_sched.toDateString()} ${time_last_sched.toLocaleTimeString()}` ) || ""})</span>
-    <Button href='/gtfs/gtfs.zip'><Image src="/static/zip-file.svg" width={30} height={35}/>GTFS zip for permanent schedules</Button>
+    <span>(last modified : {(time_last_sched && `${time_last_sched.toDateString()} ${time_last_sched.toLocaleTimeString()}`) || ""})</span>
+    <Button href='/gtfs/gtfs.zip'><Image src="/static/zip-file.svg" width={30} height={35} />GTFS zip for permanent schedules</Button>
     {roles.includes("admin") && <Link className='btn btn-primary mt-2' to="/list_user">Manage user access </Link>}
     {roles.includes("excel") && <Link className='btn btn-primary' to="/list_excel">Manage tracking excels</Link>}
-    {roles.includes("edit") &&<Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>}
+    {roles.includes("edit") && <Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>}
     {roles.includes("edit") && <Link className=' btn btn-primary' to="/trip_update">Create new trip update</Link>}
     <Button variant='danger' onClick={async (e) => {
       try {
