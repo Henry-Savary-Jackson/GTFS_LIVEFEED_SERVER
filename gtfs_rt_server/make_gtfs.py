@@ -92,6 +92,8 @@ def read_sheet_as_df(worksheet, **kwargs):
             raise Exception("Invalid Excel file")
         raise e
 
+def getDiscountDf(workbook):
+    return read_sheet_as_df(workbook["Discounts"])
 
 def getDistMatrixDataFrame(workbook):
     return read_sheet_as_df(workbook["Distance Matrix"])
@@ -124,8 +126,14 @@ def getFareAttributesDataFrame(workbook):
 
 def getStopsDataFrame(workbook):
     stops_df = read_sheet_as_df(workbook["Stops"])
-    stops_df["zone_id"] = stops_df["stop_name"]
-    return stops_df
+
+    areas_df = pd.DataFrame(  )
+    areas_df["area_id"] = stops_df["stop_id"]
+    areas_df["area_name"] = stops_df["stop_name"]
+    stops_to_areas = pd.DataFrame()
+    stops_to_areas["area_id"] = areas_df["area_id"]
+    stops_to_areas["stop_id"] = stops_df["stop_id"]
+    return stops_df,areas_df, stops_to_areas
 
 
 def getServicesDataFrame(workbook):
@@ -219,6 +227,7 @@ def get_timetable_info(
     services,
     shapes,
     stops,
+    trips
 ):
     service_id, shape_id = get_metadata(
         worksheet, sheet_title_directory, services, shapes, start
@@ -240,13 +249,13 @@ def get_timetable_info(
         if dot_index != -1:
             train_number = train_number[:dot_index]
 
-        stop_times_trip_df = pd.DataFrame(columns=stoptime_df.columns)
         trip_id = f"{service_id}-{train_number}"
         # must make list so that string comparison works
-        if trip_id in list(trip_df["trip_id"]):
+        if trip_id in trips:
             raise ValueError(
                 f'Duplicate trip "{trip_id}" in sheet {sheet_title_directory}.'
             )
+        trips.add(trip_id)
 
         stop = ""
         skip = 0
@@ -257,7 +266,7 @@ def get_timetable_info(
                 skip += 1
                 continue
             # convert to str if it is time object
-            if type(time) == datetime.time:
+            if type(time) == datetime.time or type(time)== datetime.datetime:
                 time = time.strftime("%H:%M:%S")
 
             if time.rfind(":") == time.find(":"):
@@ -267,7 +276,7 @@ def get_timetable_info(
                 raise ValueError(
                     f'Stop "{stop}" in sheet {sheet_title_directory} doesn\'t exist.'
                 )
-            stop_times_trip_df = stop_times_trip_df._append(
+            stoptime_df.append(
                 {
                     "trip_id": trip_id,
                     "arrival_time": time,
@@ -275,19 +284,16 @@ def get_timetable_info(
                     "stop_id": stop,
                     "stop_sequence": i - skip,
                     "timepoint": 1,
-                },
-                ignore_index=True,
+                }
             )
-        stoptime_df = pd.concat([stoptime_df, stop_times_trip_df])
-        trip_df = trip_df._append(
+        trip_df.append(
             {
                 "route_id": new_route_id,
                 "service_id": service_id,
                 "trip_id": trip_id,
                 "trip_headsign": get_stop_name(stop_df, stop),
                 "shape_id": shape_id or "",
-            },
-            ignore_index=True,
+            }
         )
     return stoptime_df, trip_df
 
@@ -304,6 +310,7 @@ def add_schedule(
     services,
     shapes,
     stops,
+    trips,
 ):
     try:
         min_row = worksheet.min_row
@@ -339,12 +346,13 @@ def add_schedule(
                     services,
                     shapes,
                     stops,
+                    trips
                 )
                 current_row = row_for_schedule
                 continue
 
             current_row += 1
-        print(stoptime_df.shape)
+        print(len(stoptime_df))
         return stoptime_df, trip_df
     except ValueError as e:
 
@@ -370,58 +378,72 @@ def handle_ticket_types(ticket_types_df, km_zones):
     return ticket_types_dict
 
 
+def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,discounts,stops, services):
+    df_fare_leg_rules = []
+    df_fare_product = []
 
+    def append_fare(fare_id, price, origin, dest, timeframe_id =None):
+        df_fare_product.append([fare_id, fare_id.upper() ,f"{float(price):.2f}", "ZAR"])
+        df_fare_leg_rules.append([ origin, dest, fare_id, timeframe_id or "" ])
 
-
-def handle_dist_matrix( dist_matrix, distance_prices, ticket_types):
-    df_fare_rules = []
-    df_fare_attributes = []
     for i in range(1, len(dist_matrix.columns)):
         # get all distance pairs
-        origin_name = dist_matrix.columns[i].strip()
+        origin_name = dist_matrix.columns[i].strip().upper()
+        if origin_name  not in stops:
+            continue
         for j in range(i, len(dist_matrix)):
-            dest_name = dist_matrix["Stops"].iloc[j].strip()
+            dest_name = dist_matrix["Stops"].iloc[j].strip().upper()
+            if dest_name not in stops:
+                continue
             distance = dist_matrix.iloc[j,i]
             price_index = np.argmax(distance_prices > distance)
             # for each set of tickets get the relevant price
 
             for ticket_type in ticket_types:
                 price = ticket_types[ticket_type][price_index]
-                origin_name =origin_name.strip()
                 fare_id_1 = f"{ticket_type}-kmzone{price_index+1}-{origin_name}-{dest_name}"
                 fare_id_2 = f"{ticket_type}-kmzone{price_index+1}-{dest_name}-{origin_name}"
+                # create one for each discount
+                append_fare(fare_id_1, price, origin_name, dest_name)
+                append_fare(fare_id_2, price, origin_name, dest_name)
+                for k in range(len(discounts)):
+                    discount = discounts.iloc[k]
+                    for service in services:
+                        discount_id = f"{discount["discount_id"]}-{service}"
+                        new_price = discount["percentage"] * price/ 100 
+                        fare_discount_id_1 = f"{discount_id}-{fare_id_1}"
+                        fare_discount_id_2 = f"{discount_id}-{fare_id_2}"
+                        append_fare(fare_discount_id_1, new_price, origin_name, dest_name, discount_id)
+                        append_fare(fare_discount_id_2, new_price, dest_name, origin_name, discount_id)
 
-                df_fare_attributes.append([fare_id_1, price, "R", "0"])
-                df_fare_attributes.append([fare_id_2, price, "R", "0"])
-                df_fare_rules.append([fare_id_1, origin_name, dest_name])
-                df_fare_rules.append([fare_id_2, dest_name, origin_name])
 
-            # add row to fare_rules
+            # add row to fare_rule
             # add row to fare_attributes
             # add to discount
 
-    df_fare_rules = pd.DataFrame(df_fare_rules, columns=["fare_id" ,	"origin_id" ,	"destination_id"])
-    df_fare_attributes = pd.DataFrame(df_fare_attributes, columns=["fare_id" ,	"price" ,	 	"currency_type", 	"payment_method"])
+    df_fare_leg_rules = pd.DataFrame(df_fare_leg_rules, columns=[	"from_area_id","to_area_id","fare_product_id", "from_timeframe_group_id"])
+    df_fare_product = pd.DataFrame(df_fare_product, columns=["fare_product_id" , "fare_product_name",	"amount" ,	 	"currency" 	])
 
-    return  df_fare_rules, df_fare_attributes
+    return  df_fare_leg_rules, df_fare_product
 
+def handle_discount_df(discount_df, services):
+    timeframes_df = []
+    for service in services:
+        for j in range(len(discount_df)):
+            discount = discount_df.iloc[j]
+            discount_id = discount["discount_id"]
+            start_time = discount["start_time"]
+            end_time = discount["end_time"]
+
+            timeframes_df.append([f"{discount_id}-{service}",start_time, end_time, service ])
+
+    return pd.DataFrame(timeframes_df, columns=["timeframe_group_id", "start_time", "end_time", "service_id"])
 
 def generate_gtfs_zip(
     excel_file, export_location, validator_path, result_path, update_method=None
 ):
-    trip_df = pd.DataFrame(
-        columns=["route_id", "service_id", "trip_id", "trip_headsign", "shape_id"]
-    )
-    stop_time_df = pd.DataFrame(
-        columns=[
-            "trip_id",
-            "arrival_time",
-            "departure_time",
-            "stop_id",
-            "stop_sequence",
-            "timepoint",
-        ]
-    )
+    trip_df = []
+    stop_time_df = []
     if update_method:
         update_method(status="working", message="Reading Spreadsheets")
     print("getting dataframes")
@@ -433,18 +455,25 @@ def generate_gtfs_zip(
     agency_df = getAgencyDataFrame(workbook)
     calendar_days_df = getCalendarDaysDataFrame(workbook)
     feed_info_df = getFeedInfoDataFrame(workbook)
-    stops_df = getStopsDataFrame(workbook)
+    stops_df,areas_df,stops_to_areas_df = getStopsDataFrame(workbook)
     stops = getStops(stops_df)
     routes = getRoutes(routes_df)
     services = getServices(services_df)
     shapes = getShapes(shapes_df)
 
+    if update_method:
+        update_method(message=f"Getting all ticket pricing informations...")
+
     km_zone_df = getKmZoneDataframe(workbook)
     ticket_types_df = getTicketTypeDataframe(workbook)
     distance_matrix_df  = getDistMatrixDataFrame(workbook)
+    discount_df = getDiscountDf(workbook)
     km_zones = handle_km_zones(km_zone_df)
     ticket_types_dict = handle_ticket_types(ticket_types_df,km_zones)
-    fare_rules_df , fare_attributes_df = handle_dist_matrix(distance_matrix_df, km_zones, ticket_types_dict)
+    timeframes_df = handle_discount_df(discount_df, services)
+    fare_leg_rules , fare_products_df = handle_dist_matrix(distance_matrix_df, km_zones, ticket_types_dict,discount_df, stops, services)
+    if update_method:
+        update_method(message=f"Done getting all ticket pricing informations.")
 
     new_routes = pd.DataFrame(columns=routes_df.columns)
 
@@ -452,6 +481,7 @@ def generate_gtfs_zip(
     print("getting directory")
     error = False
     directory = workbook["Directory"]
+    trips = set()
     for route in directory.iter_cols(min_col=2):
         sub_routes = set()
 
@@ -473,6 +503,7 @@ def generate_gtfs_zip(
                     raise Exception(
                         f"The link for sheet '{sheet_title_directory}' in the Directory is an invalid link or that sheet doesnt exist."
                     )
+                
                 stop_time_df, trip_df = add_schedule(
                     workbook[sheet_name],
                     sheet_name,
@@ -485,6 +516,7 @@ def generate_gtfs_zip(
                     services,
                     shapes,
                     stops,
+                    trips
                 )
                 print(sheet_name)
                 if update_method:
@@ -509,10 +541,14 @@ def generate_gtfs_zip(
             new_row["route_id"] = sub_route
             new_routes = pd.concat([new_routes, pd.DataFrame(new_row).T], axis=0)
 
+    stop_time_df = pd.DataFrame(stop_time_df)
+    trip_df  = pd.DataFrame(trip_df)
 
     df_dict = {
         "stop_times.txt": stop_time_df,
         "stops.txt": stops_df,
+        "areas.txt": areas_df,
+        "stop_areas.txt": stops_to_areas_df, 
         "trips.txt": trip_df,
         "feed_info.txt": feed_info_df,
         "agency.txt": agency_df,
@@ -520,8 +556,9 @@ def generate_gtfs_zip(
         "calendar_dates.txt": calendar_days_df,
         "shapes.txt": shapes_df,
         "calendar.txt": services_df,
-        "fare_attributes.txt": fare_attributes_df,
-        "fare_rules.txt": fare_rules_df,
+        "fare_products.txt": fare_products_df,
+        "fare_leg_rules.txt": fare_leg_rules,
+        "timeframes.txt": timeframes_df
     }
 
     if error:
@@ -594,7 +631,7 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 if __name__ == "__main__":
     generate_gtfs_zip(
-        open("/home/hsj/Downloads/new_sched.xlsx", "rb"),
+        open("new_sched_2.xlsx", "rb"),
         "./gtfs.zip",
         "./server_files/gtfs-validator-6.0.0-cli.jar",
         "server_files/shared_private/result",
