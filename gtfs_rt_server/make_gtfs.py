@@ -126,14 +126,8 @@ def getFareAttributesDataFrame(workbook):
 
 def getStopsDataFrame(workbook):
     stops_df = read_sheet_as_df(workbook["Stops"])
-
-    areas_df = pd.DataFrame(  )
-    areas_df["area_id"] = stops_df["stop_id"]
-    areas_df["area_name"] = stops_df["stop_name"]
-    stops_to_areas = pd.DataFrame()
-    stops_to_areas["area_id"] = areas_df["area_id"]
-    stops_to_areas["stop_id"] = stops_df["stop_id"]
-    return stops_df,areas_df, stops_to_areas
+    stops_df["zone_id"] = stops_df["stop_id"]
+    return stops_df
 
 
 def getServicesDataFrame(workbook):
@@ -378,13 +372,14 @@ def handle_ticket_types(ticket_types_df, km_zones):
     return ticket_types_dict
 
 
-def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,discounts,stops, services):
-    df_fare_leg_rules = []
-    df_fare_product = []
+def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
+    df_fare_rules = []
+    df_fare_attributes = []
 
     def append_fare(fare_id, price, origin, dest, timeframe_id =None):
-        df_fare_product.append([fare_id, fare_id.upper() ,f"{float(price):.2f}", "ZAR"])
-        df_fare_leg_rules.append([ origin, dest, fare_id, timeframe_id or "" ])
+        df_fare_attributes.append([fare_id, f"{float(price):.2f}", "ZAR", "0", "Prasa001"])
+        df_fare_rules.append([ fare_id,  origin, dest, ])
+
 
     for i in range(1, len(dist_matrix.columns)):
         # get all distance pairs
@@ -406,25 +401,16 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,discounts,sto
                 # create one for each discount
                 append_fare(fare_id_1, price, origin_name, dest_name)
                 append_fare(fare_id_2, price, origin_name, dest_name)
-                for k in range(len(discounts)):
-                    discount = discounts.iloc[k]
-                    for service in services:
-                        discount_id = f"{discount["discount_id"]}-{service}"
-                        new_price = discount["percentage"] * price/ 100 
-                        fare_discount_id_1 = f"{discount_id}-{fare_id_1}"
-                        fare_discount_id_2 = f"{discount_id}-{fare_id_2}"
-                        append_fare(fare_discount_id_1, new_price, origin_name, dest_name, discount_id)
-                        append_fare(fare_discount_id_2, new_price, dest_name, origin_name, discount_id)
 
 
             # add row to fare_rule
             # add row to fare_attributes
             # add to discount
 
-    df_fare_leg_rules = pd.DataFrame(df_fare_leg_rules, columns=[	"from_area_id","to_area_id","fare_product_id", "from_timeframe_group_id"])
-    df_fare_product = pd.DataFrame(df_fare_product, columns=["fare_product_id" , "fare_product_name",	"amount" ,	 	"currency" 	])
+    df_fare_rules = pd.DataFrame(df_fare_rules, columns=[ "fare_id" ,"origin_id", "destination_id" ])
+    df_fare_attributes = pd.DataFrame(df_fare_attributes, columns=["fare_id" , "price" , "currency_type",  "payment_method", "agency_id"])
 
-    return  df_fare_leg_rules, df_fare_product
+    return  df_fare_rules, df_fare_attributes
 
 def handle_discount_df(discount_df, services):
     timeframes_df = []
@@ -455,7 +441,7 @@ def generate_gtfs_zip(
     agency_df = getAgencyDataFrame(workbook)
     calendar_days_df = getCalendarDaysDataFrame(workbook)
     feed_info_df = getFeedInfoDataFrame(workbook)
-    stops_df,areas_df,stops_to_areas_df = getStopsDataFrame(workbook)
+    stops_df = getStopsDataFrame(workbook)
     stops = getStops(stops_df)
     routes = getRoutes(routes_df)
     services = getServices(services_df)
@@ -467,11 +453,11 @@ def generate_gtfs_zip(
     km_zone_df = getKmZoneDataframe(workbook)
     ticket_types_df = getTicketTypeDataframe(workbook)
     distance_matrix_df  = getDistMatrixDataFrame(workbook)
-    discount_df = getDiscountDf(workbook)
     km_zones = handle_km_zones(km_zone_df)
     ticket_types_dict = handle_ticket_types(ticket_types_df,km_zones)
-    timeframes_df = handle_discount_df(discount_df, services)
-    fare_leg_rules , fare_products_df = handle_dist_matrix(distance_matrix_df, km_zones, ticket_types_dict,discount_df, stops, services)
+    fare_rules_df , fare_attributes_df = handle_dist_matrix(distance_matrix_df, km_zones, ticket_types_dict, stops)
+
+
     if update_method:
         update_method(message=f"Done getting all ticket pricing informations.")
 
@@ -547,8 +533,6 @@ def generate_gtfs_zip(
     df_dict = {
         "stop_times.txt": stop_time_df,
         "stops.txt": stops_df,
-        "areas.txt": areas_df,
-        "stop_areas.txt": stops_to_areas_df, 
         "trips.txt": trip_df,
         "feed_info.txt": feed_info_df,
         "agency.txt": agency_df,
@@ -556,9 +540,8 @@ def generate_gtfs_zip(
         "calendar_dates.txt": calendar_days_df,
         "shapes.txt": shapes_df,
         "calendar.txt": services_df,
-        "fare_products.txt": fare_products_df,
-        "fare_leg_rules.txt": fare_leg_rules,
-        "timeframes.txt": timeframes_df
+        "fare_rules.txt": fare_rules_df,
+        "fare_attributes.txt": fare_attributes_df,
     }
 
     if error:
@@ -631,7 +614,7 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 if __name__ == "__main__":
     generate_gtfs_zip(
-        open("/home/hsj/Downloads/Google Maps schedules latest PRASA Western Cape (12).xlsx", "rb"),
+        open("/home/hsj/Downloads/gtfs(11).xlsx", "rb"),
         "./gtfs.zip",
         "./server_files/gtfs-validator-6.0.0-cli.jar",
         "server_files/shared_private/result",

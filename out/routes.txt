@@ -1,0 +1,21 @@
+agency_id,route_long_name,route_id,route_short_name,route_desc,route_type,route_url,route_color,route_text_color,network_id
+Prasa001,Northern Line-23s,NTH-23s,,,2,,38751c,ffffff,prasawc
+Prasa001,Northern Line-28s,NTH-28s,,,2,,38751c,ffffff,prasawc
+Prasa001,Northern Line-35s,NTH-35s,,,2,,38751c,ffffff,prasawc
+Prasa001,Northern Line-19s,NTH-19s,,,2,,38751c,ffffff,prasawc
+Prasa001,Northern Line-32s,NTH-32s,,,2,,38751c,ffffff,prasawc
+Prasa001,Northern Line-34s,NTH-34s,,,2,,38751c,ffffff,prasawc
+Prasa001,Northern Line-25s,NTH-25s,,,2,,38751c,ffffff,prasawc
+Prasa001,Southern Line,STH-1s,,,2,,ff0000,ffffff,prasawc
+Prasa001,Fish Hoek to Simon's town,FSHSIM-2s,,,2,,cbcbcb,000000,prasawc
+Prasa001,Cape Flats Line,CPFLT-5s,,,2,,ff9800,ffffff,prasawc
+Prasa001,Central Line-93s,CNTR-93s,,,2,,4a85e8,ffffff,prasawc
+Prasa001,Central Line-90s,CNTR-90s,,,2,,4a85e8,ffffff,prasawc
+Prasa001,Central Line-94s,CNTR-94s,,,2,,4a85e8,ffffff,prasawc
+Prasa001,Central Line-99s,CNTR-99s,,,2,,4a85e8,ffffff,prasawc
+Prasa001,Malmesbury Line,MALM-26s,,,2,,ffe598,000000,prasawc
+Prasa001,Sunday Southern,SUNSOUTH-1s,,,2,,cf34eb,ffffff,prasawc
+Prasa001,Sunday Northern-32s,SUNNORTH-32s,,,2,,cf34eb,ffffff,prasawc
+Prasa001,Sunday Northern-25s,SUNNORTH-25s,,,2,,cf34eb,ffffff,prasawc
+Prasa001,Sunday Cape Flats,SUNFLATS-5s,,,2,,cf34eb,ffffff,prasawc
+Prasa001,Sunday Central,SUNCENTRAL-99s,,,2,,cf34eb,ffffff,prasawc
