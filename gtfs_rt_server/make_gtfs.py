@@ -457,7 +457,7 @@ def generate_gtfs_zip(
 
         route_name = route[0].value.strip()
         # get route id
-        route_id = routes_df[routes_df["route_long_name"] == route_name].iloc[0][
+        route_id = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0][
             "route_id"
         ]
         for sheet_cell in route[1:]:
@@ -501,7 +501,7 @@ def generate_gtfs_zip(
 
         # add sub_routes
         for sub_route in sub_routes:
-            new_row = routes_df[routes_df["route_long_name"] == route_name].iloc[0]
+            new_row = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0]
             if len(sub_routes) > 1:
                 new_row["route_long_name"] = (
                     f"{route_name}-{sub_route[sub_route.index("-")+1:]}"
