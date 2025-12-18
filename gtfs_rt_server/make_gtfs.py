@@ -487,7 +487,7 @@ def generate_gtfs_zip(
 
         route_name = route[0].value.strip()
         # get route id
-        route_id = routes_df[routes_df["route_long_name"] == route_name].iloc[0][
+        route_id = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0][
             "route_id"
         ]
         for sheet_cell in route[1:]:
@@ -533,7 +533,7 @@ def generate_gtfs_zip(
 
         # add sub_routes
         for sub_route in sub_routes:
-            new_row = routes_df[routes_df["route_long_name"] == route_name].iloc[0]
+            new_row = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0]
             if len(sub_routes) > 1:
                 new_row["route_long_name"] = (
                     f"{route_name}-{sub_route[sub_route.index("-")+1:]}"
@@ -631,7 +631,7 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 if __name__ == "__main__":
     generate_gtfs_zip(
-        open("new_sched_2.xlsx", "rb"),
+        open("/home/hsj/Downloads/Google Maps schedules latest PRASA Western Cape (12).xlsx", "rb"),
         "./gtfs.zip",
         "./server_files/gtfs-validator-6.0.0-cli.jar",
         "server_files/shared_private/result",
