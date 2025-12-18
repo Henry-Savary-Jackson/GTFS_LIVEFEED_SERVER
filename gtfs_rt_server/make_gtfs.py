@@ -377,7 +377,7 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
     df_fare_attributes = []
 
     def append_fare(fare_id, price, origin, dest, timeframe_id =None):
-        df_fare_attributes.append([fare_id, f"{float(price):.2f}", "ZAR", "0", "Prasa001"])
+        df_fare_attributes.append([fare_id, f"{float(price):.2f}", "ZAR", "0", "Prasa001", ""])
         df_fare_rules.append([ fare_id,  origin, dest, ])
 
 
@@ -408,7 +408,7 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
             # add to discount
 
     df_fare_rules = pd.DataFrame(df_fare_rules, columns=[ "fare_id" ,"origin_id", "destination_id" ])
-    df_fare_attributes = pd.DataFrame(df_fare_attributes, columns=["fare_id" , "price" , "currency_type",  "payment_method", "agency_id"])
+    df_fare_attributes = pd.DataFrame(df_fare_attributes, columns=["fare_id" , "price" , "currency_type",  "payment_method", "agency_id", "transfers"])
 
     return  df_fare_rules, df_fare_attributes
 
