@@ -380,16 +380,17 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
         df_fare_attributes.append([fare_id, f"{float(price):.2f}", "ZAR", "0", "Prasa001", ""])
         df_fare_rules.append([ fare_id,  origin, dest, ])
 
+    non_existent_stops = set()
 
     for i in range(1, len(dist_matrix.columns)):
         # get all distance pairs
         origin_name = dist_matrix.columns[i].strip().upper()
         if origin_name  not in stops:
-            raise Exception(f"stop id {origin_name} doesn't exist")
+            non_existent_stops.add(origin_name)
         for j in range(i, len(dist_matrix)):
             dest_name = dist_matrix["Stops"].iloc[j].strip().upper()
             if dest_name not in stops:
-                raise Exception(f"stop id {dest_name} doesn't exist")
+                non_existent_stops.add(dest_name)
             distance = dist_matrix.iloc[j,i]
             price_index = np.argmax(distance_prices > distance)
             # for each set of tickets get the relevant price
@@ -406,6 +407,8 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
             # add row to fare_rule
             # add row to fare_attributes
             # add to discount
+    if len(non_existent_stops) > 0:
+        raise Exception(f"{non_existent_stops} in the distance matrix don't exist.")
 
     df_fare_rules = pd.DataFrame(df_fare_rules, columns=[ "fare_id" ,"origin_id", "destination_id" ])
     df_fare_attributes = pd.DataFrame(df_fare_attributes, columns=["fare_id" , "price" , "currency_type",  "payment_method", "agency_id", "transfers"])
@@ -455,32 +458,42 @@ def generate_gtfs_zip(
     distance_matrix_df  = getDistMatrixDataFrame(workbook)
     km_zones = handle_km_zones(km_zone_df)
     ticket_types_dict = handle_ticket_types(ticket_types_df,km_zones)
-    fare_rules_df , fare_attributes_df = handle_dist_matrix(distance_matrix_df, km_zones, ticket_types_dict, stops)
-
-
-    if update_method:
-        update_method(message=f"Done getting all ticket pricing informations.")
-
-    new_routes = pd.DataFrame(columns=routes_df.columns)
-
-    ## in binary mode right?
-    print("getting directory")
     error = False
-    directory = workbook["Directory"]
-    trips = set()
-    for route in directory.iter_cols(min_col=2):
-        sub_routes = set()
+    df_dict = {}
+    try :
+        fare_rules_df = pd.DataFrame()
+        fare_attributes_df = pd.DataFrame()
+        try :
+            fare_rules_df , fare_attributes_df = handle_dist_matrix(distance_matrix_df, km_zones, ticket_types_dict, stops)
+        except Exception as e:
+            print("error",  e)
+            if update_method:
+                update_method(
+                    status="error-cont",
+                    message=f'\nError in "{sheet_title_directory}":\n{e}\n',
+                )
+            error = True
 
-        route_name = route[0].value.strip()
-        # get route id
-        route_id = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0][
-            "route_id"
-        ]
-        for sheet_cell in route[1:]:
-            if not sheet_cell.hyperlink:
-                continue
-            sheet_title_directory = sheet_cell.value
-            try:
+        if update_method:
+            update_method(message=f"Done getting all ticket pricing informations.")
+
+        new_routes = pd.DataFrame(columns=routes_df.columns)
+
+        print("getting directory")
+        directory = workbook["Directory"]
+        trips = set()
+        for route in directory.iter_cols(min_col=2):
+            sub_routes = set()
+
+            route_name = route[0].value.strip()
+            # get route id
+            route_id = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0][
+                "route_id"
+            ]
+            for sheet_cell in route[1:]:
+                if not sheet_cell.hyperlink:
+                    continue
+                sheet_title_directory = sheet_cell.value
                 sheet_name = get_sheet_name_from_hyperlink(
                     sheet_cell.hyperlink.location
                 )
@@ -507,17 +520,7 @@ def generate_gtfs_zip(
                 print(sheet_name)
                 if update_method:
                     update_method(message=f"Added {sheet_title_directory}")
-            except Exception as e:
-                print(e)
-                print("error", sheet_name, e)
-                if update_method:
-                    update_method(
-                        status="error-cont",
-                        message=f'\nError in "{sheet_title_directory}":\n{e}\n',
-                    )
-                error = True
 
-        # add sub_routes
         for sub_route in sub_routes:
             new_row = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0]
             if len(sub_routes) > 1:
@@ -527,22 +530,34 @@ def generate_gtfs_zip(
             new_row["route_id"] = sub_route
             new_routes = pd.concat([new_routes, pd.DataFrame(new_row).T], axis=0)
 
-    stop_time_df = pd.DataFrame(stop_time_df)
-    trip_df  = pd.DataFrame(trip_df)
+        stop_time_df = pd.DataFrame(stop_time_df)
+        trip_df  = pd.DataFrame(trip_df)
 
-    df_dict = {
-        "stop_times.txt": stop_time_df,
-        "stops.txt": stops_df,
-        "trips.txt": trip_df,
-        "feed_info.txt": feed_info_df,
-        "agency.txt": agency_df,
-        "routes.txt": new_routes,
-        "calendar_dates.txt": calendar_days_df,
-        "shapes.txt": shapes_df,
-        "calendar.txt": services_df,
-        "fare_rules.txt": fare_rules_df,
-        "fare_attributes.txt": fare_attributes_df,
-    }
+        df_dict = {
+            "stop_times.txt": stop_time_df,
+            "stops.txt": stops_df,
+            "trips.txt": trip_df,
+            "feed_info.txt": feed_info_df,
+            "agency.txt": agency_df,
+            "routes.txt": new_routes,
+            "calendar_dates.txt": calendar_days_df,
+            "shapes.txt": shapes_df,
+            "calendar.txt": services_df,
+            "fare_rules.txt": fare_rules_df,
+            "fare_attributes.txt": fare_attributes_df,
+        }
+
+    except Exception as e:
+        print("error",  e)
+        if update_method:
+            update_method(
+                status="error-cont",
+                message=f'\nError in "{sheet_title_directory}":\n{e}\n',
+            )
+        error = True
+
+        # add sub_routes
+
 
     if error:
         # there was an error in reading the gtfs zip
@@ -614,7 +629,7 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 if __name__ == "__main__":
     generate_gtfs_zip(
-        open("/home/hsj/Downloads/gtfs(11).xlsx", "rb"),
+        open("/home/hsj/Downloads/Google Maps schedules latest PRASA Western Cape (17).xlsx", "rb"),
         "./gtfs.zip",
         "./server_files/gtfs-validator-6.0.0-cli.jar",
         "server_files/shared_private/result",
