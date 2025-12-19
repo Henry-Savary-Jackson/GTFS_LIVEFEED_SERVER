@@ -392,7 +392,7 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
             if dest_name not in stops:
                 non_existent_stops.add(dest_name)
             distance = dist_matrix.iloc[j,i]
-            price_index = np.argmax(distance_prices > distance)
+            price_index = np.argmax(distance_prices > distance) if distance <= distance_prices[-1] else len(distance_prices)-1
             # for each set of tickets get the relevant price
 
             for ticket_type in ticket_types:
