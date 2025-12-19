@@ -521,14 +521,14 @@ def generate_gtfs_zip(
                 if update_method:
                     update_method(message=f"Added {sheet_title_directory}")
 
-        for sub_route in sub_routes:
-            new_row = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0]
-            if len(sub_routes) > 1:
-                new_row["route_long_name"] = (
-                    f"{route_name}-{sub_route[sub_route.index("-")+1:]}"
-                )
-            new_row["route_id"] = sub_route
-            new_routes = pd.concat([new_routes, pd.DataFrame(new_row).T], axis=0)
+            for sub_route in sub_routes:
+                new_row = routes_df[routes_df["route_long_name"].str.strip() == route_name].iloc[0]
+                if len(sub_routes) > 1:
+                    new_row["route_long_name"] = (
+                        f"{route_name}-{sub_route[sub_route.index("-")+1:]}"
+                    )
+                new_row["route_id"] = sub_route
+                new_routes = pd.concat([new_routes, pd.DataFrame(new_row).T], axis=0)
 
         stop_time_df = pd.DataFrame(stop_time_df)
         trip_df  = pd.DataFrame(trip_df)
@@ -629,7 +629,7 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 if __name__ == "__main__":
     generate_gtfs_zip(
-        open("/home/hsj/Downloads/Google Maps schedules latest PRASA Western Cape (17).xlsx", "rb"),
+        open("/home/hsj/Downloads/Google Maps schedules latest PRASA Western Cape (20).xlsx", "rb"),
         "./gtfs.zip",
         "./server_files/gtfs-validator-6.0.0-cli.jar",
         "server_files/shared_private/result",
