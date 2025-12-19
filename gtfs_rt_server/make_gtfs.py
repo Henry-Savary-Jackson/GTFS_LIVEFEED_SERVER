@@ -385,11 +385,11 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
         # get all distance pairs
         origin_name = dist_matrix.columns[i].strip().upper()
         if origin_name  not in stops:
-            continue
+            raise Exception(f"stop id {origin_name} doesn't exist")
         for j in range(i, len(dist_matrix)):
             dest_name = dist_matrix["Stops"].iloc[j].strip().upper()
             if dest_name not in stops:
-                continue
+                raise Exception(f"stop id {dest_name} doesn't exist")
             distance = dist_matrix.iloc[j,i]
             price_index = np.argmax(distance_prices > distance)
             # for each set of tickets get the relevant price

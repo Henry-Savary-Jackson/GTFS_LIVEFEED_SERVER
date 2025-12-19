@@ -1,2 +1,0 @@
-agency_id,agency_name,agency_url,agency_timezone,agency_phone,agency_lang,agency_email
-Prasa001,Prasa,https://www.prasa.com,Africa/Johannesburg,"""+27 11 013 6700""",en,info@prasa.com
