@@ -470,7 +470,7 @@ def generate_gtfs_zip(
             if update_method:
                 update_method(
                     status="error-cont",
-                    message=f'\nError in "{sheet_title_directory}":\n{e}\n',
+                    message=f'\nError in distance matrix:\n{e}\n',
                 )
             error = True
 
