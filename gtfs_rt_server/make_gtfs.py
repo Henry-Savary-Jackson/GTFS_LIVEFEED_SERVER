@@ -392,7 +392,7 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
             if dest_name not in stops:
                 non_existent_stops.add(dest_name)
             distance = dist_matrix.iloc[j,i]
-            price_index = np.argmax(distance_prices > distance) if distance <= distance_prices[-1] else len(distance_prices)-1
+            price_index = np.argmax(distance_prices >= distance) if distance <= distance_prices[-1] else len(distance_prices)-1
             # for each set of tickets get the relevant price
 
             for ticket_type in ticket_types:
@@ -401,7 +401,7 @@ def handle_dist_matrix( dist_matrix, distance_prices, ticket_types,stops):
                 fare_id_2 = f"{ticket_type}-kmzone{price_index+1}-{dest_name}-{origin_name}"
                 # create one for each discount
                 append_fare(fare_id_1, price, origin_name, dest_name)
-                append_fare(fare_id_2, price, origin_name, dest_name)
+                append_fare(fare_id_2, price, dest_name, origin_name)
 
 
             # add row to fare_rule
