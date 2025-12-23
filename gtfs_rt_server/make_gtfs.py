@@ -55,11 +55,12 @@ def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None)
 def read_sheet_as_df(worksheet, **kwargs):
     try:
         start = kwargs["skiprows"] + 1 if "skiprows" in kwargs else 1
+        start_col = kwargs["startcol"]  if "startcol" in kwargs else 1
         nrows = kwargs["nrows"] if "" in kwargs else None
-        start_cell = worksheet.cell(start, 1)
+        start_cell = worksheet.cell(start, start_col)
         current_cell = start_cell
         columns = []
-        i = 1
+        i = start_col
         while current_cell.value not in ["", " ", None]:
             value = current_cell.value
             if type(value) == float:  # remove decimals
@@ -69,19 +70,19 @@ def read_sheet_as_df(worksheet, **kwargs):
             current_cell = worksheet.cell(current_cell.row, i)
 
         row = start + 1
-        current_cell = worksheet.cell(row, 1)
+        current_cell = worksheet.cell(row,start_col)
         rows = []
         while current_cell.value not in ["", " ", None, "TRAIN NO.", "Service"] and (
             not nrows or row - start <= nrows - 1
         ):
             # add
             current_row = []
-            for col in range(1, len(columns) + 1):
+            for col in range(start_col, start_col + len(columns) ):
                 current_cell = worksheet.cell(row, col)
                 current_row.append(current_cell.value)
             rows.append(current_row)
             row += 1
-            current_cell = worksheet.cell(row, 1)
+            current_cell = worksheet.cell(row, start_col)
 
         df = pd.DataFrame(rows, columns=columns)
 
@@ -163,6 +164,7 @@ def getFeedInfoDataFrame(workbook):
 
 def getCalendarDaysDataFrame(workbook):
     df = read_sheet_as_df(workbook["CalendarDays"])
+    df =df.astype(str)
     return df
 
 
@@ -182,8 +184,8 @@ def getServices(services_df):
     return set(services_df["service_id"])
 
 
-def get_metadata(worksheet, sheet_name, services, shapes, start):
-    df = read_sheet_as_df(worksheet, skiprows=start - 1, nrows=2)
+def get_metadata(worksheet, sheet_name, services, shapes, start, start_col):
+    df = read_sheet_as_df(worksheet, skiprows=start - 1, nrows=2, startcol=start_col)
 
     if "Service" not in df.columns:
         raise ValueError(f"No Service column provided in sheet {sheet_name}")
@@ -203,14 +205,15 @@ def get_metadata(worksheet, sheet_name, services, shapes, start):
     return df["Service"][0], df["Shape"][0]
 
 
-def read_schedule_as_df(worksheet, start, length):
-    return read_sheet_as_df(worksheet, nrows=length, skiprows=start - 1)
+def read_schedule_as_df(worksheet, start, start_col, length):
+    return read_sheet_as_df(worksheet, startcol=start_col, nrows=length, skiprows=start - 1)
 
 
 def get_timetable_info(
     worksheet,
     sheet_name,
     start,
+    start_col,
     length,
     sheet_title_directory,
     stoptime_df: pd.DataFrame,
@@ -224,10 +227,10 @@ def get_timetable_info(
     trips
 ):
     service_id, shape_id = get_metadata(
-        worksheet, sheet_title_directory, services, shapes, start
+        worksheet, sheet_title_directory, services, shapes, start, start_col
     )
 
-    df_schedule = read_schedule_as_df(worksheet, start + 2, length)
+    df_schedule = read_schedule_as_df(worksheet, start + 2, start_col, length)
     if "TRAIN NO." not in df_schedule.columns:
         raise ValueError(f'TRAIN NO. not in the sheet "{sheet_title_directory}".')
     df_schedule = df_schedule.set_index("TRAIN NO.").dropna(axis=1, how="all")
@@ -306,30 +309,40 @@ def add_schedule(
     stops,
     trips,
 ):
+    def get_upper_cell_value(cell):
+        return str(cell.value).upper()
     try:
         min_row = worksheet.min_row
         max_row = worksheet.max_row
+        min_col = 1
+        max_col= worksheet.max_column
         current_row = min_row
+        current_col = min_col
         while current_row <= max_row:
-            current_cell = worksheet.cell(current_row, 1)
-            if current_cell.value == "Service":
+            current_cell = worksheet.cell(current_row, current_col)
+            while current_col <= max_col and get_upper_cell_value(current_cell)  != "SERVICE":
+                current_col += 1
+                current_cell = worksheet.cell(current_row, current_col)
+
+            if current_col <= max_col:
                 current_length = 0
                 row_for_schedule = (
                     current_row + 2
                 )  # increment current row until you reach the  end of the schedule
-                current_cell = worksheet.cell(row_for_schedule, 1)
+                current_cell = worksheet.cell(row_for_schedule, current_col)
                 while (
-                    current_cell.value not in ["", " ", None, "Service"]
+                    get_upper_cell_value(current_cell) not in ["", " ", "NONE", "SERVICE"]
                     and row_for_schedule <= max_row
                 ):
                     current_length += 1
                     row_for_schedule += 1
-                    current_cell = worksheet.cell(row_for_schedule, 1)
+                    current_cell = worksheet.cell(row_for_schedule, current_col)
 
                 stoptime_df, trip_df = get_timetable_info(
                     worksheet,
                     sheet_name,
                     current_row,
+                    current_col,
                     current_length,
                     sheet_title_directory,
                     stoptime_df,
@@ -343,8 +356,7 @@ def add_schedule(
                     trips
                 )
                 current_row = row_for_schedule
-                continue
-
+            current_col = 1
             current_row += 1
         print(len(stoptime_df))
         return stoptime_df, trip_df
@@ -629,7 +641,7 @@ def write_df_to_zipfile(zip_file, filename, df):
 
 if __name__ == "__main__":
     generate_gtfs_zip(
-        open("/home/hsj/Downloads/Google Maps schedules latest PRASA Western Cape (20).xlsx", "rb"),
+        open("/home/hsj/Downloads/gtfs(14).xlsx", "rb"),
         "./gtfs.zip",
         "./server_files/gtfs-validator-6.0.0-cli.jar",
         "server_files/shared_private/result",
