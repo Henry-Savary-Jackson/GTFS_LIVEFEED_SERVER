@@ -46,6 +46,8 @@ function convertServiceAlertDictToGTFS(dict) {
             timerange.start = Math.round(dict.period.start / 1000)
         if (dict.period.end)
             timerange.end = Math.round(dict.period.end / 1000)
+        if (timerange.start && timerange.end && timerange.end <= timerange.start)
+            throw new Error("The start time must be less than the end time.")
         alert.activePeriod = [timerange]
     }
 
