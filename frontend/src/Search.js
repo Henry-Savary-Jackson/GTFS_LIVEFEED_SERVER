@@ -70,8 +70,8 @@ export function TripSearch({ setTripID, routes, services }) {
     // need to pass this stuff with route, because otherwise it initially gives emoty value
     // that is because when routes are loaded, and the component rerenders, the route state has not yet been updated
     return <div className='d-flex gap-3 fs-4 flex-column justify-content-center'>
-        <RouteSelect route={route} setRoute={setRoute} routes={routes} />
-        <ServiceSelect service={service} setService={setService} services={services} />
+        {/* <RouteSelect route={route} setRoute={setRoute} routes={routes} /> */}
+        {/* <ServiceSelect service={service} setService={setService} services={services} /> */}
         <TripIdSeacher number={number} setSearchNumber={setNumberCallback} />
         <button className='btn btn-primary' disabled={searchState.current} onClick={async (e) => {
             setTripsCallback(number)

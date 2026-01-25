@@ -24,7 +24,7 @@ function convertServiceAlertDictToGTFS(dict) {
     }
 
     if ("url" in dict && dict.url) {
-        const pattern = /^http(s?):\/\/(\w+?\.){1,}(\w+?)$/
+        const pattern = /^(\w+?\.){1,}(\w+?)\s*$/
         if (pattern.test(dict.url)) {
             alert.url = transit_realtime.TranslatedString.fromObject({ "translation": [{ "language": "en-ZA", "text": dict.url }] })
         }
@@ -48,6 +48,8 @@ function convertServiceAlertDictToGTFS(dict) {
             timerange.end = Math.round(dict.period.end / 1000)
         if (timerange.start && timerange.end && timerange.end <= timerange.start)
             throw new Error("The start time must be less than the end time.")
+        if (timerange.start && timerange.start < new Date().getTime()/1000)
+            throw new Error("Cannot make a service alert for a time in the past,") 
         alert.activePeriod = [timerange]
     }
 
