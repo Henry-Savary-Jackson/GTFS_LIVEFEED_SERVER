@@ -24,7 +24,7 @@ function convertServiceAlertDictToGTFS(dict) {
     }
 
     if ("url" in dict && dict.url) {
-        const pattern = /^(\w+?\.){1,}(\w+?)\s*$/
+        const pattern = /^\s*((http|https):\/\/)?(\w+?\.){1,}(\w+?)([\w\.\/\?]*?)\s*$/ 
         if (pattern.test(dict.url)) {
             alert.url = transit_realtime.TranslatedString.fromObject({ "translation": [{ "language": "en-ZA", "text": dict.url }] })
         }
@@ -57,7 +57,7 @@ function convertServiceAlertDictToGTFS(dict) {
 }
 
 function EntitySelectorTabs({ setInformedEntities }) {
-    let [tab, setTab] = useState("trip")
+    let [tab, setTab] = useState("route")
     let [routeSelect, setRouteSelect] = useState("")
     let [routes, setRoutes] = useState([])
     let [services, setServices] = useState([])
@@ -99,8 +99,8 @@ function EntitySelectorTabs({ setInformedEntities }) {
             <button className='btn btn-primary' onClick={(e) => { setTab("route") }} >Route</button>
             <button className='btn btn-primary' onClick={(e) => { setTab("stop") }} >Stop</button>
         </div>
-        {tab === "trip" && <TripSearch setTripID={setTripIDInformedEntity} routes={routes} services={services} />}
         {tab === "route" && <RouteSelect setRoute={setRouteInformedEntity} routes={routes} route={routeSelect} />}
+        {tab === "trip" && <TripSearch setTripID={setTripIDInformedEntity} routes={routes} services={services} />}
         {tab === "stop" && <StopSearch finish_search_callback={setStopInformedEntity} />}
     </div>
 
