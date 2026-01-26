@@ -48,7 +48,7 @@ function convertServiceAlertDictToGTFS(dict) {
             timerange.end = Math.round(dict.period.end / 1000)
         if (timerange.start && timerange.end && timerange.end <= timerange.start)
             throw new Error("The start time must be less than the end time.")
-        if (timerange.start && timerange.start < new Date().getTime()/1000)
+        if (dict.first && timerange.start && timerange.start < new Date().getTime()/1000 -5*60)
             throw new Error("Cannot make a service alert for a time in the past,") 
         alert.activePeriod = [timerange]
     }
@@ -281,7 +281,8 @@ export function ServiceAlert() {
                         "effect": effect,
                         "descriptions": descriptions,
                         "informed_entities": informed_entities,
-                        "url": url
+                        "url": url,
+                        "first": !Boolean(service_alert_inp)
                     }
                     const service_alert_gtfs = convertServiceAlertDictToGTFS(object)
                     await sendServiceAlert(service_alert_gtfs)
