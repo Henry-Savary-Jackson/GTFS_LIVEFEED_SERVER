@@ -122,7 +122,7 @@ def get_stop_on_routes(route):
         sql = "SELECT DISTINCT stops.stop_name as stopName FROM stops INNER JOIN stop_times"\
             +" ON stop_times.stop_id = stops.stop_id "\
             +"INNER JOIN trips ON trips.trip_id = stop_times.trip_id"\
-            +" INNER JOIN  routes ON trips.route_id = routes.route_id WHERE routes.route_id = :route_id "
+            +" INNER JOIN  routes ON trips.route_id = routes.route_id WHERE routes.route_id = :route_id AND stops.location_type = 0 "
         params = {"route_id":route}
         stops = db.session.execute(text(sql), params).fetchall()
         return [stop[0] for stop in stops]
@@ -168,7 +168,7 @@ def get_stops(stop_name=None):
         sql = "SELECT stop_id, stop_name FROM stops "
         params = dict()
         if stop_name:
-            sql += " WHERE stop_name LIKE :stop_name"
+            sql += " WHERE stop_name LIKE :stop_name AND location_type = 0"
             params["stop_name"] = f"%{stop_name}%"
 
         stops = db.session.execute(text(sql), params).fetchall()

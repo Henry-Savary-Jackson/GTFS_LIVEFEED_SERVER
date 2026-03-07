@@ -51,6 +51,7 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
     ## create temp file to store zip
     named_temp_zip = NamedTemporaryFile(mode="w+b")
     validation_report = False
+    errors = []
     try:
 
         send_status_to_task(status="working", message="Starting ...")
@@ -61,8 +62,11 @@ def generate_gtfs_from_xlsx(channel,excel_file_path):
             global_app.config["GTFS_VALIDATOR_PATH"],
             result_path,
             send_status_to_task,
+            errors
         )
         ## read notices in report.json to find errors or warnings
+        if errors:
+            send_status_to_task(status="error", message="All errors:\n"+"".join(errors))
 
         if not os.path.exists(result_path):
             send_status_to_task(status="error", message="No /static/result")
