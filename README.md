@@ -1,7 +1,4 @@
 
-# Make_GTFS program 
+# GTFS_LIVEFEED_SERVER
 
-## Put on times and platform numbers
-## put vehicle positions
-## make errors more readable for upload gtfs
-## fix issues with logged in
+A flask server used to provide a user interface to upload permanent schedules in GTFS format, as well as issue GTFS Realtime alerts
