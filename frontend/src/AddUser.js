@@ -29,7 +29,7 @@ export function UserItem({ user, delete_user_callback }) {
         <ListGroup>
             {user.roles.map((val, i) => <ListGroupItem key={i}>{RoleUI.short_to_long.get(val)}</ListGroupItem>)}
         </ListGroup>
-        <Link className='btn btn-primary' to="/add_user" state={user} >Edit</Link>
+        <Link className='btn btn-primary' to="add_user" state={user} >Edit</Link>
         <Button variant='danger' onClick={(e) => {
             if (window.confirm(`Are you sure you want to delete ${user.username}?`)) {
                 delete_user_callback(user)
@@ -60,7 +60,7 @@ export function UserList() {
     }
     return <Stack className='d-flex flex-column align-items-center justify-content-center' gap={3}>
         {users.map((val) => <UserItem delete_user_callback={delete_user_callback} user={val} />)}
-        <Link to="/add_user" className='btn btn-success' >Create New User</Link>
+        <Link to="add_user" className='btn btn-success' >Create New User</Link>
     </Stack>
 }
 
@@ -146,7 +146,7 @@ export function AddUserForm() {
             if (!window.confirm("Are you sure you want to cancel?")) {
                 e.preventDefault()
             }
-        }} to="/list_user" className='btn btn-danger'  >
+        }} to="list_user" className='btn btn-danger'  >
             Cancel
         </Link>
     </Form >

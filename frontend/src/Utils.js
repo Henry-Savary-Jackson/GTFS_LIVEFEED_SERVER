@@ -337,10 +337,10 @@ export async function getTimeSinceLastGTFS() {
     })
 }
 
-
 export function generate_google_maps_link(origin, destination){
     return `https://www.google.com/maps/dir/?api=1&origin=${encodeURI(origin)}&destination=${encodeURI(destination)}&travelmode=transit`
 }
+
 
 export var tripIdToStopTimesCache = new Map()
 

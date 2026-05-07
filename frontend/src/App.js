@@ -13,6 +13,7 @@ import { AddUserForm, UserList } from './AddUser';
 import { AlertsProvider } from './Alerts';
 import { ExcelList } from './Excel';
 import { Form, Table, Image, Stack, Button, ButtonGroup } from 'react-bootstrap'
+import axios from 'axios';
 
 
 
@@ -76,7 +77,7 @@ function TripUpdateFeedEntityRow({ entity, delete_feed_entity_callback }) {
     <td >{entity.tripUpdate.trip.tripId}</td>
     <td >{trip_state}</td>
     <td>{modified}</td>
-    <td><Link className='btn btn-primary' to="/trip_update" state={entity} >Edit</Link> </td>
+    <td><Link className='btn btn-primary' to="trip_update" state={entity} >Edit</Link> </td>
     <td ><DeleteFeedEntityButton entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /></td>
   </tr>
     {showDetail && <div className='d-flex flex-row justify-content-center align-items-center'>
@@ -138,7 +139,7 @@ function ServiceAlertFeedEntityRow({ entity, delete_feed_entity_callback }) {
     <td>{transit_realtime.Alert.Cause[entity.alert.cause]}</td>
     <td>{transit_realtime.Alert.Effect[entity.alert.effect]}</td>
     <td width={600}>{description.length > 60 && !show_more ? <strong>{description.slice(0, 60)}...</strong> : <><strong>{description.slice(0, 60)}</strong>{description.slice(61)}</>} {description.length > 60 && <Button onClick={(e) => { set_show_more(!show_more) }}>{show_more ? "Show less" : "Show more"}</Button>}</td>
-    <td><Link className='btn btn-primary' to="/service_alert" state={entity} >Edit</Link> </td>
+    <td><Link className='btn btn-primary' to="service_alert" state={entity} >Edit</Link> </td>
     <td ><DeleteFeedEntityButton entity={entity} delete_feed_entity_callback={delete_feed_entity_callback} /></td>
   </tr>
 }
@@ -325,7 +326,8 @@ export default function App() {
     setRoles(roles)
     setCookies("roles", roles.join(","))
   }
-  return <BrowserRouter>
+
+  return <BrowserRouter basename={axios.defaults.baseURL}>
     <UserContext.Provider value={[user, setUserCallback]}>
       <RolesContext.Provider value={[roles, setRolesCallback]}>
         <AlertsProvider>
@@ -361,15 +363,15 @@ export function Main({ logout_cookie }) {
 
 
   return <Stack gap={4} className='d-flex flex-column align-items-center justify-content-center' >
-    <Image src='/static/prasa-main.png' width={250} height={100} />
-    {roles.includes("gtfs") && <Link className='btn btn-primary' to="/upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
-    <Button href='/gtfs/gtfs.xlsx'><Image src="/static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
+    <Image src='static/prasa-main.png' width={250} height={100} />
+    {roles.includes("gtfs") && <Link className='btn btn-primary' to="upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
+    <Button href='gtfs/gtfs.xlsx'><Image src="static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
     <span>(last modified : {(time_last_sched && `${time_last_sched.toDateString()} ${time_last_sched.toLocaleTimeString()}`) || ""})</span>
-    <Button href='/gtfs/gtfs.zip'><Image src="/static/zip-file.svg" width={30} height={35} />GTFS zip for permanent schedules</Button>
-    {roles.includes("admin") && <Link className='btn btn-primary mt-2' to="/list_user">Manage user access </Link>}
-    {roles.includes("excel") && <Link className='btn btn-primary' to="/list_excel">Manage tracking excels</Link>}
-    {roles.includes("edit") && <Link className=' btn btn-primary' to="/service_alert">Create new Service Alert</Link>}
-    {roles.includes("edit") && <Link className=' btn btn-primary' to="/trip_update">Create new trip update</Link>}
+    <Button href='gtfs/gtfs.zip'><Image src="static/zip-file.svg" width={30} height={35} />GTFS zip for permanent schedules</Button>
+    {roles.includes("admin") && <Link className='btn btn-primary mt-2' to="list_user">Manage user access </Link>}
+    {roles.includes("excel") && <Link className='btn btn-primary' to="list_excel">Manage tracking excels</Link>}
+    {roles.includes("edit") && <Link className=' btn btn-primary' to="service_alert">Create new Service Alert</Link>}
+    {roles.includes("edit") && <Link className=' btn btn-primary' to="trip_update">Create new trip update</Link>}
     <Button variant='danger' onClick={async (e) => {
       try {
         e.preventDefault()
@@ -386,6 +388,6 @@ export function Main({ logout_cookie }) {
       }
     }} href='/auth/logout'>Logout</Button>
     <Feed />
-    <Image src='/static/lines.png' width={500} height={500} />
+    <Image src='static/lines.png' width={500} height={500} />
   </Stack>
 }

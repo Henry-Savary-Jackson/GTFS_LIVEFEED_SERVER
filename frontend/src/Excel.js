@@ -58,7 +58,7 @@ export function ExcelList() {
 
     return <Container>
         <Stack gap={3} className=' d-flex flex-column position-fixed top-50 start-0'>
-            <Link className='btn btn-primary' to="/">⬅️ Go back to main page</Link>
+            <Link className='btn btn-primary' to="../">⬅️ Go back to main page</Link>
         </Stack>
         <Stack className='d-flex flex-column  align-items-center 
                         justify-content-center' ><span>List of all the summary excels</span><ListGroup  >

@@ -1,28 +1,44 @@
 services:
 
 
-  flask: 
-    build: .
+  wc: 
+    build:
+      context: .
+      args:
+        - REGION=wc
+        - PORT=5000
     ports:
       - 5000:5000
-      - 5556:5555
     volumes:
-      - ./server_files/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/shared_private:/flask-app/server_files/shared_private
+      - ./server_files/wc/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/wc/shared_private:/flask-app/server_files/shared_private
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
       C_FORCE_ROOT: "true"
-    # networks:
-      # - regions_net
+
+  durb: 
+    build:
+      context: .
+      args:
+        - REGION=durb
+        - PORT=5002
+    ports:
+      - 5002:5000
+    volumes:
+      - ./server_files/durb/static/shared:/flask-app/server_files/static/shared
+      - ./server_files/durb/shared_private:/flask-app/server_files/shared_private
+    environment:
+      REDIS_HOST: redis_db
+      REDIS_PORT: 6379 
+      C_FORCE_ROOT: "true"
+
 
   redis_db:
     image:
       "redis"
     ports:
       - 6379:6379
-    # networks:
-      # - regions_net
   
   reverse-proxy:
     image: "jwilder/nginx-proxy:latest"
@@ -36,22 +52,3 @@ services:
     ports:
         - "80:80"
         - "443:443"
-        - 5555:5556
-    # networks:
-          # - regions_net
-  # acme-companion:
-  #       image: nginxproxy/acme-companion
-  #       container_name: "acme-companion"
-  #       volumes:
-  #           - ./nginx_conf/certs:/etc/nginx/certs:rw
-  #           - ./nginx_conf/acme/acme.sh:/etc/acme.sh
-  #       volumes_from:
-  #         - reverse-proxy
-  #       environment:
-  #           DEFAULT_EMAIL: ${USER_EMAIL}
-  #       restart: "always"
-  #       depends_on:
-  #           - "reverse-proxy"
-
-# networks:
-  # regions_net:

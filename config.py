@@ -48,7 +48,7 @@ class Config(object):
     WTF_CSRF_ENABLED = True
     LOGGING_FILE_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "server.log")
     GTFS_VALIDATOR_RESULT_PATH = os.path.join(SHARED_PRIVATE_FOLDER, "result")
-
+    REMEMBER_COOKIE_PATH = f"/{os.environ.get("REACT_APP_REGION")}"
 
 class DevConfig(Config):
     DEBUG = True

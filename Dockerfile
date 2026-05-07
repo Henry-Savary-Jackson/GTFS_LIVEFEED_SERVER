@@ -12,6 +12,11 @@ RUN pip3 install --upgrade pip && pip install -r requirements.txt
 RUN mkdir frontend 
 WORKDIR /flask-app/frontend
 COPY frontend/package.json .
+
+ARG REGION 
+ENV REACT_APP_REGION="$REGION"
+ENV PUBLIC_URL="/$REGION"
+
 RUN npm install  --only=production
 COPY frontend/public ./public
 COPY frontend/src ./src
@@ -31,8 +36,8 @@ RUN cp -f build/index.html  /flask-app/gtfs_rt_server/templates/index.html
 
 WORKDIR /flask-app
 
-EXPOSE 5000
-EXPOSE 5555
+ARG PORT
+EXPOSE $PORT 
 
 RUN addgroup flaskuser
 RUN adduser -G flaskuser -D -h /flask-app flaskuser
