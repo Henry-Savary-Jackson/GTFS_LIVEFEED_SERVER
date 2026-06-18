@@ -301,11 +301,13 @@ export function Feed() {
 
 
 export default function App() {
+  let path = axios.defaults.baseURL
   let [cookies, setCookies, removeCookie] = useCookies()
   let [user, setUser] = useState(cookies.username || "")
   let [roles, setRoles] = useState(cookies.roles ? cookies.roles.split(",") : [])
 
-  let logout_cookie = () => { removeCookie("username"); removeCookie("roles"); setUser("") }
+ 
+  let logout_cookie = () => { removeCookie("username", {path:path}); removeCookie("roles", {path:path}); setUser("") }
 
   useEffect(() => {
     // fetch the csrf token asynchronously
@@ -320,11 +322,11 @@ export default function App() {
 
   function setUserCallback(username) {
     setUser(username)
-    setCookies("username", username)
+    setCookies("username", username, {path:path})
   }
   function setRolesCallback(roles) {
     setRoles(roles)
-    setCookies("roles", roles.join(","))
+    setCookies("roles", roles.join(","), {path:path})
   }
 
   return <BrowserRouter basename={axios.defaults.baseURL}>
