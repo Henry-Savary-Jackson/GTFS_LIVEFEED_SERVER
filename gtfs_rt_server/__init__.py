@@ -134,12 +134,26 @@ def init_csrf(app):
 def init_CORS(app):
     return CORS(app,supports_credentials=True) 
 
+# @socketio.on('connect')
+# def test_connect(auth):
+#     # pass
+#     print('Client connected :', auth)
+
+# @socketio.on('disconnect')
+# def test_disconnect(reason):
+#     # pass
+#     print('Client disconnected, reason:', reason)
+
+# @socketio.on_error()
+# def chat_error_handler(e):
+#     # pass
+#     print('An error has occurred: ' + str(e))
 
 def init_sockiet_io(app):
-    socketio.init_app(app, message_queue=app.config["REDIS_URL"],logger=True, engineio_logger=True,path="/ws", cors_allowed_origins="*")
+    socketio.init_app(app,async_mode="gevent", message_queue=app.config["REDIS_URL"],logger=True, engineio_logger=True,path="/ws", cors_allowed_origins="*")
 
 def init_flask_redis(app):
-    redis.init_app(app)
+    redis.init_app(app,socket_timeout=600000 )
 
 def init_celery_app(app):
     celery_app = Celery(app.name)

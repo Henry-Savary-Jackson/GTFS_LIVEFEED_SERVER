@@ -14,11 +14,15 @@ WORKDIR /flask-app/frontend
 COPY frontend/package.json .
 
 ARG REGION 
+ARG REGION_NAME
 ENV REACT_APP_REGION="$REGION"
+ENV REACT_APP_REGION_NAME="$REGION_NAME"
 ENV PUBLIC_URL="/$REGION"
 
 RUN npm install  --only=production
-COPY frontend/public ./public
+COPY frontend/public/index.html ./public/
+COPY frontend/public/static ./public/static
+COPY frontend/public/static_${REGION}/* ./public/static/
 COPY frontend/src ./src
 RUN npm run build
 
@@ -47,4 +51,4 @@ RUN chmod -R u+rw ./server_files
 
 USER flaskuser
 
-CMD gunicorn --worker-class eventlet -b 0.0.0.0:5000 --log-level=debug --log-file server_files/shared_private/server.log app:app & celery -A app.celery_app  worker -B --logfile server_files/shared_private/celery.log & celery -A app.celery_app flower 
+CMD gunicorn --worker-class gevent -b 0.0.0.0:5000 --timeout=300 --log-level=debug --log-file server_files/shared_private/server.log app:app & celery -A app.celery_app  worker -B --logfile server_files/shared_private/celery.log 

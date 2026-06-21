@@ -16,8 +16,8 @@
     "react-router-dom": "7.6.2",
     "react-scripts": "5.0.1",
     "serve": "14.2.4",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -41,6 +41,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-    
   }
+  ,"homepage": "./"
 }

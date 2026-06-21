@@ -4,6 +4,7 @@ import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
 import { alertsContext } from './Globals';
 import { io, Socket } from "socket.io-client"
 import { ExcelList } from './Excel';
+import axios from 'axios';
 
 
 export function UploadsGTFS() {
@@ -42,7 +43,7 @@ export function UploadsGTFS() {
 
     useEffect(() => {
 
-        let socket = io(`wss://${window.location.host}`, { withCredentials: true, path: "/ws", transports: ["websocket"], reconnection: true, reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
+        let socket = io(`wss://${window.location.host}`, { withCredentials: true, path: `${axios.defaults.baseURL}/ws`, transports: ["websocket"], reconnection: true, reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
         socketRef.current = socket
         socket.on("event", onMessage)
         socket.on('connect_failed', onConnectFailed);
@@ -88,15 +89,15 @@ export function UploadsGTFS() {
 
             {status && status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={text || ""}></textarea>}
 
-            <Button href='/gtfs/report'>Latest validation report</Button>
+            <Button href='gtfs/report'>Latest validation report</Button>
             {
                 status && status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!
-                    < a href='/gtfs/gtfs.zip'>Zip file</a>
-                    <a href='/gtfs/report'>Validation report</a>
+                    < a href='gtfs/gtfs.zip'>Zip file</a>
+                    <a href='gtfs/report'>Validation report</a>
                 </div>}
             {status && status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
-                {validationReport && <a href='/gtfs/report'>Validation report</a>
+                {validationReport && <a href='gtfs/report'>Validation report</a>
                 }</div>
             }
             <div className='form-group'>

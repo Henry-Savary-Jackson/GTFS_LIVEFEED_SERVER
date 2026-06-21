@@ -4,6 +4,7 @@ import { ListGroup, Button, ListGroupItem, Spinner, Stack, Container } from 'rea
 import { io } from 'socket.io-client'
 import { alertsContext } from './Globals.js';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 export function ExcelList() {
 
@@ -43,7 +44,7 @@ export function ExcelList() {
     }
 
     useEffect(() => {
-        let newSocket = io(`wss://${window.location.host}`, { path: "/ws", transports: ["websocket"], reconnection: true, reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
+        let newSocket = io(`wss://${window.location.host}`, { path: `${axios.defaults.baseURL}/ws`, transports: ["websocket"], reconnection: true, reconnectionAttempts: 5, retries: 5, secure: true, autoConnect: false })
         socketRef.current = newSocket
         newSocket.on("finished", onFinished)
         newSocket.on("disconnect", onDisconnect)

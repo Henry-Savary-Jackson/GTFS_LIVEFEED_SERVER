@@ -18,21 +18,44 @@
             "name": "Python: Webapp",
             "type": "debugpy",
             "request": "launch",
-            "program": "venv/bin/gunicorn",
+            "program": ".venv/bin/gunicorn",
             "gevent": true,
+            "console": "integratedTerminal",
             "args": [
                 "app:app",
                 "--bind=127.0.0.1:5000",
                 "--reload",
                 "--worker-class",
-                "eventlet",
-                "--certfile","fullchain.pem",
-                "--keyfile","privkey.pem",
+                "gevent",
                 "--log-level","debug",
                 "--log-file","server_files/shared_private/server.log",
                 "--timeout=7200"
             ],
-            // "postDebugTask": "killdebugger"
         }
-    ]
+        ,{
+            "name": "Celery",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "celery",
+            "console": "integratedTerminal",
+            "env": {"GEVENT_SUPPORT":"True"},
+            "args": [
+                "--app",
+                "app.celery_app",
+                "worker",
+                "--loglevel",
+                "INFO",
+                "--logfile","server_files/shared_private/celery.log", 
+                "--pool",
+                "gevent",
+                "-E"
+            ]
+        },]
+    
+        , "compounds": [
+            {
+                "name": "Server with celery",
+                "configurations": [ "Celery", "Python: Webapp"]
+            }
+        ]
 }

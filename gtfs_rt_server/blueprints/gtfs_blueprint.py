@@ -138,7 +138,7 @@ def upload_gtfs():
         )
         with open(excel_file_perm_path, "wb") as excel_file_perm:
             excel_file_perm.write(excel_file.read())
-        
+
         generate_gtfs_from_xlsx.delay( task_id, excel_file_perm_path)
 
         return task_id 

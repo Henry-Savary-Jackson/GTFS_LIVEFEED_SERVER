@@ -12,8 +12,8 @@ gunicorn
 Flask-APScheduler
 flask-socketio
 flask-wtf
-eventlet
 flask-redis
 celery
 flower
+gevent
 Flask-HTTPAuth

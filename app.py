@@ -1,5 +1,5 @@
-# import eventlet
-# eventlet.monkey_patch()
+# import gevent 
+# gevent.monkey.patch_all()
 
 from gtfs_rt_server import  init_app, socketio
 from gtfs_rt_server.db_utils import insert_user, add_role, get_user_by_username, set_feed_password

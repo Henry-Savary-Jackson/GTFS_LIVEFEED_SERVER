@@ -355,3 +355,5 @@ export var system_languages = [
     createLangObject("Tsonga", "ts"),
     createLangObject("Tswana", "tn"),
     createLangObject("Venda", "ve")]
+
+export var region_name  = ""; 

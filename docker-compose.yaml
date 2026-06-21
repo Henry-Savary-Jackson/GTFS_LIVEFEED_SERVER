@@ -6,6 +6,7 @@ services:
       context: .
       args:
         - REGION=wc
+        - REGION_NAME=Western Cape
         - PORT=5000
     ports:
       - 5000:5000
@@ -15,13 +16,14 @@ services:
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
-      C_FORCE_ROOT: "true"
+      REDIS_DB: 0
 
   durb: 
     build:
       context: .
       args:
         - REGION=durb
+        - REGION_NAME=Durban
         - PORT=5002
     ports:
       - 5002:5000
@@ -31,13 +33,14 @@ services:
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
-      C_FORCE_ROOT: "true"
+      REDIS_DB: 1
 
   gaut:
     build:
       context: .
       args:
         - REGION=gaut
+        - REGION_NAME=Gauteng
         - PORT=5001
     ports:
       - 5001:5000
@@ -47,7 +50,7 @@ services:
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
-      C_FORCE_ROOT: "true"
+      REDIS_DB: 2
 
 
 

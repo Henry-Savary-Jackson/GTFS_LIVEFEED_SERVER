@@ -29,7 +29,8 @@ class Config(object):
     FEEDS_LOCATION = SHARED_PRIVATE_FOLDER 
     REDIS_HOST=os.getenv("REDIS_HOST") or "localhost"
     REDIS_PORT = os.getenv("REDIS_PORT") or 6379 
-    REDIS_URL=f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    REDIS_DB = os.getenv("REDIS_DB") or 0
+    REDIS_URL=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
     # SCHEDULER_JOBSTORES={ 
         # "default":MemoryJobStore(),
     # } 

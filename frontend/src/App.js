@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
-import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert, getTimeSinceLastGTFS } from './Utils'
+import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert, getTimeSinceLastGTFS, region_name } from './Utils'
 import { getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -365,6 +365,7 @@ export function Main({ logout_cookie }) {
 
 
   return <Stack gap={4} className='d-flex flex-column align-items-center justify-content-center' >
+    <h1>{region_name}'s GTFS server</h1>
     <Image src='static/prasa-main.png' width={250} height={100} />
     {roles.includes("gtfs") && <Link className='btn btn-primary' to="upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
     <Button href='gtfs/gtfs.xlsx'><Image src="static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
@@ -386,7 +387,7 @@ export function Main({ logout_cookie }) {
         }
       } finally {
         logout_cookie()
-        window.location.pathname = "/"
+        window.location.pathname = "./"
       }
     }} href='/auth/logout'>Logout</Button>
     <Feed />

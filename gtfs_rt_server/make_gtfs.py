@@ -47,7 +47,7 @@ def validate_gtfs(validator_path, zipfile_path, result_path, update_method=None)
         if process.returncode != 0:
             raise Exception(f"error:\n{stderr}")
         else:
-            print(stdout)
+            print("done:",stdout)
             if update_method:
                 update_method(status="working", message=stdout or "")
 
