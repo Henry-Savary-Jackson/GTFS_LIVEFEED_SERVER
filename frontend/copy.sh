@@ -1,11 +1,11 @@
 #!/bin/bash
 
-
-export REACT_APP_REGION_NAME=$1
+export REACT_APP_REGION_NAME=$2
 export REACT_APP_REGION=$1
-echo $REACT_APP_REGION $REACT_APP_REGION_NAME
 npm run build
-rm ../server_files/static/js/*
-cp -r build/static/* ../server_files/static/
-cp -f build/static_wc/* ../server_files/static/
-cp -f build/index.html  ../gtfs_rt_server/templates/index.html
+rm ../server_files/static/$REACT_APP_REGION/js/*
+cp public/static/*  ../server_files/static/
+mkdir -p ../server_files/static/$REACT_APP_REGION/static/js/
+cp -r build/static/js/* ../server_files/static/$REACT_APP_REGION/static/js/
+cp -f build/static_$REACT_APP_REGION/* ../server_files/static/$REACT_APP_REGION/
+cp -f build/index.html  ../server_files/static/$REACT_APP_REGION/index.html

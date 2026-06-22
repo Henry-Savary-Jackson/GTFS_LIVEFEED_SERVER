@@ -9,6 +9,7 @@ FILE_DIR = os.path.dirname(__file__)
 class Config(object):
     FLASK_ENV = "production"
     SERVER_FILES = os.path.join(FILE_DIR, "server_files")
+    GLOBAL_FILES = os.path.join(SERVER_FILES, "global")
     STATIC_FOLDER = os.path.join(SERVER_FILES, "static")
     SHARED_FOLDER = os.path.join(STATIC_FOLDER, "shared")
     SHARED_PRIVATE_FOLDER = os.path.join(SERVER_FILES, "shared_private")
@@ -20,20 +21,15 @@ class Config(object):
     ADMIN_PASS = os.getenv("ADMIN_PASS")
     PRASA_ADMIN_USERNAME = os.getenv("PRASA_ADMIN_USERNAME")
     PRASA_ADMIN_PASS = os.getenv("PRASA_ADMIN_PASS")
-    FEED_USERNAME= os.getenv("FEED_USERNAME")
-    FEED_PASSWORD= os.getenv("FEED_PASSWORD")
     SQLALCHEMY_DATABASE_URI = (
         f"sqlite:///{os.path.join(SHARED_PRIVATE_FOLDER, "gtfs.sqlite3")}"
     )
-    GTFS_VALIDATOR_PATH = os.path.join(SERVER_FILES, "gtfs-validator-6.0.0-cli.jar")
+    GTFS_VALIDATOR_PATH = os.path.join(GLOBAL_FILES, "gtfs-validator-6.0.0-cli.jar")
     FEEDS_LOCATION = SHARED_PRIVATE_FOLDER 
     REDIS_HOST=os.getenv("REDIS_HOST") or "localhost"
     REDIS_PORT = os.getenv("REDIS_PORT") or 6379 
     REDIS_DB = os.getenv("REDIS_DB") or 0
     REDIS_URL=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-    # SCHEDULER_JOBSTORES={ 
-        # "default":MemoryJobStore(),
-    # } 
     CELERY = dict(
         track_started=True,
         broker_url=REDIS_URL,

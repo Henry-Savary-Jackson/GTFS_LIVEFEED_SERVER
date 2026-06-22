@@ -3,7 +3,7 @@
   "name": "GTFS Feed server",
   "icons": [
     {
-      "src": "/static/prasa-icon.svg",
+      "src": "./prasa-icon.svg",
       "sizes": "525x525",
       "type": "image/x-icon"
     }

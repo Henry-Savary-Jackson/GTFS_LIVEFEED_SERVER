@@ -115,12 +115,11 @@ def create_login_manager(app):
     return login_manager
 
 def register_blueprints(app):
-    from gtfs_rt_server.blueprints import excel_blueprint,auth_blueprint, db_blueprint, feed_blueprint, gtfs_blueprint, page_blueprint
+    from gtfs_rt_server.blueprints import excel_blueprint,auth_blueprint, db_blueprint, feed_blueprint, gtfs_blueprint
     app.register_blueprint(auth_blueprint.auth_bp)
     app.register_blueprint(db_blueprint.db_bp)
     app.register_blueprint(feed_blueprint.feed_bp)
     app.register_blueprint(gtfs_blueprint.gtfs_blueprint)
-    app.register_blueprint(page_blueprint.page_bp)
     app.register_blueprint(excel_blueprint.excel_bp)
 
 def init_db(app,db):

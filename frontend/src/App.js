@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer, useContext } from 'react';
-import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert, getTimeSinceLastGTFS, region_name } from './Utils'
+import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEntity, setCSRFToken, get_csrf, getTripsToRouteID, getRoutes, getRoutesIDToNames, getStopTimesofTrip, convertTimeStrToDate, convertTimeStrToUNIXEpoch, doActionWithAlert, getTimeSinceLastGTFS, region_name, region_code } from './Utils'
 import { getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
@@ -301,7 +301,7 @@ export function Feed() {
 
 
 export default function App() {
-  let path = axios.defaults.baseURL
+  let path = `/${region_code}`
   let [cookies, setCookies, removeCookie] = useCookies()
   let [user, setUser] = useState(cookies.username || "")
   let [roles, setRoles] = useState(cookies.roles ? cookies.roles.split(",") : [])
@@ -329,7 +329,7 @@ export default function App() {
     setCookies("roles", roles.join(","), {path:path})
   }
 
-  return <BrowserRouter basename={axios.defaults.baseURL}>
+  return <BrowserRouter basename={path}>
     <UserContext.Provider value={[user, setUserCallback]}>
       <RolesContext.Provider value={[roles, setRolesCallback]}>
         <AlertsProvider>
@@ -366,11 +366,11 @@ export function Main({ logout_cookie }) {
 
   return <Stack gap={4} className='d-flex flex-column align-items-center justify-content-center' >
     <h1>{region_name}'s GTFS server</h1>
-    <Image src='static/prasa-main.png' width={250} height={100} />
+    <Image src='/prasa-main.png' width={250} height={100} />
     {roles.includes("gtfs") && <Link className='btn btn-primary' to="upload_gtfs">Upload GTFS permanent schedules excel file </Link>}
-    <Button href='gtfs/gtfs.xlsx'><Image src="static/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
+    <Button href={`${axios.defaults.baseURL}/gtfs/gtfs.xlsx`}><Image src="/xlsx-logo.png" width={30} height={35} />Latest Excel file </Button>
     <span>(last modified : {(time_last_sched && `${time_last_sched.toDateString()} ${time_last_sched.toLocaleTimeString()}`) || ""})</span>
-    <Button href='gtfs/gtfs.zip'><Image src="static/zip-file.svg" width={30} height={35} />GTFS zip for permanent schedules</Button>
+    <Button href={`${axios.defaults.baseURL}/gtfs/gtfs.zip`}><Image src="/zip-file.svg" width={30} height={35} />GTFS zip for permanent schedules</Button>
     {roles.includes("admin") && <Link className='btn btn-primary mt-2' to="list_user">Manage user access </Link>}
     {roles.includes("excel") && <Link className='btn btn-primary' to="list_excel">Manage tracking excels</Link>}
     {roles.includes("edit") && <Link className=' btn btn-primary' to="service_alert">Create new Service Alert</Link>}
@@ -391,6 +391,6 @@ export function Main({ logout_cookie }) {
       }
     }} href='/auth/logout'>Logout</Button>
     <Feed />
-    <Image src='static/lines.png' width={500} height={500} />
+    <Image src='lines.png' width={500} height={500} />
   </Stack>
 }

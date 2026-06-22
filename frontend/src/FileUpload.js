@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import {  Button } from 'react-bootstrap'
+import { Button , Stack} from 'react-bootstrap'
+import { Link } from 'react-router';
 import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
 import { alertsContext } from './Globals';
 import { io, Socket } from "socket.io-client"
@@ -60,6 +61,9 @@ export function UploadsGTFS() {
 
 
     return <div >
+        <Stack gap={3} className=' d-flex flex-column position-fixed top-50 start-0'>
+            <Link className='btn btn-primary' to="../">⬅️ Go back to main page</Link>
+        </Stack>
         <form className='container d-flex flex-column align-items-center gap-5 fs-3 justify-content-center' onSubmit={async (e) => {
             e.preventDefault()
             if (files.length === 0) {
@@ -74,7 +78,7 @@ export function UploadsGTFS() {
                 setText("")
                 setStatus("working")
                 if (socketRef.current) {
-                    
+
                     socketRef.current.disconnect()
                     socketRef.current.connect()
                     socketRef.current.emit("join-room", { "room": task_id })

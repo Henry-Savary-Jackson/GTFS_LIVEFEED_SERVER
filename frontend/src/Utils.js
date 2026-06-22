@@ -357,3 +357,4 @@ export var system_languages = [
     createLangObject("Venda", "ve")]
 
 export var region_name  = ""; 
+export var region_code = "";

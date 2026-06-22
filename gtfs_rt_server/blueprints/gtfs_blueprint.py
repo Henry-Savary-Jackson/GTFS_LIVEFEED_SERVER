@@ -15,7 +15,6 @@ import datetime
 from gtfs_rt_server import db,  socketio, has_roles, has_any_role, redis , global_app
 from gtfs_rt_server.make_gtfs import generate_gtfs_zip, add_gtfs_tables_to_db, has_errors
 from threading import Thread, Lock
-from gtfs_rt_server.db_utils import check_feed_password
 from gtfs_rt_server.redis_utils import publish_event, publish_kill,listen_to_redis_pubsub 
 from flask import current_app, send_file
 from flask_socketio import join_room
@@ -114,13 +113,6 @@ def get_gtfs_validation_report():
 
 @gtfs_blueprint.get("/google_gtfs")
 def get_gtfs_zip_google():
-    # username = request.args.get("username", None)
-    # password = request.args.get("password", None)
-    # try :
-    #     if not check_feed_password(username=username, password=password):
-    #         return f"Wrong username for {username}",403
-    # except ValueError as e:
-    #     return str(e), 400
     return send_file(current_app.config["GTFS_ZIP_PATH"])
     
 

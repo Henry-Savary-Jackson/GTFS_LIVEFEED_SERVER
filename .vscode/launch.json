@@ -21,6 +21,7 @@
             "program": ".venv/bin/gunicorn",
             "gevent": true,
             "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
             "args": [
                 "app:app",
                 "--bind=127.0.0.1:5000",
@@ -39,6 +40,7 @@
             "module": "celery",
             "console": "integratedTerminal",
             "env": {"GEVENT_SUPPORT":"True"},
+            "envFile": "${workspaceFolder}/.env",
             "args": [
                 "--app",
                 "app.celery_app",
