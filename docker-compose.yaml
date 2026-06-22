@@ -4,10 +4,7 @@ services:
   wc: 
     build:
       context: .
-      args:
-        - REGION=wc
-        - REGION_NAME=Western Cape
-        - PORT=5000
+    image: hsj/gtfsserver:latest
     ports:
       - 5000:5000
     volumes:
@@ -16,6 +13,7 @@ services:
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
+      REGION: wc
       REDIS_DB: 0
     env_file:
       - wc.env
@@ -23,10 +21,7 @@ services:
   durb: 
     build:
       context: .
-      args:
-        - REGION=durb
-        - REGION_NAME=Durban
-        - PORT=5002
+    image: hsj/gtfsserver:latest
     ports:
       - 5002:5000
     volumes:
@@ -36,16 +31,14 @@ services:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
       REDIS_DB: 1
+      REGION: durb
     env_file:
       - durb.env
 
   gaut:
     build:
       context: .
-      args:
-        - REGION=gaut
-        - REGION_NAME=Gauteng
-        - PORT=5001
+    image: hsj/gtfsserver:latest
     env_file:
       - gaut.env
     ports:
@@ -56,11 +49,9 @@ services:
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
+      REGION: gaut 
       REDIS_DB: 2
       
-
-
-
   redis_db:
     image:
       "redis"

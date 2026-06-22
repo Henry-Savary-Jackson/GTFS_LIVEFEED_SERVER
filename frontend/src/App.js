@@ -3,7 +3,7 @@ import { sendTripUpdate, getFeedMessage, logout, getHtmlForEntity, deleteFeedEnt
 import { getUpdatesWithStopTimes, TripUpdate } from './TripUpdate';
 import { ServiceAlert } from './ServiceAlert';
 import { Link, BrowserRouter, Routes, Route } from "react-router-dom";
-import { UserContext, RolesContext, alertsContext } from './Globals';
+import { UserContext, RolesContext, alertsContext, CSRFContext } from './Globals';
 import { transit_realtime } from "gtfs-realtime-bindings"
 import { LoginForm } from './Login';
 import { useCookies } from 'react-cookie'
@@ -305,15 +305,17 @@ export default function App() {
   let [cookies, setCookies, removeCookie] = useCookies()
   let [user, setUser] = useState(cookies.username || "")
   let [roles, setRoles] = useState(cookies.roles ? cookies.roles.split(",") : [])
+  let [csrf, setCSRF] = useState("")
 
- 
-  let logout_cookie = () => { removeCookie("username", {path:path}); removeCookie("roles", {path:path}); setUser("") }
+
+  let logout_cookie = () => { removeCookie("username", { path: path }); removeCookie("roles", { path: path }); setUser("") }
 
   useEffect(() => {
     // fetch the csrf token asynchronously
     async function funcSetCSRF() {
       let token = await get_csrf()
       setCSRFToken(token)
+      setCSRF(token)
     }
     funcSetCSRF()
   }, [])
@@ -322,32 +324,34 @@ export default function App() {
 
   function setUserCallback(username) {
     setUser(username)
-    setCookies("username", username, {path:path})
+    setCookies("username", username, { path: path })
   }
   function setRolesCallback(roles) {
     setRoles(roles)
-    setCookies("roles", roles.join(","), {path:path})
+    setCookies("roles", roles.join(","), { path: path })
   }
 
   return <BrowserRouter basename={path}>
     <UserContext.Provider value={[user, setUserCallback]}>
       <RolesContext.Provider value={[roles, setRolesCallback]}>
-        <AlertsProvider>
-          <Routes>
-            <Route path='/'>
-              <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
-              <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
-              <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
-              <Route path='upload_gtfs' element={user && roles.includes("gtfs") ? <UploadsGTFS /> : <LoginForm />} />
-              <Route path='add_user' element={user && roles.includes("admin") ? <AddUserForm /> : <LoginForm />} />
-              <Route path='list_user' element={user && roles.includes("admin") ? <UserList /> : <LoginForm />} />
-              <Route path='list_excel' element={user && roles.includes("excel") ? <ExcelList /> : <LoginForm />} />
-            </Route>
-          </Routes>
-        </AlertsProvider>
+        <CSRFContext.Provider value={[csrf, setCSRF]}>
+          <AlertsProvider>
+            <Routes>
+              <Route path='/'>
+                <Route index element={user ? <Main logout_cookie={logout_cookie} /> : <LoginForm />} />
+                <Route path='trip_update' element={user ? <TripUpdate /> : <LoginForm />} />
+                <Route path='service_alert' element={user ? <ServiceAlert /> : <LoginForm />} />
+                <Route path='upload_gtfs' element={user && roles.includes("gtfs") ? <UploadsGTFS /> : <LoginForm />} />
+                <Route path='add_user' element={user && roles.includes("admin") ? <AddUserForm /> : <LoginForm />} />
+                <Route path='list_user' element={user && roles.includes("admin") ? <UserList /> : <LoginForm />} />
+                <Route path='list_excel' element={user && roles.includes("excel") ? <ExcelList /> : <LoginForm />} />
+              </Route>
+            </Routes>
+          </AlertsProvider>
+        </CSRFContext.Provider>
       </RolesContext.Provider>
     </UserContext.Provider>
-  </BrowserRouter>
+  </BrowserRouter >
 }
 
 export function Main({ logout_cookie }) {

@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { Button , Stack} from 'react-bootstrap'
 import { Link } from 'react-router';
 import { getGTFSStatus, submitGTFS, doActionWithAlert } from './Utils';
-import { alertsContext } from './Globals';
+import { alertsContext, CSRFContext } from './Globals';
 import { io, Socket } from "socket.io-client"
 import { ExcelList } from './Excel';
 import axios from 'axios';
@@ -17,6 +17,7 @@ export function UploadsGTFS() {
     let socketRef = useRef(null)
 
     let [alerts, popUpAlert] = useContext(alertsContext)
+    let [csrf, setCSRF] = useContext(CSRFContext)
 
     const onMessage = (event) => {
         setText((prevText) => prevText + "\n" + event.message)
@@ -72,7 +73,7 @@ export function UploadsGTFS() {
             }
             let file = files[0]
             await doActionWithAlert(async () => {
-                let task_id = await submitGTFS(file)
+                let task_id = await submitGTFS(file, csrf)
                 setHasValidationReport(false)
                 setUploading(true)
                 setText("")

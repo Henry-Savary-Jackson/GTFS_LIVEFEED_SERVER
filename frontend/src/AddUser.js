@@ -1,6 +1,6 @@
 import { useContext, useEffect, useReducer, useState } from 'react';
 import { add_user, delete_user, get, list_users, modify_user } from './Utils.js';
-import { alertsContext, UserContext } from './Globals.js';
+import { alertsContext, CSRFContext, UserContext } from './Globals.js';
 import { Link, useLocation } from 'react-router';
 import { Button, FormGroup, ListGroupItem, Stack, Form, ListGroup, FormLabel, FloatingLabel, Container } from 'react-bootstrap';
 import FormCheckInput from 'react-bootstrap/esm/FormCheckInput.js';
@@ -71,6 +71,7 @@ export function AddUserForm() {
     const fixed_roles = [new RoleUI("view", true), new RoleUI("edit"), new RoleUI("gtfs"), new RoleUI("excel"), new RoleUI("admin")]
 
     let [alertVal, popUpAlert] = useContext(alertsContext)
+    let [csrf, setCSRF] = useContext(CSRFContext)
     // let [error, setError] = useState("")
     let [username, setUsername] = useState(user ? user.username : "")
     let [password, setPassword] = useState("")
@@ -111,7 +112,7 @@ export function AddUserForm() {
                     popUpAlert({ "message": "Your password must have atleast 10 characters.", "type": "error" })
                     return
                 }
-                await add_user(username, password, roles.filter((val) => val.active).map((val) => val.short_name))
+                await add_user(username, password, roles.filter((val) => val.active).map((val) => val.short_name), csrf)
             }
             popUpAlert({ "message": "Successfully added this user.", "type": "success" })
         } catch (error) {

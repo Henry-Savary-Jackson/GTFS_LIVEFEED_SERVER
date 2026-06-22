@@ -20,15 +20,15 @@ async function performRequest(callback) {
     }
 }
 
-export async function login(username, password, remember_me) {
+export async function login(username, password, remember_me, csrf) {
     return await performRequest(async () => {
-        return await axios.postForm("/auth/login", { "username": username, "password": password, "remember_me": remember_me }, { withCredentials: true })
+        return await axios.postForm("/auth/login", { "username": username, "password": password, "remember_me": remember_me, "csrf_token":csrf }, { withCredentials: true })
     })
 }
 
-export async function add_user(username, password, roles) {
+export async function add_user(username, password, roles, csrf) {
     return await performRequest(async () => {
-        return await axios.postForm("/auth/add_user", { "username": username, "password": password, "roles": roles }, { withCredentials: true })
+        return await axios.postForm("/auth/add_user", { "username": username, "password": password, "roles": roles, "csrf_token":csrf }, { withCredentials: true })
     })
 }
 
@@ -37,9 +37,9 @@ export async function list_users() {
         return (await axios.get("/auth/list_users", { withCredentials: true })).data
     })
 }
-export async function modify_user(user_id, username, password, roles) {
+export async function modify_user(user_id, username, password, roles, csrf) {
     return await performRequest(async () => {
-        return await axios.putForm("/auth/modify_user", { "user_id":user_id, "username": username, "password": password, "roles": roles }, { withCredentials: true })
+        return await axios.putForm("/auth/modify_user", { "user_id":user_id, "username": username, "password": password, "roles": roles , "csrf_token":csrf}, { withCredentials: true })
     })
 }
 export async function delete_user( username) {
@@ -277,10 +277,11 @@ export async function delete_excel_file(filename){
         return (await axios.delete(`/excel/${encodeURIComponent(filename)}`, {withCredentials:true})).data
     })
 }
-export async function submitGTFS(file_data) {
+export async function submitGTFS(file_data,csrf) {
     return await performRequest(async () => {
         let formdata = new FormData()
         formdata.append("file", file_data)
+        formdata.append("_csrf_token",csrf )
         return( await axios.postForm("/gtfs/upload_gtfs", formdata, {
             withCredentials: true,
         })).data

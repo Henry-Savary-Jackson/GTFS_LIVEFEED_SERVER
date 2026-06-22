@@ -63,7 +63,7 @@ export function ExcelList() {
         </Stack>
         <Stack className='d-flex flex-column  align-items-center 
                         justify-content-center' ><span>List of all the summary excels</span><ListGroup  >
-                {excel_files.map((val, i) => <ListGroupItem key={i} ><a href={`/excel/${val}`} >{val} </a><Button onClick={async(e) => { await delete_excel_file(val); await reload_excels()  }} variant='danger'>X</Button></ListGroupItem>)}
+                {excel_files.map((val, i) => <ListGroupItem key={i} ><a href={`${axios.defaults.baseURL}/excel/${val}`} >{val} </a><Button onClick={async(e) => { await delete_excel_file(val); await reload_excels()  }} variant='danger'>X</Button></ListGroupItem>)}
             </ListGroup>
             <Button disabled={loading} onClick={async (e) => {
                 try {

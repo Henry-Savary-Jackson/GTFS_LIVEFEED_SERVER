@@ -122,10 +122,11 @@ def register_blueprints(app):
     app.register_blueprint(gtfs_blueprint.gtfs_blueprint)
     app.register_blueprint(excel_blueprint.excel_bp)
 
-def init_db(app,db):
+def init_db(app,db, init=True):
     db.init_app(app)
-    with app.app_context():
-        db.create_all()
+    if init:
+        with app.app_context():
+            db.create_all()
 
 def init_csrf(app):
     return CSRFProtect(app)
@@ -173,7 +174,7 @@ def init_celery_app(app):
     app.extensions["celery"] =celery_app 
     return celery_app 
 
-def init_app():
+def init_app(db_init=False):
     global db
 
     app = create_app()
@@ -188,7 +189,7 @@ def init_app():
     app.config["feed_positions_location"] = Path(app.config["FEEDS_LOCATION"]) / "positions.bin"
 
     login_manager = create_login_manager(app)
-    init_db(app, db)
+    init_db(app, db, init=db_init)
     init_CORS(app)
 
     if app.config["WTF_CSRF_ENABLED"]:
@@ -198,6 +199,6 @@ def init_app():
     init_sockiet_io(app)
     init_flask_redis(app)
     register_blueprints(app)
-    celery_app = init_celery_app(app)
-    return app, celery_app 
+    init_celery_app(app)
+    return app
 

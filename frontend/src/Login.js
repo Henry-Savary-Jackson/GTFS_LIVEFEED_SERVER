@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { login } from './Utils.js';
-import { RolesContext, UserContext } from './Globals.js';
+import { CSRFContext, RolesContext, UserContext } from './Globals.js';
 
 export function LoginForm() {
     let [user, setUser] = useContext(UserContext)
@@ -10,11 +10,12 @@ export function LoginForm() {
     let [username, setUsername] = useState("")
     let [password, setPassword] = useState("")
     let [remember_me, setRememberMe] = useState(true)
+    let [csrf, setCSRF]  = useContext(CSRFContext)
 
     return <form className='container gap-3 d-flex flex-column align-items-center justify-content-center' onSubmit={async (e) => {
         e.preventDefault()
         try {
-            let roles = (await login(username, password, remember_me)).data
+            let roles = (await login(username, password, remember_me,csrf)).data
             setRoles(roles)
             setUser(username)
             window.location.reload()
