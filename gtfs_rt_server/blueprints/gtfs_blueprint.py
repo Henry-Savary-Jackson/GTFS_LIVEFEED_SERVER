@@ -114,13 +114,13 @@ def get_gtfs_validation_report():
 
 @gtfs_blueprint.get("/google_gtfs")
 def get_gtfs_zip_google():
-    username = request.args.get("username", None)
-    password = request.args.get("password", None)
-    try :
-        if not check_feed_password(username=username, password=password):
-            return f"Wrong username for {username}",403
-    except ValueError as e:
-        return str(e), 400
+    # username = request.args.get("username", None)
+    # password = request.args.get("password", None)
+    # try :
+    #     if not check_feed_password(username=username, password=password):
+    #         return f"Wrong username for {username}",403
+    # except ValueError as e:
+    #     return str(e), 400
     return send_file(current_app.config["GTFS_ZIP_PATH"])
     
 
