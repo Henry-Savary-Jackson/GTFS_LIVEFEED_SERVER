@@ -11,8 +11,8 @@ services:
     ports:
       - 5000:5000
     volumes:
-      - ./server_files/wc/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/wc/shared_private:/flask-app/server_files/shared_private
+      - ./server_files/shared_private/wc:/flask-app/server_files/shared_private
+      - ./server_files/shared_private/global/gtfs-validation-6.0.0-cli.jar:/flask-app/server_files/shared_private/gtfs-validation-6.0.0-cli.jar
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
@@ -28,8 +28,8 @@ services:
     ports:
       - 5002:5000
     volumes:
-      - ./server_files/durb/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/durb/shared_private:/flask-app/server_files/shared_private
+      - ./server_files/shared_private/global/gtfs-validation-6.0.0-cli.jar:/flask-app/server_files/shared_private/gtfs-validation-6.0.0-cli.jar
+      - ./server_files/shared_private/durb:/flask-app/server_files/shared_private
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
@@ -45,8 +45,8 @@ services:
     ports:
       - 5001:5000
     volumes:
-      - ./server_files/gaut/static/shared:/flask-app/server_files/static/shared
-      - ./server_files/gaut/shared_private:/flask-app/server_files/shared_private
+      - ./server_files/shared_private/gaut:/flask-app/server_files/shared_private
+      - ./server_files/shared_private/global:/flask-app/server_files/shared_private/global
     environment:
       REDIS_HOST: redis_db
       REDIS_PORT: 6379 
