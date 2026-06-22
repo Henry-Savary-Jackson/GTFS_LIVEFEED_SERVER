@@ -94,12 +94,12 @@ export function UploadsGTFS() {
 
             {status && status !== "done" && <textarea id="status-text-area" onChange={(e) => e.target.scrollTop = e.target.scrollHeight} readOnly className='border-2 border-primary rounded w-100 fs-4 form-control' style={{ "height": "450px" }} value={text || ""}></textarea>}
 
-            <Button href='gtfs/report'>Latest validation report</Button>
+            <Button href={`${axios.defaults.baseURL}/gtfs/report`}>Latest validation report</Button>
             {
                 status && status === "done" && <div className='d-flex flex-column align-items-center'>
                     Success!
-                    < a href='gtfs/gtfs.zip'>Zip file</a>
-                    <a href='gtfs/report'>Validation report</a>
+                    < a href={`${axios.defaults.baseURL}/gtfs/gtfs.zip`}>Zip file</a>
+                    <a href={`${axios.defaults.baseURL}/gtfs/report`}>Validation report</a>
                 </div>}
             {status && status === "error" && <div className='d-flex flex-column align-items-center'><span style={{ "color": "red" }}>Error!</span>
                 {validationReport && <a href='gtfs/report'>Validation report</a>
