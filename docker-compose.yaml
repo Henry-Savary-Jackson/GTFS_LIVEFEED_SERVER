@@ -19,8 +19,6 @@ services:
       - wc.env
 
   durb: 
-    build:
-      context: .
     image: hsj/gtfsserver:latest
     ports:
       - 5002:5000
@@ -36,8 +34,6 @@ services:
       - durb.env
 
   gaut:
-    build:
-      context: .
     image: hsj/gtfsserver:latest
     env_file:
       - gaut.env
@@ -52,6 +48,21 @@ services:
       REGION: gaut 
       REDIS_DB: 2
       
+  ec:
+    image: hsj/gtfsserver:latest
+    env_file:
+      - ec.env
+    ports:
+      - 5003:5000
+    volumes:
+      - ./server_files/global:/flask-app/server_files/global
+      - ./server_files/shared_private/ec:/flask-app/server_files/shared_private
+    environment:
+      REDIS_HOST: redis_db
+      REDIS_PORT: 6379 
+      REGION: ec 
+      REDIS_DB: 3
+
   redis_db:
     image:
       "redis"
